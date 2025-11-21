@@ -1,0 +1,18 @@
+[Unit]
+Description=HDMI Display Manager for Business Hours
+After=graphical.target network.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+Environment=DISPLAY=:0
+Environment=XAUTHORITY=/home/pi/.Xauthority
+ExecStart=/usr/bin/bash /home/pi/hdmi_display_manager.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=graphical.target
