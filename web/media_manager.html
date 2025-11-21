@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bankshot Media Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1a8c3a 0%, #0d5c26 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1a8c3a 0%, #0d5c26 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        header .logo {
+            max-width: 300px;
+            height: auto;
+            margin: 0 auto 20px;
+            display: block;
+        }
+
+        header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .upload-section {
+            background: #f7f9fc;
+            border: 2px dashed #1a8c3a;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+
+        .upload-section:hover {
+            border-color: #0d5c26;
+            background: #f0f8f4;
+        }
+
+        .upload-section.dragover {
+            background: #e8f5e9;
+            border-color: #0d5c26;
+        }
+
+        .url-section {
+            background: #f0f9ff;
+            border: 2px solid #0ea5e9;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .url-input-group {
+            display: flex;
+            gap: 10px;
+            max-width: 600px;
+            margin: 20px auto 0;
+        }
+
+        .url-input {
+            flex: 1;
+            padding: 12px 20px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .url-input:focus {
+            outline: none;
+            border-color: #0ea5e9;
+        }
+
+        .upload-button {
+            background: linear-gradient(135deg, #1a8c3a 0%, #0d5c26 100%);
+            color: white;
+            padding: 15px 40px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .upload-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(26, 140, 58, 0.4);
+        }
+
+        .add-url-button {
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+            white-space: nowrap;
+        }
+
+        .add-url-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(14, 165, 233, 0.4);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .media-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .media-card {
+            background: white;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: move;
+            position: relative;
+        }
+
+        .media-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .media-card.dragging {
+            opacity: 0.5;
+        }
+
+        .media-card.drag-over {
+            border: 2px solid #667eea;
+            transform: scale(1.05);
+        }
+
+        .media-card.url-card {
+            border-left: 4px solid #0ea5e9;
+        }
+
+        .drag-handle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            z-index: 10;
+            cursor: move;
+        }
+
+        .order-badge {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: linear-gradient(135deg, #1a8c3a 0%, #0d5c26 100%);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            z-index: 10;
+        }
+
+        .media-preview {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #000;
+        }
+
+        .url-preview {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+        }
+
+        .media-info {
+            padding: 15px;
+        }
+
+        .media-name {
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .media-url {
+            font-size: 0.85rem;
+            color: #0ea5e9;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+        .media-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .media-controls label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .media-controls input[type="number"] {
+            width: 80px;
+            padding: 5px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .media-controls span {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn-save {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #059669;
+        }
+
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #1a8c3a 0%, #0d5c26 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(26, 140, 58, 0.3);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            opacity: 0.9;
+        }
+
+        .day-time-schedule {
+            margin: 12px 0;
+            padding: 10px;
+            background: #f7f9fc;
+            border-radius: 6px;
+        }
+
+        .day-time-schedule label.section-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #333;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .day-time-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+        }
+
+        .day-checkbox-label {
+            display: inline-flex;
+            align-items: center;
+            min-width: 50px;
+            font-size: 0.85rem;
+        }
+
+        .day-checkbox-label input[type="checkbox"] {
+            margin-right: 4px;
+        }
+
+        .time-inputs {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+        }
+
+        .time-inputs input[type="time"] {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            width: 90px;
+        }
+
+        .time-inputs span {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .schedule-mode-toggle {
+            margin-bottom: 12px;
+        }
+
+        .schedule-mode-toggle label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: #333;
+            cursor: pointer;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #10b981;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <img src="Bankshot_Logo.png" alt="Bankshot Bar & Billiards" class="logo">
+            <h1>Media Manager</h1>
+            <p>Upload media, add URLs, and manage your display content</p>
+        </header>
+
+        <div class="content">
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value" id="totalMedia">0</div>
+                    <div class="stat-label">Total Items</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="activeMedia">0</div>
+                    <div class="stat-label">Active</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="totalDuration">0s</div>
+                    <div class="stat-label">Total Duration</div>
+                </div>
+            </div>
+
+            <div class="url-section">
+                <h2 style="margin-bottom: 10px; color: #0284c7;">🔗 Add Website URL or Local Path</h2>
+                <p style="color: #666; margin-bottom: 15px;">
+                    Enter a website URL or local path to display in your rotation<br>
+                    <small>Examples: https://example.com or /calcutta.html</small>
+                </p>
+                <div class="url-input-group">
+                    <input type="url" 
+                           id="urlInput" 
+                           class="url-input" 
+                           placeholder="https://example.com or /calcutta.html"
+                           onkeypress="if(event.key === 'Enter') addURL()">
+                    <button class="add-url-button" onclick="addURL()">Add URL</button>
+                </div>
+            </div>
+
+            <div class="upload-section" id="uploadSection">
+                <h2 style="margin-bottom: 15px;">📤 Upload Media</h2>
+                <p style="color: #666; margin-bottom: 20px;">
+                    Drag & drop files here or click to browse<br>
+                    <small>Supports: JPG, PNG, GIF, MP4, WEBM</small>
+                </p>
+                <button class="upload-button" onclick="document.getElementById('fileInput').click()">
+                    Choose Files
+                </button>
+                <input type="file" id="fileInput" accept="image/*,video/*" multiple onchange="handleFiles(this.files)">
+            </div>
+
+            <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                <p style="color: #856404; margin: 0;">
+                    <strong>💡 Tip:</strong> Drag and drop cards to reorder them! The display order matches the order shown here.
+                </p>
+            </div>
+
+            <div id="mediaContainer">
+                <div class="empty-state">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    <h3>No content added yet</h3>
+                    <p>Upload media or add a URL to get started</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let mediaItems = [];
+        let draggedItem = null;
+
+        // Load existing media on page load
+        window.onload = function() {
+            loadMedia();
+        };
+
+        // Add URL function
+        function addURL() {
+            const urlInput = document.getElementById('urlInput');
+            const url = urlInput.value.trim();
+            
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            
+            // Validate URL - accept full URLs or local paths starting with /
+            let isValid = false;
+            let cleanName = '';
+            
+            if (url.startsWith('/')) {
+                // Local path like /calcutta.html
+                isValid = true;
+                cleanName = url.substring(1, 50); // Remove leading slash for display name
+            } else {
+                // Full URL like https://example.com
+                try {
+                    new URL(url);
+                    isValid = true;
+                    cleanName = url.replace(/^https?:\/\//, '').substring(0, 50);
+                } catch (e) {
+                    isValid = false;
+                }
+            }
+            
+            if (!isValid) {
+                alert('Please enter a valid URL (e.g., https://example.com or /calcutta.html)');
+                return;
+            }
+            
+            // Create URL item
+            const urlItem = {
+                id: Date.now() + Math.random(),
+                name: cleanName,
+                type: 'url',
+                url: url,
+                duration: 20,
+                active: true,
+                displayOnAds: true,
+                displayOnTournaments: true,
+                usePerDaySchedule: false,
+                scheduleDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                scheduleStartTime: '00:00',
+                scheduleEndTime: '23:59',
+                daySchedules: {
+                    Mon: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                    Tue: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                    Wed: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                    Thu: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                    Fri: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                    Sat: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                    Sun: { enabled: true, startTime: '00:00', endTime: '23:59' }
+                },
+                order: mediaItems.length
+            };
+            
+            mediaItems.push(urlItem);
+            saveMedia();
+            renderMedia();
+            
+            urlInput.value = '';
+            console.log('Added URL:', url);
+        }
+
+        // Drag and drop handlers for file upload
+        const uploadSection = document.getElementById('uploadSection');
+        
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            handleFiles(e.dataTransfer.files);
+        });
+
+        function handleFiles(files) {
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+                    uploadFileToServer(file);
+                } else {
+                    alert('Please upload only images or videos');
+                }
+            });
+        }
+
+        function uploadFileToServer(file) {
+            console.log('Starting upload for:', file.name, 'Size:', file.size);
+            
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const tempId = Date.now() + Math.random();
+            const tempItem = {
+                id: tempId,
+                name: file.name + ' (uploading...)',
+                type: file.type.startsWith('image/') ? 'image' : 'video',
+                path: '',
+                duration: 20,
+                active: false,
+                uploading: true,
+                order: mediaItems.length
+            };
+            mediaItems.push(tempItem);
+            renderMedia();
+
+            fetch('upload_file.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.text())
+            .then(text => {
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error('Invalid JSON response: ' + text);
+                }
+                
+                const index = mediaItems.findIndex(m => m.id === tempId);
+                if (index > -1) {
+                    mediaItems.splice(index, 1);
+                }
+
+                if (data.success) {
+                    const mediaItem = {
+                        id: Date.now() + Math.random(),
+                        name: file.name,
+                        type: file.type.startsWith('image/') ? 'image' : 'video',
+                        path: data.path,
+                        duration: 20,
+                        active: true,
+                        displayOnAds: true,
+                        displayOnTournaments: true,
+                        usePerDaySchedule: false,
+                        scheduleDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        scheduleStartTime: '00:00',
+                        scheduleEndTime: '23:59',
+                        daySchedules: {
+                            Mon: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                            Tue: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                            Wed: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                            Thu: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                            Fri: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                            Sat: { enabled: true, startTime: '00:00', endTime: '23:59' },
+                            Sun: { enabled: true, startTime: '00:00', endTime: '23:59' }
+                        },
+                        order: mediaItems.length
+                    };
+                    mediaItems.push(mediaItem);
+                    saveMedia();
+                    renderMedia();
+                } else {
+                    console.error('Upload failed:', data.message);
+                    alert('Upload failed: ' + data.message);
+                    renderMedia();
+                }
+            })
+            .catch(err => {
+                const index = mediaItems.findIndex(m => m.id === tempId);
+                if (index > -1) {
+                    mediaItems.splice(index, 1);
+                }
+                console.error('Upload error:', err);
+                alert('Upload failed: ' + err.message);
+                renderMedia();
+            });
+        }
+
+        function renderMedia() {
+            const container = document.getElementById('mediaContainer');
+            
+            if (mediaItems.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <h3>No content added yet</h3>
+                        <p>Upload media or add a URL to get started</p>
+                    </div>
+                `;
+            } else {
+                // Sort by order
+                const sortedItems = [...mediaItems].sort((a, b) => (a.order || 0) - (b.order || 0));
+                
+                container.innerHTML = '<div class="media-grid">' + 
+                    sortedItems.map((item, index) => createMediaCard(item, index + 1)).join('') + 
+                '</div>';
+
+                // Add drag and drop listeners
+                addDragAndDropListeners();
+            }
+
+            updateStats();
+        }
+
+        function addDragAndDropListeners() {
+            const cards = document.querySelectorAll('.media-card');
+            
+            cards.forEach(card => {
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+                card.addEventListener('dragover', handleDragOver);
+                card.addEventListener('drop', handleDrop);
+                card.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        function handleDragStart(e) {
+            draggedItem = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+        }
+
+        function handleDragEnd(e) {
+            this.classList.remove('dragging');
+            document.querySelectorAll('.media-card').forEach(card => {
+                card.classList.remove('drag-over');
+            });
+        }
+
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            this.classList.add('drag-over');
+            return false;
+        }
+
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            if (draggedItem !== this) {
+                // Get the dragged and target item IDs
+                const draggedId = draggedItem.getAttribute('data-id');
+                const targetId = this.getAttribute('data-id');
+                
+                const draggedIndex = mediaItems.findIndex(m => m.id == draggedId);
+                const targetIndex = mediaItems.findIndex(m => m.id == targetId);
+                
+                if (draggedIndex !== -1 && targetIndex !== -1) {
+                    // Remove dragged item from array
+                    const [removed] = mediaItems.splice(draggedIndex, 1);
+                    
+                    // Insert at new position
+                    mediaItems.splice(targetIndex, 0, removed);
+                    
+                    // Update order property for all items
+                    mediaItems.forEach((item, index) => {
+                        item.order = index;
+                    });
+                    
+                    saveMedia();
+                    renderMedia();
+                }
+            }
+            
+            this.classList.remove('drag-over');
+            return false;
+        }
+
+        function handleDragLeave(e) {
+            this.classList.remove('drag-over');
+        }
+
+        function createMediaCard(item, displayOrder) {
+            let previewElement;
+            const isURL = item.type === 'url';
+            
+            if (item.uploading) {
+                previewElement = `<div class="media-preview" style="display: flex; align-items: center; justify-content: center; background: #f0f0f0; color: #666;">
+                    <div style="text-align: center;">
+                        <div style="font-size: 2rem; margin-bottom: 10px;">📤</div>
+                        <div>Uploading...</div>
+                    </div>
+                </div>`;
+            } else if (isURL) {
+                previewElement = `<div class="url-preview">🔗</div>`;
+            } else {
+                const mediaSrc = item.path || item.data;
+                if (item.type === 'image') {
+                    previewElement = `<img src="${mediaSrc}" class="media-preview" alt="${item.name}">`;
+                } else {
+                    previewElement = `<video src="${mediaSrc}" class="media-preview" muted></video>`;
+                }
+            }
+
+            // Schedule section
+            const usePerDay = item.usePerDaySchedule || false;
+            const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+            
+            let scheduleHTML = '';
+            
+            if (usePerDay) {
+                // Per-day schedule
+                const daySchedules = item.daySchedules || {};
+                scheduleHTML = days.map(day => {
+                    const schedule = daySchedules[day] || { enabled: true, startTime: '00:00', endTime: '23:59' };
+                    return `
+                        <div class="day-time-row">
+                            <label class="day-checkbox-label">
+                                <input type="checkbox" 
+                                       ${schedule.enabled ? 'checked' : ''}
+                                       onchange="updateDayScheduleEnabled('${item.id}', '${day}', this.checked)">
+                                ${day}
+                            </label>
+                            <div class="time-inputs">
+                                <input type="time" 
+                                       value="${schedule.startTime || '00:00'}"
+                                       onchange="updateDayScheduleTime('${item.id}', '${day}', 'start', this.value)"
+                                       ${!schedule.enabled ? 'disabled' : ''}>
+                                <span>to</span>
+                                <input type="time" 
+                                       value="${schedule.endTime || '23:59'}"
+                                       onchange="updateDayScheduleTime('${item.id}', '${day}', 'end', this.value)"
+                                       ${!schedule.enabled ? 'disabled' : ''}>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                // Simple schedule
+                const selectedDays = item.scheduleDays || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                const dayCheckboxes = days.map(day => `
+                    <label style="display: inline-flex; align-items: center; margin-right: 8px; font-size: 0.85rem;">
+                        <input type="checkbox" 
+                               value="${day}" 
+                               ${selectedDays.includes(day) ? 'checked' : ''}
+                               onchange="updateScheduleDays('${item.id}', this)"
+                               style="margin-right: 4px;">
+                        ${day}
+                    </label>
+                `).join('');
+                
+                scheduleHTML = `
+                    <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px;">
+                        ${dayCheckboxes}
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <input type="time" 
+                               value="${item.scheduleStartTime || '00:00'}"
+                               onchange="updateScheduleStartTime('${item.id}', this.value)"
+                               style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                        <span style="font-size: 0.9rem; color: #666;">to</span>
+                        <input type="time" 
+                               value="${item.scheduleEndTime || '23:59'}"
+                               onchange="updateScheduleEndTime('${item.id}', this.value)"
+                               style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="media-card ${isURL ? 'url-card' : ''}" draggable="true" data-id="${item.id}">
+                    <div class="order-badge">#${displayOrder}</div>
+                    <div class="drag-handle">⋮⋮</div>
+                    ${previewElement}
+                    <div class="media-info">
+                        <div class="media-name" title="${item.name}">${item.name}</div>
+                        ${isURL ? `<div class="media-url">${item.url}</div>` : ''}
+                        
+                        <div class="media-controls">
+                            <label>Duration:</label>
+                            <input type="number" 
+                                   value="${item.duration}" 
+                                   min="1" 
+                                   max="300"
+                                   onchange="updateDuration('${item.id}', this.value)">
+                            <span>seconds</span>
+                        </div>
+
+                        <div style="margin: 12px 0; padding: 10px; background: #f7f9fc; border-radius: 6px;">
+                            <label style="font-weight: 600; font-size: 0.9rem; color: #333; display: block; margin-bottom: 8px;">
+                                Display On:
+                            </label>
+                            <div style="display: flex; gap: 15px;">
+                                <label style="display: inline-flex; align-items: center; font-size: 0.9rem;">
+                                    <input type="checkbox" 
+                                           ${item.displayOnAds !== false ? 'checked' : ''}
+                                           onchange="updateDisplayOnAds('${item.id}', this.checked)"
+                                           style="margin-right: 6px;">
+                                    Ads
+                                </label>
+                                <label style="display: inline-flex; align-items: center; font-size: 0.9rem;">
+                                    <input type="checkbox" 
+                                           ${item.displayOnTournaments !== false ? 'checked' : ''}
+                                           onchange="updateDisplayOnTournaments('${item.id}', this.checked)"
+                                           style="margin-right: 6px;">
+                                    Tournaments
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="day-time-schedule">
+                            <div class="schedule-mode-toggle">
+                                <label>
+                                    <span style="font-weight: 600; margin-right: 8px;">Per-Day Times:</span>
+                                    <label class="toggle-switch">
+                                        <input type="checkbox" 
+                                               ${usePerDay ? 'checked' : ''}
+                                               onchange="toggleScheduleMode('${item.id}', this.checked)">
+                                        <span class="slider"></span>
+                                    </label>
+                                </label>
+                            </div>
+                            
+                            <label class="section-label">
+                                ${usePerDay ? 'Schedule by Day:' : 'Display Days & Times:'}
+                            </label>
+                            ${scheduleHTML}
+                        </div>
+
+                        <div style="margin: 12px 0; padding: 10px; background: #f7f9fc; border-radius: 6px;">
+                            <label style="font-weight: 600; font-size: 0.9rem; color: #333; display: flex; align-items: center; margin-bottom: 8px;">
+                                <input type="checkbox" 
+                                       ${item.hasEndDate ? 'checked' : ''}
+                                       onchange="toggleEndDate('${item.id}', this.checked)"
+                                       style="margin-right: 8px;">
+                                Set End Date (Optional)
+                            </label>
+                            <input type="date" 
+                                   value="${item.endDate || ''}"
+                                   onchange="updateEndDate('${item.id}', this.value)"
+                                   ${!item.hasEndDate ? 'disabled' : ''}
+                                   id="endDate_${item.id}"
+                                   style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem; width: 100%;">
+                        </div>
+                        
+                        <div style="margin-bottom: 10px;">
+                            <span class="status-badge ${item.active ? 'status-active' : 'status-inactive'}">
+                                ${item.active ? 'Active' : 'Inactive'}
+                            </span>
+                        </div>
+                        <div class="button-group">
+                            <button class="btn btn-save" onclick="toggleActive('${item.id}')">
+                                ${item.active ? 'Disable' : 'Enable'}
+                            </button>
+                            <button class="btn btn-delete" onclick="deleteMedia('${item.id}')">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function toggleScheduleMode(id, usePerDay) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item) {
+                item.usePerDaySchedule = usePerDay;
+                
+                // Initialize daySchedules if switching to per-day mode
+                if (usePerDay && !item.daySchedules) {
+                    item.daySchedules = {
+                        Mon: { enabled: true, startTime: item.scheduleStartTime || '00:00', endTime: item.scheduleEndTime || '23:59' },
+                        Tue: { enabled: true, startTime: item.scheduleStartTime || '00:00', endTime: item.scheduleEndTime || '23:59' },
+                        Wed: { enabled: true, startTime: item.scheduleStartTime || '00:00', endTime: item.scheduleEndTime || '23:59' },
+                        Thu: { enabled: true, startTime: item.scheduleStartTime || '00:00', endTime: item.scheduleEndTime || '23:59' },
+                        Fri: { enabled: true, startTime: item.scheduleStartTime || '00:00', endTime: item.scheduleEndTime || '23:59' },
+                        Sat: { enabled: true, startTime: item.scheduleStartTime || '00:00', endTime: item.scheduleEndTime || '23:59' },
+                        Sun: { enabled: true, startTime: item.scheduleStartTime || '00:00', endTime: item.scheduleEndTime || '23:59' }
+                    };
+                }
+                
+                saveMedia();
+                renderMedia();
+            }
+        }
+
+        function updateDayScheduleEnabled(id, day, enabled) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item && item.daySchedules) {
+                if (!item.daySchedules[day]) {
+                    item.daySchedules[day] = { enabled: true, startTime: '00:00', endTime: '23:59' };
+                }
+                item.daySchedules[day].enabled = enabled;
+                saveMedia();
+                renderMedia();
+            }
+        }
+
+        function updateDayScheduleTime(id, day, type, value) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item && item.daySchedules) {
+                if (!item.daySchedules[day]) {
+                    item.daySchedules[day] = { enabled: true, startTime: '00:00', endTime: '23:59' };
+                }
+                if (type === 'start') {
+                    item.daySchedules[day].startTime = value;
+                } else {
+                    item.daySchedules[day].endTime = value;
+                }
+                saveMedia();
+            }
+        }
+
+        function updateDuration(id, duration) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item) {
+                item.duration = parseInt(duration);
+                saveMedia();
+                updateStats();
+            }
+        }
+
+        function updateScheduleDays(id, checkbox) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item) {
+                if (!item.scheduleDays) {
+                    item.scheduleDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                }
+                
+                const day = checkbox.value;
+                if (checkbox.checked) {
+                    if (!item.scheduleDays.includes(day)) {
+                        item.scheduleDays.push(day);
+                    }
+                } else {
+                    item.scheduleDays = item.scheduleDays.filter(d => d !== day);
+                }
+                
+                saveMedia();
+            }
+        }
+
+        function updateScheduleStartTime(id, time) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item) {
+                item.scheduleStartTime = time;
+                saveMedia();
+            }
+        }
+
+        function updateScheduleEndTime(id, time) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item) {
+                item.scheduleEndTime = time;
+                saveMedia();
+            }
+        }
+
+        function toggleEndDate(id, enabled) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item) {
+                item.hasEndDate = enabled;
+                const dateInput = document.getElementById('endDate_' + id);
+                if (dateInput) {
+                    dateInput.disabled = !enabled;
+                }
+                if (!enabled) {
+                    item.endDate = '';
+                }
+                saveMedia();
+            }
+        }
+
+        function updateEndDate(id, date) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item) {
+                item.endDate = date;
+                saveMedia();
+            }
+        }
+
+        function updateDisplayOnAds(id, enabled) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item) {
+                item.displayOnAds = enabled;
+                saveMedia();
+            }
+        }
+
+        function updateDisplayOnTournaments(id, enabled) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item) {
+                item.displayOnTournaments = enabled;
+                saveMedia();
+            }
+        }
+
+        function toggleActive(id) {
+            const item = mediaItems.find(m => m.id == id);
+            if (item) {
+                item.active = !item.active;
+                saveMedia();
+                renderMedia();
+            }
+        }
+
+        function deleteMedia(id) {
+            if (confirm('Are you sure you want to delete this item?')) {
+                const item = mediaItems.find(m => m.id == id);
+                
+                // If it's a media file (not a URL), delete from server
+                if (item && item.path && item.type !== 'url') {
+                    fetch('delete_file.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ path: item.path })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            console.log('File deleted from server:', item.path);
+                        } else {
+                            console.warn('Failed to delete file from server:', data.message);
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error deleting file from server:', err);
+                    });
+                }
+                
+                // Remove from media items array
+                mediaItems = mediaItems.filter(m => m.id != id);
+                
+                // Reorder remaining items
+                mediaItems.forEach((item, index) => {
+                    item.order = index;
+                });
+                
+                saveMedia();
+                renderMedia();
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalMedia').textContent = mediaItems.length;
+            document.getElementById('activeMedia').textContent = mediaItems.filter(m => m.active).length;
+            const totalDuration = mediaItems.filter(m => m.active).reduce((sum, m) => sum + m.duration, 0);
+            document.getElementById('totalDuration').textContent = totalDuration + 's';
+        }
+
+        function saveMedia() {
+            sendToServer();
+            localStorage.setItem('poolDisplayMedia', JSON.stringify(mediaItems));
+        }
+
+        function loadMedia() {
+            fetch('load_media.php')
+                .then(response => response.json())
+                .then(data => {
+                    mediaItems = data || [];
+                    // Ensure all items have an order property
+                    mediaItems.forEach((item, index) => {
+                        if (item.order === undefined) {
+                            item.order = index;
+                        }
+                    });
+                    renderMedia();
+                })
+                .catch(err => {
+                    console.error('Error loading from server:', err);
+                    const saved = localStorage.getItem('poolDisplayMedia');
+                    if (saved) {
+                        mediaItems = JSON.parse(saved);
+                        renderMedia();
+                    }
+                });
+        }
+
+        function sendToServer() {
+            fetch('save_media.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(mediaItems)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('Media saved to server successfully');
+                } else {
+                    console.error('Server save failed:', data.message);
+                }
+            })
+            .catch(err => console.error('Error saving to server:', err));
+        }
+    </script>
+</body>
+</html>
