@@ -1,0 +1,16 @@
+[Unit]
+Description=CATT Casting Monitor Service
+After=network.target tournament-monitor.service
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+ExecStart=/usr/bin/python3 /home/pi/catt_monitor.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
