@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bankshot Ads Display</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        iframe {
+            border: none;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        iframe.active {
+            display: block;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+<div id="frameContainer"></div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+
+function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
+    if (m.hasEndDate && m.endDate && currentDate > m.endDate) {
+        return false;
+    }
+    
+    if (m.usePerDaySchedule && m.daySchedules) {
+        var daySchedule = m.daySchedules[currentDay];
+        if (!daySchedule || !daySchedule.enabled) {
+            return false;
+        }
+        
+        if (daySchedule.startTime && daySchedule.endTime) {
+            var startParts = daySchedule.startTime.split(':');
+            var endParts = daySchedule.endTime.split(':');
+            var startTime = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+            var endTime = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+            
+            if (currentTime < startTime || currentTime > endTime) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    if (m.scheduleDays && m.scheduleDays.length > 0 && m.scheduleDays.indexOf(currentDay) === -1) {
+        return false;
+    }
+    
+    if (m.scheduleStartTime && m.scheduleEndTime) {
+        var startParts = m.scheduleStartTime.split(':');
+        var endParts = m.scheduleEndTime.split(':');
+        var startTime = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+        var endTime = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+        
+        if (currentTime < startTime || currentTime > endTime) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+var Dash = {
+    dashboards: [],
+    nextIndex: 0,
+    mediaItems: [],
+    
+    createIframes: function() {
+        var container = document.getElementById('frameContainer');
+        for (var i = 0; i < this.dashboards.length; i++) {
+            var iframe = document.createElement('iframe');
+            iframe.id = i.toString();
+            container.appendChild(iframe);
+        }
+    },
+    
+    initializeDashboards: function() {
+        console.log('Loading ad media only...');
+        
+        fetch('/load_media.php')
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                // Filter for ACTIVE and AD-only media (displayType === 'ad')
+                var allMediaItems = data.filter(function(m) { 
+                    return m.active && m.displayType === 'ad';
+                });
+                
+                console.log('Loaded ' + allMediaItems.length + ' ad media items');
+                
+                allMediaItems.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+                
+                var now = new Date();
+                var currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
+                var currentTime = now.getHours() * 60 + now.getMinutes();
+                var currentDate = now.toISOString().split('T')[0];
+                
+                Dash.mediaItems = allMediaItems.filter(function(m) {
+                    return shouldDisplayMedia(m, now, currentDay, currentTime, currentDate);
+                });
+                
+                console.log('Filtered to ' + Dash.mediaItems.length + ' ad media items for display');
+                
+                for (var i = 0; i < Dash.mediaItems.length; i++) {
+                    var mediaItem = Dash.mediaItems[i];
+                    if (mediaItem.type === 'url') {
+                        Dash.dashboards.push({
+                            url: mediaItem.url,
+                            time: mediaItem.duration || 20,
+                            refresh: true
+                        });
+                    } else {
+                        Dash.dashboards.push({
+                            url: 'data:text/html;charset=utf-8,' + encodeURIComponent(Dash.createMediaHTML(mediaItem)),
+                            time: mediaItem.duration || 20,
+                            refresh: false
+                        });
+                    }
+                }
+                
+                if (Dash.dashboards.length === 0) {
+                    console.log('No ad media to display');
+                    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:white;font-size:3vw;font-family:sans-serif;">No ad media configured</div>';
+                    return;
+                }
+                
+                Dash.continueStartup();
+            })
+            .catch(function(err) {
+                console.error('Error loading media:', err);
+                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:white;font-size:3vw;font-family:sans-serif;">Error loading media</div>';
+            });
+    },
+    
+    continueStartup: function() {
+        Dash.createIframes();
+        
+        for (var index = 0; index < Dash.dashboards.length; index++) {
+            Dash.loadFrame(index);
+        }
+        
+        if (Dash.dashboards.length > 0) {
+            Dash.showFrame(0);
+            setTimeout(function() {
+                Dash.display();
+            }, Dash.dashboards[0].time * 1000);
+        }
+    },
+    
+    createMediaHTML: function(mediaItem) {
+        var mediaSrc = mediaItem.path || mediaItem.data;
+        
+        if (mediaSrc && mediaSrc.indexOf('/') === 0) {
+            mediaSrc = window.location.origin + mediaSrc;
+        }
+        
+        var mediaElement = '';
+        if (mediaItem.type === 'image') {
+            mediaElement = '<img src="' + mediaSrc + '" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;">';
+        } else {
+            mediaElement = '<video src="' + mediaSrc + '" autoplay muted loop style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;"></video>';
+        }
+        
+        return '<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;}</style></head><body>' + mediaElement + '</body></html>';
+    },
+
+    startup: function() {
+        Dash.initializeDashboards();
+    },
+
+    loadFrame: function(index) {
+        var iframe = document.getElementById(index.toString());
+        if (iframe) {
+            iframe.src = Dash.dashboards[index].url;
+        }
+    },
+
+    display: function() {
+        var currentDashboard = Dash.dashboards[Dash.nextIndex];
+        
+        Dash.hideFrame(Dash.nextIndex - 1);
+        
+        if (currentDashboard.refresh) {
+            Dash.loadFrame(Dash.nextIndex);
+        }
+        
+        Dash.showFrame(Dash.nextIndex);
+        
+        Dash.nextIndex = (Dash.nextIndex + 1) % Dash.dashboards.length;
+        
+        setTimeout(function() {
+            Dash.display();
+        }, currentDashboard.time * 1000);
+    },
+
+    hideFrame: function(index) {
+        if (index < 0) {
+            index = Dash.dashboards.length - 1;
+        }
+        var frame = $('#' + index);
+        frame.animate({opacity: 0}, 500, function() {
+            frame.removeClass('active');
+        });
+    },
+
+    showFrame: function(index) {
+        var frame = $('#' + index);
+        frame.addClass('active').css({opacity: 0}).animate({opacity: 1}, 500);
+    }
+};
+
+window.onload = function() {
+    Dash.startup();
+};
+</script>
+
+</body>
+</html>
