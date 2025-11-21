@@ -1,0 +1,25 @@
+bankshot-tournament-display/
+├── README.md
+├── INSTALL.md
+├── LICENSE
+├── install.sh
+├── uninstall.sh
+├── scripts/
+│   ├── tournament_monitor.py
+│   ├── catt_monitor.py
+│   └── hdmi_display_manager.sh
+├── services/
+│   ├── tournament-monitor.service
+│   ├── catt-monitor.service
+│   └── hdmi-display.service
+└── web/
+    ├── index.php
+    ├── ads_display.html
+    ├── media_manager.html
+    ├── payout_calculator.php
+    ├── calculate_payouts.php
+    ├── get_tournament_data.php
+    ├── generate_qr.php
+    ├── load_media.php
+    ├── save_media.php
+    └── upload_file.php
