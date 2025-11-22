@@ -34,6 +34,18 @@
             display: block;
             opacity: 1;
         }
+
+        .no-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: white;
+            font-size: 3vw;
+            font-family: sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
     </style>
 </head>
 <body>
@@ -107,28 +119,48 @@ var Dash = {
                 return response.json();
             })
             .then(function(data) {
-                // Filter for ACTIVE and AD-only media (displayType === 'ad')
+                console.log('Raw media data loaded:', data.length, 'items');
+                
+                // FIXED: Filter for ACTIVE media with displayOnAds === true
                 var allMediaItems = data.filter(function(m) { 
-                    return m.active && m.displayType === 'ad';
+                    var isActive = m.active === true;
+                    var isAdMedia = m.displayOnAds === true;
+                    
+                    if (!isActive) {
+                        console.log('Skipping inactive:', m.name);
+                    } else if (!isAdMedia) {
+                        console.log('Skipping (not ad display):', m.name);
+                    }
+                    
+                    return isActive && isAdMedia;
                 });
                 
-                console.log('Loaded ' + allMediaItems.length + ' ad media items');
+                console.log('Filtered to ' + allMediaItems.length + ' active ad media items');
                 
+                // Sort by order
                 allMediaItems.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
                 
+                // Apply schedule filtering
                 var now = new Date();
                 var currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
                 var currentTime = now.getHours() * 60 + now.getMinutes();
                 var currentDate = now.toISOString().split('T')[0];
                 
                 Dash.mediaItems = allMediaItems.filter(function(m) {
-                    return shouldDisplayMedia(m, now, currentDay, currentTime, currentDate);
+                    var shouldDisplay = shouldDisplayMedia(m, now, currentDay, currentTime, currentDate);
+                    if (!shouldDisplay) {
+                        console.log('Skipping (schedule):', m.name);
+                    }
+                    return shouldDisplay;
                 });
                 
-                console.log('Filtered to ' + Dash.mediaItems.length + ' ad media items for display');
+                console.log('After schedule filter: ' + Dash.mediaItems.length + ' ad media items for display');
                 
+                // Build dashboard array
                 for (var i = 0; i < Dash.mediaItems.length; i++) {
                     var mediaItem = Dash.mediaItems[i];
+                    console.log('Adding to rotation:', mediaItem.name, 'Duration:', mediaItem.duration);
+                    
                     if (mediaItem.type === 'url') {
                         Dash.dashboards.push({
                             url: mediaItem.url,
@@ -145,16 +177,17 @@ var Dash = {
                 }
                 
                 if (Dash.dashboards.length === 0) {
-                    console.log('No ad media to display');
-                    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:white;font-size:3vw;font-family:sans-serif;">No ad media configured</div>';
+                    console.warn('No ad media to display');
+                    document.body.innerHTML = '<div class="no-content">No ad media configured<br><br>Enable "Display on Ads" in Media Manager</div>';
                     return;
                 }
                 
+                console.log('Starting rotation with ' + Dash.dashboards.length + ' items');
                 Dash.continueStartup();
             })
             .catch(function(err) {
                 console.error('Error loading media:', err);
-                document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:white;font-size:3vw;font-family:sans-serif;">Error loading media</div>';
+                document.body.innerHTML = '<div class="no-content">Error loading media<br><br>' + err.message + '</div>';
             });
     },
     
