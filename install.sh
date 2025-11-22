@@ -108,28 +108,56 @@ chmod 666 /var/log/catt_monitor.log
 echo ""
 echo -e "${GREEN}Step 8: Copying web files...${NC}"
 cd $USER_HOME/bankshot-tournament-display
-cp -r web/* /var/www/html/
+
+# Copy web files
+cp web/ads_display.html /var/www/html/
+cp web/calculate_payouts.php /var/www/html/
+cp web/calcutta.html /var/www/html/
+cp web/generate_qr.php /var/www/html/
+cp web/get_tournament_data.php /var/www/html/
+cp web/index.php /var/www/html/
+cp web/load_media.php /var/www/html/
+cp web/media_manager.html /var/www/html/
+cp web/payout_calculator.php /var/www/html/
+cp web/save_media.php /var/www/html/
+cp web/upload_file.php /var/www/html/
+
 chown -R www-data:www-data /var/www/html
 chmod -R 644 /var/www/html/*.php
 chmod -R 644 /var/www/html/*.html
 
 echo ""
 echo -e "${GREEN}Step 9: Installing system scripts...${NC}"
-cp scripts/tournament_monitor.py $USER_HOME/
-cp scripts/catt_monitor.py $USER_HOME/
-cp scripts/hdmi_display_manager.sh $USER_HOME/
+cp catt_monitor.py $USER_HOME/
+cp hdmi_display_manager.sh $USER_HOME/
+cp tournament_monitor.py $USER_HOME/
 
-chown $ACTUAL_USER:$ACTUAL_USER $USER_HOME/*.py
-chown $ACTUAL_USER:$ACTUAL_USER $USER_HOME/*.sh
-chmod +x $USER_HOME/*.py
-chmod +x $USER_HOME/*.sh
+chown $ACTUAL_USER:$ACTUAL_USER $USER_HOME/catt_monitor.py
+chown $ACTUAL_USER:$ACTUAL_USER $USER_HOME/hdmi_display_manager.sh
+chown $ACTUAL_USER:$ACTUAL_USER $USER_HOME/tournament_monitor.py
+chmod +x $USER_HOME/catt_monitor.py
+chmod +x $USER_HOME/hdmi_display_manager.sh
+chmod +x $USER_HOME/tournament_monitor.py
 
 # Update GitHub repo URL in tournament_monitor.py
 sed -i "s|GITHUB_REPO_URL = .*|GITHUB_REPO_URL = \"$GITHUB_REPO\"|g" $USER_HOME/tournament_monitor.py
 
 echo ""
 echo -e "${GREEN}Step 10: Installing systemd services...${NC}"
-cp services/*.service /etc/systemd/system/
+cp services/catt-monitor.service /etc/systemd/system/
+cp services/hdmi-display.service /etc/systemd/system/
+cp services/tournament-monitor.service /etc/systemd/system/
+
+# Update service files to use correct user
+sed -i "s/User=pi/User=$ACTUAL_USER/g" /etc/systemd/system/tournament-monitor.service
+sed -i "s/User=pi/User=$ACTUAL_USER/g" /etc/systemd/system/catt-monitor.service
+sed -i "s/User=pi/User=$ACTUAL_USER/g" /etc/systemd/system/hdmi-display.service
+
+# Update home directory paths in service files
+sed -i "s|/home/pi/|$USER_HOME/|g" /etc/systemd/system/tournament-monitor.service
+sed -i "s|/home/pi/|$USER_HOME/|g" /etc/systemd/system/catt-monitor.service
+sed -i "s|/home/pi/|$USER_HOME/|g" /etc/systemd/system/hdmi-display.service
+
 systemctl daemon-reload
 
 systemctl enable tournament-monitor.service
@@ -153,8 +181,11 @@ echo "1. Upload media files:"
 echo "   http://$(hostname -I | awk '{print $1}')/media_manager.html"
 echo ""
 echo "2. View displays:"
+echo "   Main Display: http://$(hostname -I | awk '{print $1}')/"
+echo "   HDMI Display: http://$(hostname -I | awk '{print $1}')/ads_display.html"
+echo "   Calcutta: http://$(hostname -I | awk '{print $1}')/calcutta.html"
+echo "   Payout Calculator: http://$(hostname -I | awk '{print $1}')/payout_calculator.php"
 echo "   Chromecast: Will auto-cast when tournament starts"
-echo "   HDMI: http://$(hostname -I | awk '{print $1}')/ads_display.html"
 echo ""
 echo "3. Check service status:"
 echo "   sudo systemctl status tournament-monitor.service"

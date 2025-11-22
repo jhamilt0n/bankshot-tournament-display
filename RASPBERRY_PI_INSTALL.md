@@ -12,6 +12,7 @@ Complete step-by-step instructions for installing the Bankshot Tournament Displa
 - [Verification](#verification)
 - [Troubleshooting](#troubleshooting)
 - [Updating the System](#updating-the-system)
+- [Uninstalling](#uninstalling)
 
 ---
 
@@ -138,10 +139,28 @@ Once prerequisites are met, the `install.sh` script will automatically install:
 - ✅ Composer (PHP package manager)
 - ✅ chillerlan/php-qrcode (QR code generation)
 
+### System Scripts
+- ✅ catt_monitor.py (Chromecast controller)
+- ✅ hdmi_display_manager.sh (HDMI display manager)
+- ✅ tournament_monitor.py (Tournament data scraper)
+
 ### System Services
 - ✅ tournament-monitor.service
 - ✅ catt-monitor.service
 - ✅ hdmi-display.service
+
+### Web Files
+- ✅ index.php (Main tournament display)
+- ✅ ads_display.html (HDMI advertising display)
+- ✅ calcutta.html (Calcutta auction interface)
+- ✅ media_manager.html (Media upload interface)
+- ✅ payout_calculator.php (Tournament payout calculator)
+- ✅ calculate_payouts.php (Payout calculation backend)
+- ✅ generate_qr.php (QR code generator)
+- ✅ get_tournament_data.php (Tournament data API)
+- ✅ load_media.php (Media loading API)
+- ✅ save_media.php (Media saving backend)
+- ✅ upload_file.php (File upload handler)
 
 **Installation time:** 10-15 minutes (depending on internet speed)
 
@@ -220,8 +239,11 @@ Next Steps:
    http://192.168.X.X/media_manager.html
 
 2. View displays:
+   Main Display: http://192.168.X.X/
+   HDMI Display: http://192.168.X.X/ads_display.html
+   Calcutta: http://192.168.X.X/calcutta.html
+   Payout Calculator: http://192.168.X.X/payout_calculator.php
    Chromecast: Will auto-cast when tournament starts
-   HDMI: http://192.168.X.X/ads_display.html
 
 3. Check service status:
    sudo systemctl status tournament-monitor.service
@@ -311,17 +333,30 @@ git clone https://github.com/jhamilt0n/bankshot-tournament-display.git
 cd bankshot-tournament-display
 
 # Copy web files
-sudo cp -r web/* /var/www/html/
+sudo cp web/ads_display.html /var/www/html/
+sudo cp web/calculate_payouts.php /var/www/html/
+sudo cp web/calcutta.html /var/www/html/
+sudo cp web/generate_qr.php /var/www/html/
+sudo cp web/get_tournament_data.php /var/www/html/
+sudo cp web/index.php /var/www/html/
+sudo cp web/load_media.php /var/www/html/
+sudo cp web/media_manager.html /var/www/html/
+sudo cp web/payout_calculator.php /var/www/html/
+sudo cp web/save_media.php /var/www/html/
+sudo cp web/upload_file.php /var/www/html/
+
 sudo chown -R www-data:www-data /var/www/html
 
 # Copy scripts
-cp scripts/tournament_monitor.py ~/
-cp scripts/catt_monitor.py ~/
-cp scripts/hdmi_display_manager.sh ~/
+cp catt_monitor.py ~/
+cp hdmi_display_manager.sh ~/
+cp tournament_monitor.py ~/
 chmod +x ~/*.py ~/*.sh
 
 # Copy services
-sudo cp services/*.service /etc/systemd/system/
+sudo cp services/catt-monitor.service /etc/systemd/system/
+sudo cp services/hdmi-display.service /etc/systemd/system/
+sudo cp services/tournament-monitor.service /etc/systemd/system/
 ```
 
 ### Step 9: Create Directories and Logs
@@ -422,6 +457,16 @@ DISPLAY=:0 chromium --kiosk http://localhost/ads_display.html &
 
 Press `Ctrl+C` to stop, or just reboot.
 
+### 6. Access Other Features
+
+All features are accessible via web browser:
+
+- **Main Tournament Display**: `http://YOUR_PI_IP/`
+- **HDMI Ads Display**: `http://YOUR_PI_IP/ads_display.html`
+- **Calcutta Auction**: `http://YOUR_PI_IP/calcutta.html`
+- **Payout Calculator**: `http://YOUR_PI_IP/payout_calculator.php`
+- **Media Manager**: `http://YOUR_PI_IP/media_manager.html`
+
 ---
 
 ## Verification
@@ -457,6 +502,8 @@ Open in browser:
 - **Main Display**: `http://YOUR_PI_IP/`
 - **HDMI Display**: `http://YOUR_PI_IP/ads_display.html`
 - **Media Manager**: `http://YOUR_PI_IP/media_manager.html`
+- **Calcutta**: `http://YOUR_PI_IP/calcutta.html`
+- **Payout Calculator**: `http://YOUR_PI_IP/payout_calculator.php`
 
 ### Check Tournament Data
 
@@ -578,6 +625,17 @@ sudo chown pi:pi /var/log/hdmi_display.log
 sudo chmod 666 /var/log/catt_monitor.log
 ```
 
+### QR Code Not Generating
+
+```bash
+# Check if QR code library is installed
+ls -la /var/www/html/vendor/chillerlan
+
+# If not found, reinstall:
+cd /var/www/html
+sudo composer require chillerlan/php-qrcode
+```
+
 ---
 
 ## Updating the System
@@ -596,7 +654,19 @@ sudo ./install.sh
 
 ```bash
 cd ~/bankshot-tournament-display
-sudo cp -r web/* /var/www/html/
+
+sudo cp web/ads_display.html /var/www/html/
+sudo cp web/calculate_payouts.php /var/www/html/
+sudo cp web/calcutta.html /var/www/html/
+sudo cp web/generate_qr.php /var/www/html/
+sudo cp web/get_tournament_data.php /var/www/html/
+sudo cp web/index.php /var/www/html/
+sudo cp web/load_media.php /var/www/html/
+sudo cp web/media_manager.html /var/www/html/
+sudo cp web/payout_calculator.php /var/www/html/
+sudo cp web/save_media.php /var/www/html/
+sudo cp web/upload_file.php /var/www/html/
+
 sudo chown -R www-data:www-data /var/www/html
 ```
 
@@ -604,11 +674,26 @@ sudo chown -R www-data:www-data /var/www/html
 
 ```bash
 cd ~/bankshot-tournament-display
-cp scripts/*.py ~/
-cp scripts/*.sh ~/
+cp catt_monitor.py ~/
+cp hdmi_display_manager.sh ~/
+cp tournament_monitor.py ~/
 chmod +x ~/*.py ~/*.sh
 
 # Restart services
+sudo systemctl restart tournament-monitor.service
+sudo systemctl restart catt-monitor.service
+sudo systemctl restart hdmi-display.service
+```
+
+### Update Services
+
+```bash
+cd ~/bankshot-tournament-display
+sudo cp services/catt-monitor.service /etc/systemd/system/
+sudo cp services/hdmi-display.service /etc/systemd/system/
+sudo cp services/tournament-monitor.service /etc/systemd/system/
+
+sudo systemctl daemon-reload
 sudo systemctl restart tournament-monitor.service
 sudo systemctl restart catt-monitor.service
 sudo systemctl restart hdmi-display.service
@@ -626,17 +711,33 @@ chmod +x uninstall.sh
 sudo ./uninstall.sh
 ```
 
-This will:
-- Stop and remove all services
-- Remove scripts
-- Remove web files (preserves media)
-- Remove log files
+The uninstall script will:
+- ✅ Stop and disable all services
+- ✅ Remove service files
+- ✅ Remove system scripts (catt_monitor.py, hdmi_display_manager.sh, tournament_monitor.py)
+- ✅ Remove all web files
+- ✅ Remove log files
+- ✅ Remove Composer packages
 
-**Note:** Media files in `/var/www/html/media/` are preserved.
+**Preserved items:**
+- Media files in `/var/www/html/media/`
+- System packages (Apache, PHP, Python packages)
+- Composer (system-wide)
 
-To remove media:
+To remove media files:
 ```bash
 sudo rm -rf /var/www/html/media/
+```
+
+To remove Python packages:
+```bash
+pip3 uninstall catt requests
+```
+
+To remove system packages:
+```bash
+sudo apt-get remove apache2 php php-cli php-xml php-gd php-mbstring chromium
+sudo apt-get autoremove
 ```
 
 ---
@@ -691,6 +792,41 @@ static domain_name_servers=192.168.4.1 8.8.8.8
 Reboot:
 ```bash
 sudo reboot
+```
+
+---
+
+## Repository Structure
+
+The `bankshot-tournament-display` repository has the following structure:
+
+```
+bankshot-tournament-display/
+├── catt_monitor.py              # Chromecast controller script
+├── hdmi_display_manager.sh      # HDMI display manager script
+├── tournament_monitor.py        # Tournament data scraper script
+├── install.sh                   # Automated installer
+├── uninstall.sh                 # Automated uninstaller
+├── services/
+│   ├── catt-monitor.service     # Chromecast service definition
+│   ├── hdmi-display.service     # HDMI display service definition
+│   └── tournament-monitor.service # Tournament monitor service definition
+├── web/
+│   ├── ads_display.html         # HDMI advertising display
+│   ├── calculate_payouts.php    # Payout calculation backend
+│   ├── calcutta.html            # Calcutta auction interface
+│   ├── generate_qr.php          # QR code generator
+│   ├── get_tournament_data.php  # Tournament data API
+│   ├── index.php                # Main tournament display
+│   ├── load_media.php           # Media loading API
+│   ├── media_manager.html       # Media upload interface
+│   ├── payout_calculator.php    # Tournament payout calculator
+│   ├── save_media.php           # Media saving backend
+│   └── upload_file.php          # File upload handler
+├── Directory Structure          # Visual directory structure
+├── LICENSE                      # License file
+├── RASPBERRY_PI_INSTALL.md      # This file
+└── install.md                   # Installation documentation
 ```
 
 ---
@@ -756,6 +892,12 @@ ls -la /var/www/html/media/
 
 # Update from GitHub
 cd ~/bankshot-tournament-display && git pull
+
+# Reinstall/update all files
+cd ~/bankshot-tournament-display && sudo ./install.sh
+
+# Uninstall completely
+cd ~/bankshot-tournament-display && sudo ./uninstall.sh
 ```
 
 ---
