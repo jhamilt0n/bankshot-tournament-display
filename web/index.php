@@ -274,30 +274,7 @@ if (!$tournament_found) {
 }
 ?>
 
-<?php if ($tournament_found): ?>
-
-<div class="split left <?php echo ($player_count == 0) ? 'hidden' : ''; ?>" id="leftPanel">
-    <div class="qr-container">
-        <img src="qr_code.png?t=<?php echo time(); ?>" alt="Tournament Bracket QR Code">
-        <div class="qr-label">Scan for Bracket</div>
-    </div>
-    
-    <div class="player-count" id="playerCount"><?php echo $player_count; ?> PLAYERS</div>
-    
-    <div class="entry-fee" id="entryFee">Entry: $<?php echo $entry_fee; ?></div>
-    
-    <div class="payouts-header">PAYOUTS</div>
-    <div class="payouts" id="payouts">
-        <?php 
-        $payout_html = formatPayoutsHTML($player_count, $entry_fee);
-        $payout_html = str_replace('<div>1st:', '<div class="first-place">1st:', $payout_html);
-        echo $payout_html;
-        ?>
-    </div>
-</div>
-
-<div class="split right <?php echo ($player_count == 0) ? 'fullscreen' : ''; ?>" id="frameContainer"></div>
-
+<!-- GLOBAL SCRIPT - Available to all sections -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 
@@ -360,7 +337,6 @@ var Dash = {
     },
     
     initializeDashboards: function() {
-        // Tournament URL removed - cannot embed due to X-Frame-Options
         console.log('Loading media rotation...');
         
         fetch('/load_media.php')
@@ -517,6 +493,30 @@ window.onload = function() {
 };
 </script>
 
+<?php if ($tournament_found): ?>
+
+<div class="split left <?php echo ($player_count == 0) ? 'hidden' : ''; ?>" id="leftPanel">
+    <div class="qr-container">
+        <img src="qr_code.png?t=<?php echo time(); ?>" alt="Tournament Bracket QR Code">
+        <div class="qr-label">Scan for Bracket</div>
+    </div>
+    
+    <div class="player-count" id="playerCount"><?php echo $player_count; ?> PLAYERS</div>
+    
+    <div class="entry-fee" id="entryFee">Entry: $<?php echo $entry_fee; ?></div>
+    
+    <div class="payouts-header">PAYOUTS</div>
+    <div class="payouts" id="payouts">
+        <?php 
+        $payout_html = formatPayoutsHTML($player_count, $entry_fee);
+        $payout_html = str_replace('<div>1st:', '<div class="first-place">1st:', $payout_html);
+        echo $payout_html;
+        ?>
+    </div>
+</div>
+
+<div class="split right <?php echo ($player_count == 0) ? 'fullscreen' : ''; ?>" id="frameContainer"></div>
+
 <script>
 // IMPROVED: Track detailed state to detect player count drops to zero
 let lastTournamentState = {
@@ -628,166 +628,8 @@ setInterval(updatePlayerData, 30000);
 <!-- No tournament, show media only -->
 <div class="split right" id="frameContainer" style="width: 100vw; left: 0;"></div>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 console.log('No tournament today - showing media only');
-
-var Dash = {
-    dashboards: [],
-    nextIndex: 0,
-    createIframes: function() {
-        var frameContainer = document.getElementById('frameContainer');
-        
-        for (var index = 0; index < this.dashboards.length; index++) {
-            var iframe = document.createElement('iframe');
-            iframe.setAttribute('id', index.toString());
-            iframe.setAttribute('scrolling', 'no');
-            iframe.setAttribute('frameborder', '0');
-            iframe.setAttribute('allowfullscreen', 'true');
-            frameContainer.appendChild(iframe);
-        }
-    },
-    
-    initializeDashboards: function() {
-        fetch('/load_media.php')
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(data) {
-                // No tournament - show 'ad' media only
-                var allMediaItems = data.filter(function(m) { 
-                    return m.active === true && m.displayOnAds === true;
-                });
-                
-                console.log('Loaded ' + allMediaItems.length + ' ad media items');
-                
-                // Sort by order
-                allMediaItems.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
-                
-                // Apply schedule filtering
-                var now = new Date();
-                var currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
-                var currentTime = now.getHours() * 60 + now.getMinutes();
-                var currentDate = now.toISOString().split('T')[0];
-                
-                var filteredMedia = allMediaItems.filter(function(m) {
-                    return shouldDisplayMedia(m, now, currentDay, currentTime, currentDate);
-                });
-                
-                console.log('After schedule filter: ' + filteredMedia.length + ' items');
-                
-                for (var i = 0; i < filteredMedia.length; i++) {
-                    var mediaItem = filteredMedia[i];
-                    
-                    if (mediaItem.type === 'url') {
-                        Dash.dashboards.push({
-                            url: mediaItem.url,
-                            time: mediaItem.duration || 20,
-                            refresh: true
-                        });
-                    } else {
-                        Dash.dashboards.push({
-                            url: 'data:text/html;charset=utf-8,' + encodeURIComponent(Dash.createMediaHTML(mediaItem)),
-                            time: mediaItem.duration || 20,
-                            refresh: false
-                        });
-                    }
-                }
-                
-                Dash.continueStartup();
-            })
-            .catch(function(err) {
-                console.error('Error loading media:', err);
-            });
-    },
-    
-    continueStartup: function() {
-        if (Dash.dashboards.length === 0) {
-            console.log('No dashboards to display');
-            return;
-        }
-        
-        Dash.createIframes();
-        
-        for (var index = 0; index < Dash.dashboards.length; index++) {
-            Dash.loadFrame(index);
-        }
-        
-        if (Dash.dashboards.length > 0) {
-            Dash.showFrame(0);
-            setTimeout(function() {
-                Dash.display();
-            }, Dash.dashboards[0].time * 1000);
-        }
-    },
-    
-    createMediaHTML: function(mediaItem) {
-        var mediaSrc = mediaItem.path || mediaItem.data;
-        
-        if (mediaSrc && mediaSrc.indexOf('/') === 0) {
-            mediaSrc = window.location.origin + mediaSrc;
-        }
-        
-        var mediaElement = '';
-        if (mediaItem.type === 'image') {
-            mediaElement = '<img src="' + mediaSrc + '" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;">';
-        } else {
-            mediaElement = '<video src="' + mediaSrc + '" autoplay muted loop style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;"></video>';
-        }
-        
-        return '<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;position:relative;}</style></head><body>' + mediaElement + '</body></html>';
-    },
-
-    startup: function() {
-        Dash.initializeDashboards();
-    },
-
-    loadFrame: function(index) {
-        var iframe = document.getElementById(index.toString());
-        if (iframe) {
-            iframe.src = Dash.dashboards[index].url;
-        }
-    },
-
-    display: function() {
-        if (Dash.dashboards.length === 0) return;
-        
-        var currentDashboard = Dash.dashboards[this.nextIndex];
-        
-        Dash.hideFrame(this.nextIndex - 1);
-        
-        if (currentDashboard.refresh) {
-            Dash.loadFrame(this.nextIndex);
-        }
-        
-        Dash.showFrame(this.nextIndex);
-        
-        this.nextIndex = (this.nextIndex + 1) % Dash.dashboards.length;
-        
-        setTimeout(function() {
-            Dash.display();
-        }, currentDashboard.time * 1000);
-    },
-
-    hideFrame: function(index) {
-        if (index < 0) {
-            index = Dash.dashboards.length - 1;
-        }
-        var frame = $('#' + index);
-        frame.animate({opacity: 0}, 500, function() {
-            frame.removeClass('active');
-        });
-    },
-
-    showFrame: function(index) {
-        var frame = $('#' + index);
-        frame.addClass('active').css({opacity: 0}).animate({opacity: 1}, 500);
-    }
-};
-
-window.onload = function() {
-    Dash.startup();
-};
 </script>
 
 <?php endif; ?>
