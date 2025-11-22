@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-CATT Monitor - Chromecast Casting Controller
-Automatically manages Chromecast casting based on tournament status
+Smart CATT Casting Monitor
+Automatically switches Chromecast display based on tournament status
+FIXED: Works with bankshot_monitor_multi.py data format
 """
 
 import json
@@ -16,7 +17,7 @@ from pathlib import Path
 TOURNAMENT_DATA_FILE = '/var/www/html/tournament_data.json'
 STATE_FILE = '/var/www/html/cast_state.json'
 LOG_FILE = '/var/log/catt_monitor.log'
-CHECK_INTERVAL = 30  # seconds
+CHECK_INTERVAL = 30  # Check every 30 seconds
 CATT_COMMAND = '/home/pi/.local/bin/catt'
 
 # Setup logging
@@ -60,16 +61,18 @@ def load_cast_state():
                 return json.load(f)
         return {
             'is_casting_tournament': False,
-            'last_player_count': 0,
-            'tournament_start_time': None,
+            'last_tournament_url': None,
+            'last_status': None,
+            'cast_started_at': None,
             'failsafe_check_done': False
         }
     except Exception as e:
         logging.error(f"Error loading cast state: {e}")
         return {
             'is_casting_tournament': False,
-            'last_player_count': 0,
-            'tournament_start_time': None,
+            'last_tournament_url': None,
+            'last_status': None,
+            'cast_started_at': None,
             'failsafe_check_done': False
         }
 
@@ -128,6 +131,7 @@ def catt_cast_site(url):
 def parse_start_time(start_time_str):
     """Parse start time string like '7:00 PM' or '7pm' into datetime"""
     try:
+        # Try various formats
         formats = [
             '%I:%M %p',  # 7:00 PM
             '%I:%M%p',   # 7:00PM
@@ -156,6 +160,7 @@ def is_today_tournament(tournament_data):
         if not tournament_date:
             return False
         
+        # Tournament date format is YYYY/MM/DD
         today = datetime.now().strftime("%Y/%m/%d")
         return tournament_date == today
     except Exception as e:
@@ -163,12 +168,39 @@ def is_today_tournament(tournament_data):
         return False
 
 def is_tournament_complete(tournament_data):
-    """Check if tournament is 100% complete"""
+    """Check if tournament is completed"""
     try:
         status = tournament_data.get('status', '').lower()
         return status == 'complete' or status == 'completed'
     except Exception as e:
         logging.error(f"Error checking tournament status: {e}")
+        return False
+
+def should_display_tournament(tournament_data):
+    """
+    Determine if tournament should be displayed based on the scraper's display_tournament flag
+    This flag is set by bankshot_monitor_multi.py based on smart logic
+    """
+    try:
+        # Primary check: use the display_tournament flag from scraper
+        should_display = tournament_data.get('display_tournament', False)
+        
+        # Additional safety checks
+        status = tournament_data.get('status', '')
+        tournament_name = tournament_data.get('tournament_name', '')
+        
+        # Don't display if explicitly marked as "No tournaments"
+        if 'no tournament' in tournament_name.lower():
+            return False
+        
+        # Status should be "In Progress" or "Upcoming"
+        if status not in ['In Progress', 'Upcoming', 'in_progress', 'upcoming']:
+            return False
+        
+        return should_display
+        
+    except Exception as e:
+        logging.error(f"Error checking display status: {e}")
         return False
 
 def is_within_closing_time():
@@ -179,6 +211,7 @@ def is_within_closing_time():
     minute = now.minute
     current_minutes = hour * 60 + minute
     
+    # Allow tournament to continue until closing time
     # Sunday (6): Until 1am Monday
     if day == 6 and current_minutes < 60:
         return True
@@ -206,13 +239,14 @@ def is_within_closing_time():
 def monitor_and_cast():
     """Main monitoring and casting logic"""
     logging.info("=" * 60)
-    logging.info("CATT Monitor Starting")
+    logging.info("CATT Monitor Starting (Fixed for bankshot_monitor_multi.py)")
     logging.info("=" * 60)
     
     state = load_cast_state()
     
     while True:
         try:
+            # Load current tournament data
             tournament_data = load_tournament_data()
             
             if not tournament_data:
@@ -220,19 +254,27 @@ def monitor_and_cast():
                 time.sleep(CHECK_INTERVAL)
                 continue
             
+            # Get tournament info
+            tournament_name = tournament_data.get('tournament_name', 'Unknown')
+            tournament_url = tournament_data.get('tournament_url')
+            status = tournament_data.get('status', 'Unknown')
             is_today = is_today_tournament(tournament_data)
             is_complete = is_tournament_complete(tournament_data)
-            player_count = tournament_data.get('player_count', 0)
-            tournament_name = tournament_data.get('tournament_name', 'Unknown')
+            should_display = should_display_tournament(tournament_data)
             
+            # Allow continued casting if tournament not complete and within closing hours
             should_continue_tournament = (
                 state['is_casting_tournament'] and 
                 not is_complete and 
-                is_within_closing_time()
+                is_within_closing_time() and
+                should_display
             )
             
-            logging.debug(f"Tournament: {tournament_name}, Today: {is_today}, Complete: {is_complete}, Players: {player_count}")
+            logging.debug(f"Tournament: {tournament_name}")
+            logging.debug(f"  Today: {is_today}, Status: {status}, Complete: {is_complete}")
+            logging.debug(f"  Should Display: {should_display}, Continue: {should_continue_tournament}")
             
+            # Get local IP for casting
             local_ip = get_local_ip()
             if not local_ip:
                 logging.error("Could not determine local IP address")
@@ -241,29 +283,31 @@ def monitor_and_cast():
             
             cast_url = f"http://{local_ip}/"
             
-            # SCENARIO 1: Tournament found for today WITH players
-            if is_today and player_count > 0 and not state['is_casting_tournament']:
-                logging.info(f"🎱 Tournament today with {player_count} players - Starting cast")
-                logging.info(f"Tournament: {tournament_name}")
+            # SCENARIO 1: Tournament should be displayed and we're not casting yet
+            if should_display and not state['is_casting_tournament']:
+                logging.info(f"🎱 Tournament ready to display")
+                logging.info(f"   Name: {tournament_name}")
+                logging.info(f"   Status: {status}")
                 
                 catt_stop()
                 time.sleep(2)
                 
                 if catt_cast_site(cast_url):
                     state['is_casting_tournament'] = True
-                    state['last_player_count'] = player_count
-                    state['tournament_start_time'] = tournament_data.get('start_time')
-                    state['failsafe_check_done'] = False
+                    state['last_tournament_url'] = tournament_url
+                    state['last_status'] = status
                     state['cast_started_at'] = datetime.now().isoformat()
+                    state['failsafe_check_done'] = False
                     save_cast_state(state)
                     logging.info("✓ Successfully started casting tournament display")
             
-            # SCENARIO 2: Continue casting incomplete tournament
-            elif should_continue_tournament and player_count > 0:
-                logging.debug("Continuing tournament cast (not complete, within closing hours)")
+            # SCENARIO 2: Continue casting incomplete tournament even if started yesterday
+            elif should_continue_tournament:
+                logging.debug(f"Continuing tournament cast (not complete, within closing hours)")
+                # Keep casting, don't stop
             
             # SCENARIO 3: Failsafe check - 40 minutes after start time
-            elif is_today and player_count > 0 and state['is_casting_tournament'] and not state['failsafe_check_done']:
+            elif should_display and state['is_casting_tournament'] and not state['failsafe_check_done']:
                 start_time_str = tournament_data.get('start_time')
                 if start_time_str:
                     start_time = parse_start_time(start_time_str)
@@ -272,43 +316,51 @@ def monitor_and_cast():
                         failsafe_time = start_time + timedelta(minutes=40)
                         
                         if now >= failsafe_time:
-                            current_count = player_count
-                            initial_count = state['last_player_count']
-                            
                             logging.info(f"⚠️ FAILSAFE CHECK: 40 minutes past start time ({start_time_str})")
-                            logging.info(f"Player count - Initial: {initial_count}, Current: {current_count}")
+                            logging.info("Checking if tournament data has changed...")
                             
-                            if current_count != initial_count:
-                                logging.info("Player count changed - Restarting cast...")
+                            # Check if status or URL changed
+                            current_url = tournament_url
+                            current_status = status
+                            last_url = state['last_tournament_url']
+                            last_status = state['last_status']
+                            
+                            if current_url != last_url or current_status != last_status:
+                                logging.info("Tournament data changed - Restarting cast...")
                                 
                                 catt_stop()
                                 time.sleep(2)
                                 
                                 if catt_cast_site(cast_url):
-                                    state['last_player_count'] = current_count
+                                    state['last_tournament_url'] = current_url
+                                    state['last_status'] = current_status
                                     state['failsafe_check_done'] = True
                                     save_cast_state(state)
                                     logging.info("✓ Failsafe restart completed")
                             else:
-                                logging.info("✓ No player count change - Marking failsafe as done")
+                                logging.info("✓ No tournament data change - Marking failsafe as done")
                                 state['failsafe_check_done'] = True
                                 save_cast_state(state)
             
-            # SCENARIO 4: Tournament complete or past closing time
-            elif state['is_casting_tournament'] and (is_complete or not is_within_closing_time()):
+            # SCENARIO 4: Tournament complete or past closing time - reset state
+            elif state['is_casting_tournament'] and (is_complete or not is_within_closing_time() or not should_display):
                 if is_complete:
                     logging.info("Tournament completed - Resetting state")
-                else:
+                elif not is_within_closing_time():
                     logging.info("Past closing time - Resetting state")
+                else:
+                    logging.info("Tournament no longer should be displayed - Resetting state")
+                    
                 state['is_casting_tournament'] = False
-                state['last_player_count'] = 0
+                state['last_tournament_url'] = None
+                state['last_status'] = None
                 state['failsafe_check_done'] = False
-                state['tournament_start_time'] = None
+                state['cast_started_at'] = None
                 save_cast_state(state)
             
-            # SCENARIO 5: No players yet
-            elif is_today and player_count == 0:
-                logging.debug("Tournament today but no players yet")
+            # SCENARIO 5: Tournament not ready yet - just wait
+            elif is_today and not should_display:
+                logging.debug("Tournament today but not ready to display yet")
             
             time.sleep(CHECK_INTERVAL)
             
@@ -317,7 +369,12 @@ def monitor_and_cast():
             break
         except Exception as e:
             logging.error(f"Error in monitor loop: {e}")
+            import traceback
+            traceback.print_exc()
             time.sleep(CHECK_INTERVAL)
 
-if __name__ == '__main__':
+def main():
     monitor_and_cast()
+
+if __name__ == '__main__':
+    main()
