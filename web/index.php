@@ -360,35 +360,46 @@ var Dash = {
     },
     
     initializeDashboards: function() {
-        // REMOVED: DigitalPool tournament URL is no longer added to dashboards
-        // The tournament URL cannot be embedded due to X-Frame-Options
-        console.log('Tournament active - showing media rotation only');
+        // Tournament URL removed - cannot embed due to X-Frame-Options
+        console.log('Loading media rotation...');
         
-        fetch('media_items.json?nocache=' + Date.now())
+        fetch('/load_media.php')
             .then(function(response) {
                 return response.json();
             })
-            .then(function(media) {
-                console.log('Loaded ' + media.length + ' media items');
+            .then(function(data) {
+                <?php if ($tournament_found): ?>
+                // Tournament active - show 'tournament' media
+                var allMediaItems = data.filter(function(m) { 
+                    return m.active === true && m.displayOnTournaments === true;
+                });
+                console.log('Tournament mode: ' + allMediaItems.length + ' tournament media items');
+                <?php else: ?>
+                // No tournament - show 'ad' media
+                var allMediaItems = data.filter(function(m) { 
+                    return m.active === true && m.displayOnAds === true;
+                });
+                console.log('Ad mode: ' + allMediaItems.length + ' ad media items');
+                <?php endif; ?>
                 
-                var now = Date.now();
-                var currentDate = new Date();
-                var currentDay = currentDate.getDay();
-                var currentTime = currentDate.getHours() * 60 + currentDate.getMinutes();
-                var currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+                // Sort by order
+                allMediaItems.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
                 
-                for (var i = 0; i < media.length; i++) {
-                    var mediaItem = media[i];
-                    
-                    if (!mediaItem.enabled) {
-                        continue;
-                    }
-                    
-                    if (!shouldDisplayMedia(mediaItem, now, currentDay, currentTime, currentDateOnly)) {
-                        continue;
-                    }
-                    
-                    console.log('Adding media: ' + (mediaItem.name || mediaItem.type));
+                // Apply schedule filtering
+                var now = new Date();
+                var currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
+                var currentTime = now.getHours() * 60 + now.getMinutes();
+                var currentDate = now.toISOString().split('T')[0];
+                
+                var filteredMedia = allMediaItems.filter(function(m) {
+                    return shouldDisplayMedia(m, now, currentDay, currentTime, currentDate);
+                });
+                
+                console.log('After schedule filter: ' + filteredMedia.length + ' items to display');
+                
+                // Build dashboards
+                for (var i = 0; i < filteredMedia.length; i++) {
+                    var mediaItem = filteredMedia[i];
                     
                     if (mediaItem.type === 'url') {
                         Dash.dashboards.push({
@@ -405,6 +416,10 @@ var Dash = {
                     }
                 }
                 
+                if (Dash.dashboards.length === 0) {
+                    console.warn('No media items to display!');
+                }
+                
                 Dash.continueStartup();
             })
             .catch(function(err) {
@@ -414,6 +429,11 @@ var Dash = {
     },
     
     continueStartup: function() {
+        if (Dash.dashboards.length === 0) {
+            console.log('No dashboards to display');
+            return;
+        }
+        
         Dash.createIframes();
         
         for (var index = 0; index < Dash.dashboards.length; index++) {
@@ -457,6 +477,8 @@ var Dash = {
     },
 
     display: function() {
+        if (Dash.dashboards.length === 0) return;
+        
         var currentDashboard = Dash.dashboards[this.nextIndex];
         
         Dash.hideFrame(this.nextIndex - 1);
@@ -496,13 +518,34 @@ window.onload = function() {
 </script>
 
 <script>
+// IMPROVED: Track detailed state to detect player count drops to zero
+let lastTournamentState = {
+    display: null,
+    playerCount: null,
+    initialized: false
+};
+
 function updatePlayerData() {
-    fetch('/get_tournament_data.php')
+    fetch('/get_tournament_data.php?nocache=' + Date.now())
         .then(response => response.json())
         .then(data => {
             if (data.success && data.display_tournament) {
                 var playerCount = data.player_count || 0;
                 var entryFee = data.entry_fee || 15;
+                
+                // CRITICAL: Detect if player count dropped to zero
+                if (lastTournamentState.initialized && 
+                    lastTournamentState.playerCount > 0 && 
+                    playerCount === 0) {
+                    console.log('Player count dropped to zero - reloading page');
+                    location.reload();
+                    return;
+                }
+                
+                // Update state
+                lastTournamentState.playerCount = playerCount;
+                lastTournamentState.display = data.display_tournament;
+                lastTournamentState.initialized = true;
                 
                 // Show/hide left panel based on player count
                 var leftPanel = document.getElementById('leftPanel');
@@ -575,6 +618,7 @@ function updatePlayerData() {
         .catch(err => console.error('Error fetching tournament data:', err));
 }
 
+// Update player data every 30 seconds
 updatePlayerData();
 setInterval(updatePlayerData, 30000);
 </script>
@@ -587,6 +631,163 @@ setInterval(updatePlayerData, 30000);
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 console.log('No tournament today - showing media only');
+
+var Dash = {
+    dashboards: [],
+    nextIndex: 0,
+    createIframes: function() {
+        var frameContainer = document.getElementById('frameContainer');
+        
+        for (var index = 0; index < this.dashboards.length; index++) {
+            var iframe = document.createElement('iframe');
+            iframe.setAttribute('id', index.toString());
+            iframe.setAttribute('scrolling', 'no');
+            iframe.setAttribute('frameborder', '0');
+            iframe.setAttribute('allowfullscreen', 'true');
+            frameContainer.appendChild(iframe);
+        }
+    },
+    
+    initializeDashboards: function() {
+        fetch('/load_media.php')
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(data) {
+                // No tournament - show 'ad' media only
+                var allMediaItems = data.filter(function(m) { 
+                    return m.active === true && m.displayOnAds === true;
+                });
+                
+                console.log('Loaded ' + allMediaItems.length + ' ad media items');
+                
+                // Sort by order
+                allMediaItems.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+                
+                // Apply schedule filtering
+                var now = new Date();
+                var currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
+                var currentTime = now.getHours() * 60 + now.getMinutes();
+                var currentDate = now.toISOString().split('T')[0];
+                
+                var filteredMedia = allMediaItems.filter(function(m) {
+                    return shouldDisplayMedia(m, now, currentDay, currentTime, currentDate);
+                });
+                
+                console.log('After schedule filter: ' + filteredMedia.length + ' items');
+                
+                for (var i = 0; i < filteredMedia.length; i++) {
+                    var mediaItem = filteredMedia[i];
+                    
+                    if (mediaItem.type === 'url') {
+                        Dash.dashboards.push({
+                            url: mediaItem.url,
+                            time: mediaItem.duration || 20,
+                            refresh: true
+                        });
+                    } else {
+                        Dash.dashboards.push({
+                            url: 'data:text/html;charset=utf-8,' + encodeURIComponent(Dash.createMediaHTML(mediaItem)),
+                            time: mediaItem.duration || 20,
+                            refresh: false
+                        });
+                    }
+                }
+                
+                Dash.continueStartup();
+            })
+            .catch(function(err) {
+                console.error('Error loading media:', err);
+            });
+    },
+    
+    continueStartup: function() {
+        if (Dash.dashboards.length === 0) {
+            console.log('No dashboards to display');
+            return;
+        }
+        
+        Dash.createIframes();
+        
+        for (var index = 0; index < Dash.dashboards.length; index++) {
+            Dash.loadFrame(index);
+        }
+        
+        if (Dash.dashboards.length > 0) {
+            Dash.showFrame(0);
+            setTimeout(function() {
+                Dash.display();
+            }, Dash.dashboards[0].time * 1000);
+        }
+    },
+    
+    createMediaHTML: function(mediaItem) {
+        var mediaSrc = mediaItem.path || mediaItem.data;
+        
+        if (mediaSrc && mediaSrc.indexOf('/') === 0) {
+            mediaSrc = window.location.origin + mediaSrc;
+        }
+        
+        var mediaElement = '';
+        if (mediaItem.type === 'image') {
+            mediaElement = '<img src="' + mediaSrc + '" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;">';
+        } else {
+            mediaElement = '<video src="' + mediaSrc + '" autoplay muted loop style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;"></video>';
+        }
+        
+        return '<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;position:relative;}</style></head><body>' + mediaElement + '</body></html>';
+    },
+
+    startup: function() {
+        Dash.initializeDashboards();
+    },
+
+    loadFrame: function(index) {
+        var iframe = document.getElementById(index.toString());
+        if (iframe) {
+            iframe.src = Dash.dashboards[index].url;
+        }
+    },
+
+    display: function() {
+        if (Dash.dashboards.length === 0) return;
+        
+        var currentDashboard = Dash.dashboards[this.nextIndex];
+        
+        Dash.hideFrame(this.nextIndex - 1);
+        
+        if (currentDashboard.refresh) {
+            Dash.loadFrame(this.nextIndex);
+        }
+        
+        Dash.showFrame(this.nextIndex);
+        
+        this.nextIndex = (this.nextIndex + 1) % Dash.dashboards.length;
+        
+        setTimeout(function() {
+            Dash.display();
+        }, currentDashboard.time * 1000);
+    },
+
+    hideFrame: function(index) {
+        if (index < 0) {
+            index = Dash.dashboards.length - 1;
+        }
+        var frame = $('#' + index);
+        frame.animate({opacity: 0}, 500, function() {
+            frame.removeClass('active');
+        });
+    },
+
+    showFrame: function(index) {
+        var frame = $('#' + index);
+        frame.addClass('active').css({opacity: 0}).animate({opacity: 1}, 500);
+    }
+};
+
+window.onload = function() {
+    Dash.startup();
+};
 </script>
 
 <?php endif; ?>
@@ -622,17 +823,62 @@ console.log('No tournament today - showing media only');
 </script>
 
 <script>
-let lastTournamentCheck = null;
+// IMPROVED: More aggressive tournament state checking
+let lastTournamentCheck = {
+    display: null,
+    playerCount: null,
+    tournamentUrl: null
+};
 
 function checkTournamentChanges() {
-    fetch('/get_tournament_data.php?t=' + Date.now())
+    fetch('/get_tournament_data.php?nocache=' + Date.now())
         .then(response => response.json())
         .then(data => {
-            var currentState = data.display_tournament + '_' + data.player_count;
+            var currentDisplay = data.display_tournament || false;
+            var currentPlayerCount = data.player_count || 0;
+            var currentUrl = data.tournament_url || '';
             
-            if (lastTournamentCheck === null) {
-                lastTournamentCheck = currentState;
-            } else if (currentState !== lastTournamentCheck) {
+            // First run - just store state
+            if (lastTournamentCheck.display === null) {
+                lastTournamentCheck.display = currentDisplay;
+                lastTournamentCheck.playerCount = currentPlayerCount;
+                lastTournamentCheck.tournamentUrl = currentUrl;
+                console.log('Initial state:', lastTournamentCheck);
+                return;
+            }
+            
+            // Check for state changes that require reload
+            var shouldReload = false;
+            var reloadReason = '';
+            
+            // Tournament display flag changed
+            if (currentDisplay !== lastTournamentCheck.display) {
+                shouldReload = true;
+                reloadReason = 'display_tournament changed from ' + lastTournamentCheck.display + ' to ' + currentDisplay;
+            }
+            
+            // Player count dropped to zero (tournament ended/reset)
+            else if (lastTournamentCheck.playerCount > 0 && currentPlayerCount === 0) {
+                shouldReload = true;
+                reloadReason = 'player count dropped to zero';
+            }
+            
+            // Player count changed significantly (new tournament or major update)
+            else if (Math.abs(currentPlayerCount - lastTournamentCheck.playerCount) >= 3) {
+                shouldReload = true;
+                reloadReason = 'player count changed by ' + Math.abs(currentPlayerCount - lastTournamentCheck.playerCount);
+            }
+            
+            // Tournament URL changed (different tournament)
+            else if (currentUrl !== lastTournamentCheck.tournamentUrl && currentUrl !== '') {
+                shouldReload = true;
+                reloadReason = 'tournament URL changed';
+            }
+            
+            if (shouldReload) {
+                console.log('🔄 Reloading page: ' + reloadReason);
+                console.log('Old state:', lastTournamentCheck);
+                console.log('New state:', {display: currentDisplay, playerCount: currentPlayerCount, tournamentUrl: currentUrl});
                 location.reload();
             }
         })
@@ -641,7 +887,9 @@ function checkTournamentChanges() {
         });
 }
 
+// Check every 15 seconds
 setInterval(checkTournamentChanges, 15000);
+// Initial check after 3 seconds
 setTimeout(checkTournamentChanges, 3000);
 </script>
 
