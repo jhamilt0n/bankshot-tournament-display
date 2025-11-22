@@ -247,7 +247,6 @@ set_time_limit(60);
 require_once 'payout_calculator.php';
 
 $tournament_data_file = '/var/www/html/tournament_data.json';
-$content = null;
 $tournament_found = false;
 $tournament_name = '';
 $entry_fee = 15;
@@ -263,7 +262,6 @@ if (file_exists($tournament_data_file)) {
         isset($tournament_data['display_tournament']) && 
         $tournament_data['display_tournament'] === true) {
         
-        $content = $tournament_data['tournament_url'];
         $tournament_found = true;
         $tournament_name = $tournament_data['tournament_name'] ?? 'Pool Tournament';
         $entry_fee = $tournament_data['entry_fee'] ?? 15;
@@ -348,59 +346,50 @@ function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
 var Dash = {
     dashboards: [],
     nextIndex: 0,
-    mediaItems: [],
-    
     createIframes: function() {
-        var container = document.getElementById('frameContainer');
-        for (var i = 0; i < this.dashboards.length; i++) {
+        var frameContainer = document.getElementById('frameContainer');
+        
+        for (var index = 0; index < this.dashboards.length; index++) {
             var iframe = document.createElement('iframe');
-            iframe.id = i.toString();
-            container.appendChild(iframe);
+            iframe.setAttribute('id', index.toString());
+            iframe.setAttribute('scrolling', 'no');
+            iframe.setAttribute('frameborder', '0');
+            iframe.setAttribute('allowfullscreen', 'true');
+            frameContainer.appendChild(iframe);
         }
     },
     
     initializeDashboards: function() {
-        fetch('/load_media.php')
+        // REMOVED: DigitalPool tournament URL is no longer added to dashboards
+        // The tournament URL cannot be embedded due to X-Frame-Options
+        console.log('Tournament active - showing media rotation only');
+        
+        fetch('media_items.json?nocache=' + Date.now())
             .then(function(response) {
                 return response.json();
             })
-            .then(function(data) {
-                <?php if ($tournament_found && $player_count > 0): ?>
-                // Tournament active - show only 'tournament' type media
-                var allMediaItems = data.filter(function(m) { 
-                    return m.active === true && m.displayOnTournaments === true;
-                });
-                console.log('Tournament mode: showing tournament media');
-                <?php else: ?>
-                // No tournament - show only 'ad' type media
-                var allMediaItems = data.filter(function(m) { 
-                    return m.active === true && m.displayOnAds === true;
-                });
-                console.log('Ad mode: showing ad media');
-                <?php endif; ?>
+            .then(function(media) {
+                console.log('Loaded ' + media.length + ' media items');
                 
-                allMediaItems.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+                var now = Date.now();
+                var currentDate = new Date();
+                var currentDay = currentDate.getDay();
+                var currentTime = currentDate.getHours() * 60 + currentDate.getMinutes();
+                var currentDateOnly = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
                 
-                var now = new Date();
-                var currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
-                var currentTime = now.getHours() * 60 + now.getMinutes();
-                var currentDate = now.toISOString().split('T')[0];
-                
-                Dash.mediaItems = allMediaItems.filter(function(m) {
-                    return shouldDisplayMedia(m, now, currentDay, currentTime, currentDate);
-                });
-                
-                <?php if ($tournament_found && $player_count > 0): ?>
-                // Add tournament bracket first when active
-                Dash.dashboards.push({
-                    url: '<?php echo $content; ?>',
-                    time: 20,
-                    refresh: true
-                });
-                <?php endif; ?>
-                
-                for (var i = 0; i < Dash.mediaItems.length; i++) {
-                    var mediaItem = Dash.mediaItems[i];
+                for (var i = 0; i < media.length; i++) {
+                    var mediaItem = media[i];
+                    
+                    if (!mediaItem.enabled) {
+                        continue;
+                    }
+                    
+                    if (!shouldDisplayMedia(mediaItem, now, currentDay, currentTime, currentDateOnly)) {
+                        continue;
+                    }
+                    
+                    console.log('Adding media: ' + (mediaItem.name || mediaItem.type));
+                    
                     if (mediaItem.type === 'url') {
                         Dash.dashboards.push({
                             url: mediaItem.url,
@@ -420,13 +409,6 @@ var Dash = {
             })
             .catch(function(err) {
                 console.error('Error loading media:', err);
-                <?php if ($tournament_found && $player_count > 0): ?>
-                Dash.dashboards.push({
-                    url: '<?php echo $content; ?>',
-                    time: 20,
-                    refresh: true
-                });
-                <?php endif; ?>
                 Dash.continueStartup();
             });
     },
