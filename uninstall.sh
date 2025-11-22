@@ -1,5 +1,5 @@
 #!/bin/bash
-# Bankshot Tournament Display System - Uninstaller
+# Bankshot Wireless Display System - Uninstaller
 # Run with: sudo ./uninstall.sh
 
 set -e  # Exit on any error
@@ -12,7 +12,7 @@ NC='\033[0m' # No Color
 
 echo -e "${RED}"
 echo "============================================================"
-echo "  BANKSHOT TOURNAMENT DISPLAY SYSTEM UNINSTALLER"
+echo "  BANKSHOT WIRELESS DISPLAY SYSTEM UNINSTALLER"
 echo "============================================================"
 echo -e "${NC}"
 
@@ -28,7 +28,7 @@ USER_HOME=$(eval echo ~$ACTUAL_USER)
 
 echo -e "${YELLOW}Uninstalling for user: $ACTUAL_USER${NC}"
 echo ""
-echo -e "${YELLOW}WARNING: This will remove all Bankshot Tournament Display System components.${NC}"
+echo -e "${YELLOW}WARNING: This will remove all Bankshot Display System components.${NC}"
 echo -e "${YELLOW}Media files in /var/www/html/media/ will be preserved.${NC}"
 echo ""
 read -p "Are you sure you want to continue? (yes/no): " CONFIRM
@@ -41,27 +41,27 @@ fi
 echo ""
 echo -e "${GREEN}Step 1: Stopping services...${NC}"
 systemctl stop tournament-monitor.service 2>/dev/null || echo "tournament-monitor.service not running"
-systemctl stop catt-monitor.service 2>/dev/null || echo "catt-monitor.service not running"
+systemctl stop web-monitor.service 2>/dev/null || echo "web-monitor.service not running"
 systemctl stop hdmi-display.service 2>/dev/null || echo "hdmi-display.service not running"
 
 echo ""
 echo -e "${GREEN}Step 2: Disabling services...${NC}"
 systemctl disable tournament-monitor.service 2>/dev/null || echo "tournament-monitor.service not enabled"
-systemctl disable catt-monitor.service 2>/dev/null || echo "catt-monitor.service not enabled"
+systemctl disable web-monitor.service 2>/dev/null || echo "web-monitor.service not enabled"
 systemctl disable hdmi-display.service 2>/dev/null || echo "hdmi-display.service not enabled"
 
 echo ""
 echo -e "${GREEN}Step 3: Removing service files...${NC}"
 rm -f /etc/systemd/system/tournament-monitor.service
-rm -f /etc/systemd/system/catt-monitor.service
+rm -f /etc/systemd/system/web-monitor.service
 rm -f /etc/systemd/system/hdmi-display.service
 systemctl daemon-reload
 
 echo ""
 echo -e "${GREEN}Step 4: Removing system scripts...${NC}"
-rm -f $USER_HOME/catt_monitor.py
 rm -f $USER_HOME/hdmi_display_manager.sh
 rm -f $USER_HOME/tournament_monitor.py
+rm -f $USER_HOME/web_monitor.py
 
 echo ""
 echo -e "${GREEN}Step 5: Removing web files...${NC}"
@@ -76,12 +76,16 @@ rm -f /var/www/html/media_manager.html
 rm -f /var/www/html/payout_calculator.php
 rm -f /var/www/html/save_media.php
 rm -f /var/www/html/upload_file.php
+rm -f /var/www/html/delete_file.php
+rm -f /var/www/html/tv.html
+rm -f /var/www/html/qr_setup.php
+rm -f /var/www/html/tv_setup.html
 rm -f /var/www/html/tournament_data.json
 
 echo ""
 echo -e "${GREEN}Step 6: Removing log files...${NC}"
 rm -f /var/log/tournament_monitor.log
-rm -f /var/log/catt_monitor.log
+rm -f /var/log/web_monitor.log
 rm -f /var/log/hdmi_display.log
 
 echo ""
@@ -94,18 +98,23 @@ echo ""
 echo -e "${YELLOW}Note: The following items were NOT removed:${NC}"
 echo "  - Apache2 web server (system package)"
 echo "  - PHP and extensions (system packages)"
-echo "  - Python packages (catt, requests)"
+echo "  - Python packages (requests)"
 echo "  - Composer (system-wide installation)"
+echo "  - Avahi/mDNS daemon (system package)"
 echo "  - Media files in /var/www/html/media/"
+echo "  - Hostname setting (${HOSTNAME:-bankshot-display}.local)"
 echo ""
 echo "To remove media files manually, run:"
 echo "  sudo rm -rf /var/www/html/media/"
 echo ""
 echo "To remove Python packages, run:"
-echo "  pip3 uninstall catt requests"
+echo "  pip3 uninstall requests"
+echo ""
+echo "To reset hostname, run:"
+echo "  sudo hostnamectl set-hostname raspberrypi"
 echo ""
 echo "To remove system packages, run:"
-echo "  sudo apt-get remove apache2 php php-cli php-xml php-gd php-mbstring chromium"
+echo "  sudo apt-get remove apache2 php php-cli php-xml php-gd php-mbstring chromium-browser avahi-daemon"
 echo "  sudo apt-get autoremove"
 echo ""
 
@@ -113,4 +122,5 @@ echo -e "${GREEN}============================================================${N
 echo -e "${GREEN}  UNINSTALLATION COMPLETE!${NC}"
 echo -e "${GREEN}============================================================${NC}"
 echo ""
-echo -e "${GREEN}Bankshot Tournament Display System has been removed.${NC}"
+echo -e "${GREEN}Bankshot Wireless Display System has been removed.${NC}"
+echo ""

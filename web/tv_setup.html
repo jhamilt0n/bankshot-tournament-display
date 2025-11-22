@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Setup Guide - Bankshot Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e7e34 0%, #0d4d1f 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1e7e34 0%, #0d5c26 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .url-box {
+            background: #f0f9ff;
+            border: 3px solid #0ea5e9;
+            border-radius: 10px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .url-box h2 {
+            color: #0284c7;
+            margin-bottom: 15px;
+        }
+        
+        .url {
+            background: #1e293b;
+            color: #22d3ee;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin: 20px 0;
+            word-break: break-all;
+        }
+        
+        .brands-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+        
+        .brand-card {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 25px;
+            transition: all 0.3s;
+        }
+        
+        .brand-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-color: #1e7e34;
+        }
+        
+        .brand-card h3 {
+            color: #1e7e34;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .brand-card ol {
+            margin-left: 20px;
+            color: #4b5563;
+            line-height: 1.8;
+        }
+        
+        .brand-card li {
+            margin: 8px 0;
+        }
+        
+        .brand-card strong {
+            color: #1f2937;
+        }
+        
+        .tip-box {
+            background: #fef3c7;
+            border-left: 4px solid #f59e0b;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        
+        .tip-box h3 {
+            color: #b45309;
+            margin-bottom: 10px;
+        }
+        
+        .tip-box p {
+            color: #78350f;
+            line-height: 1.6;
+        }
+        
+        .success-box {
+            background: #d1fae5;
+            border-left: 4px solid #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        
+        .success-box h3 {
+            color: #065f46;
+            margin-bottom: 10px;
+        }
+        
+        .qr-link {
+            display: inline-block;
+            background: #1e7e34;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: bold;
+            margin: 20px 0;
+            transition: all 0.3s;
+        }
+        
+        .qr-link:hover {
+            background: #0d5c26;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(30, 126, 52, 0.4);
+        }
+        
+        h2 {
+            color: #1e7e34;
+            margin: 40px 0 20px 0;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #e5e7eb;
+        }
+        
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+            
+            header h1 {
+                font-size: 1.8rem;
+            }
+            
+            .url {
+                font-size: 1rem;
+                padding: 15px;
+            }
+            
+            .brands-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📺 Smart TV Setup Guide</h1>
+            <p>Universal setup for all TV brands</p>
+        </header>
+        
+        <div class="content">
+            <div class="url-box">
+                <h2>🎯 Your Display URL</h2>
+                <p>Point your TV's web browser to:</p>
+                <div class="url" id="displayUrl">Loading...</div>
+                <p style="margin-top: 15px; color: #64748b;">
+                    <strong>Or use IP address:</strong> <span id="ipUrl">Loading...</span>
+                </p>
+                <a href="#" id="qrLink" class="qr-link">📱 Get QR Code for Easy Setup</a>
+            </div>
+            
+            <div class="tip-box">
+                <h3>💡 Quick Setup Tip</h3>
+                <p>
+                    <strong>Use the QR code!</strong> Instead of typing the URL on your TV remote (which is tedious),
+                    click the QR Code button above on your phone. Then use your TV's browser to scan the QR code -
+                    it will automatically navigate to the correct URL.
+                </p>
+            </div>
+            
+            <h2>📱 Setup Instructions by Brand</h2>
+            
+            <div class="brands-grid">
+                <div class="brand-card">
+                    <h3>Samsung Smart TV</h3>
+                    <ol>
+                        <li>Press <strong>Home</strong> button</li>
+                        <li>Navigate to <strong>Internet Browser</strong></li>
+                        <li>Enter the URL above</li>
+                        <li>Press <strong>Tools</strong> → <strong>Settings</strong></li>
+                        <li>Select <strong>Set as Homepage</strong></li>
+                        <li>Enable <strong>Full Screen Mode</strong></li>
+                    </ol>
+                </div>
+                
+                <div class="brand-card">
+                    <h3>LG webOS TV</h3>
+                    <ol>
+                        <li>Press <strong>Home</strong> button</li>
+                        <li>Open <strong>Web Browser</strong></li>
+                        <li>Enter the URL above</li>
+                        <li>Click <strong>⭐ Bookmark</strong> icon</li>
+                        <li>(Optional) Settings → <strong>Launch on Startup</strong></li>
+                    </ol>
+                </div>
+                
+                <div class="brand-card">
+                    <h3>Amazon Fire TV</h3>
+                    <ol>
+                        <li>Install <strong>Silk Browser</strong> from Apps</li>
+                        <li>Open Silk Browser</li>
+                        <li>Enter the URL above</li>
+                        <li>Menu → <strong>Add to Favorites</strong></li>
+                        <li>Settings → <strong>Set as Homepage</strong></li>
+                        <li>Fire TV Settings → Display → <strong>Screen Saver: Never</strong></li>
+                    </ol>
+                </div>
+                
+                <div class="brand-card">
+                    <h3>Roku TV</h3>
+                    <ol>
+                        <li>Add <strong>Web Browser</strong> channel</li>
+                        <li>Open Web Browser</li>
+                        <li>Enter the URL above</li>
+                        <li>Press <strong>⭐</strong> to bookmark</li>
+                    </ol>
+                </div>
+                
+                <div class="brand-card">
+                    <h3>Sony / Android TV / Google TV</h3>
+                    <ol>
+                        <li>Install <strong>Chrome</strong> from Play Store</li>
+                        <li>Open Chrome</li>
+                        <li>Enter the URL above</li>
+                        <li>Settings → <strong>Set as Homepage</strong></li>
+                        <li>(Optional) Enable <strong>Kiosk Mode</strong></li>
+                    </ol>
+                </div>
+                
+                <div class="brand-card">
+                    <h3>TCL Smart TV</h3>
+                    <ol>
+                        <li><strong>TCL Roku TV:</strong> Follow Roku instructions</li>
+                        <li><strong>TCL Google TV:</strong> Follow Android TV instructions</li>
+                        <li>Open TV's web browser</li>
+                        <li>Enter the URL above</li>
+                        <li>Bookmark the page</li>
+                    </ol>
+                </div>
+                
+                <div class="brand-card">
+                    <h3>Vizio Smart TV</h3>
+                    <ol>
+                        <li>Press <strong>V button</strong> on remote</li>
+                        <li>Navigate to <strong>Internet Apps</strong></li>
+                        <li>Open web browser app</li>
+                        <li>Enter the URL above</li>
+                        <li>Add to favorites</li>
+                    </ol>
+                </div>
+                
+                <div class="brand-card">
+                    <h3>Apple TV</h3>
+                    <ol>
+                        <li>Install <strong>AirWeb</strong> browser from App Store</li>
+                        <li>Open AirWeb</li>
+                        <li>Enter the URL above</li>
+                        <li>Bookmark the page</li>
+                        <li>(Optional) Enable auto-launch</li>
+                    </ol>
+                </div>
+            </div>
+            
+            <h2>✅ After Setup</h2>
+            
+            <div class="success-box">
+                <h3>What Happens Next?</h3>
+                <p>
+                    Once your TV is configured, it will automatically:
+                </p>
+                <ul style="margin-left: 20px; margin-top: 10px; color: #065f46;">
+                    <li>Check for tournament status every 30 seconds</li>
+                    <li>Show tournament display when active</li>
+                    <li>Show advertising when no tournament</li>
+                    <li>Continue working even if server IP changes</li>
+                    <li>Require zero human intervention</li>
+                </ul>
+            </div>
+            
+            <div class="tip-box">
+                <h3>🔧 Troubleshooting Tips</h3>
+                <p>
+                    <strong>Can't connect to .local address?</strong><br>
+                    Use the IP address version instead (shown above). Some older TVs don't support mDNS.
+                </p>
+                <p style="margin-top: 10px;">
+                    <strong>Display not switching?</strong><br>
+                    Refresh the page on your TV browser. The system checks for updates every 30 seconds.
+                </p>
+                <p style="margin-top: 10px;">
+                    <strong>Need help?</strong><br>
+                    Add <code>?debug=1</code> to the end of the URL to see status messages in the corner.
+                </p>
+            </div>
+            
+            <h2>📞 Need More Help?</h2>
+            
+            <p style="margin: 20px 0; line-height: 1.8;">
+                If you're having trouble setting up your TV, check the full
+                <a href="https://github.com/jhamilt0n/bankshot-tournament-display" 
+                   style="color: #1e7e34; font-weight: bold;">installation documentation</a>
+                or visit the media manager to upload content.
+            </p>
+            
+            <div style="text-align: center; margin: 40px 0;">
+                <a href="/media_manager.html" class="qr-link">🎬 Go to Media Manager</a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Auto-populate URLs
+        const hostname = window.location.hostname;
+        const mdnsUrl = `http://bankshot-display.local/tv.html`;
+        const ipUrl = `http://${hostname}/tv.html`;
+        
+        document.getElementById('displayUrl').textContent = mdnsUrl;
+        document.getElementById('ipUrl').textContent = ipUrl;
+        document.getElementById('qrLink').href = '/qr_setup.php';
+    </script>
+</body>
+</html>
