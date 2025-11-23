@@ -1,0 +1,75 @@
+name: Scrape Tournaments
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    env:
+      TZ: America/New_York
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@latest
+        with:
+          chrome-version: stable
+      
+      - name: Install Python packages
+        run: pip install selenium webdriver-manager
+      
+      - name: Modify scraper for GitHub Actions
+        run: |
+          cp scraper/bankshot_monitor_multi.py scraper_github.py
+          sed -i 's|/home/pi/tournament_data.json|tournament_data.json|g' scraper_github.py
+          sed -i 's|/var/www/html/tournament_data.json|tournament_data.json|g' scraper_github.py
+          sed -i 's|/home/pi/logs/tournament_monitor.log|scraper.log|g' scraper_github.py
+          
+          cat > patch_scraper.py << 'EOF'
+import re
+with open('scraper_github.py', 'r') as f:
+    content = f.read()
+old_pattern = r"service = Service\(executable_path='/usr/bin/chromedriver'\)"
+new_code = "from webdriver_manager.chrome import ChromeDriverManager\n        service = Service(ChromeDriverManager().install())"
+content = re.sub(old_pattern, new_code, content)
+with open('scraper_github.py', 'w') as f:
+    f.write(content)
+EOF
+          python3 patch_scraper.py
+      
+      - name: Run tournament scraper
+        run: python3 scraper_github.py || true
+        continue-on-error: true
+      
+      - name: Verify tournament data
+        run: |
+          if [ -f tournament_data.json ]; then
+            cat tournament_data.json | python3 -m json.tool
+          else
+            echo '{"tournament_name":"No tournaments found","status":null,"display_tournament":false,"last_updated":"'$(date '+%Y-%m-%d %H:%M:%S')'"}' > tournament_data.json
+          fi
+      
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action Bot"
+          git add tournament_data.json scraper.log 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "Update tournament data - $(date '+%Y-%m-%d %I:%M %p EST')"
+          git push --force-with-lease origin main || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
