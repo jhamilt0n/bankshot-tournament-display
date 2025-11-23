@@ -39,18 +39,16 @@ jobs:
           sed -i 's|/home/pi/tournament_data.json|tournament_data.json|g' scraper_github.py
           sed -i 's|/var/www/html/tournament_data.json|tournament_data.json|g' scraper_github.py
           sed -i 's|/home/pi/logs/tournament_monitor.log|scraper.log|g' scraper_github.py
-          
-          cat > patch_scraper.py << 'EOF'
-import re
-with open('scraper_github.py', 'r') as f:
-    content = f.read()
-old_pattern = r"service = Service\(executable_path='/usr/bin/chromedriver'\)"
-new_code = "from webdriver_manager.chrome import ChromeDriverManager\n        service = Service(ChromeDriverManager().install())"
-content = re.sub(old_pattern, new_code, content)
-with open('scraper_github.py', 'w') as f:
-    f.write(content)
-EOF
-          python3 patch_scraper.py
+          python3 -c "
+          import re
+          with open('scraper_github.py', 'r') as f:
+              content = f.read()
+          old_pattern = r\"service = Service\(executable_path='/usr/bin/chromedriver'\)\"
+          new_code = \"from webdriver_manager.chrome import ChromeDriverManager\\n        service = Service(ChromeDriverManager().install())\"
+          content = re.sub(old_pattern, new_code, content)
+          with open('scraper_github.py', 'w') as f:
+              f.write(content)
+          "
       
       - name: Run tournament scraper
         run: python3 scraper_github.py || true
@@ -61,7 +59,7 @@ EOF
           if [ -f tournament_data.json ]; then
             cat tournament_data.json | python3 -m json.tool
           else
-            echo '{"tournament_name":"No tournaments found","status":null,"display_tournament":false,"last_updated":"'$(date '+%Y-%m-%d %H:%M:%S')'"}' > tournament_data.json
+            echo "{\"tournament_name\":\"No tournaments found\",\"status\":null,\"display_tournament\":false,\"last_updated\":\"$(date '+%Y-%m-%d %H:%M:%S')\"}" > tournament_data.json
           fi
       
       - name: Commit and push changes
