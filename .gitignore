@@ -1,0 +1,12 @@
+﻿*.log
+logs/
+__pycache__/
+*.pyc
+.DS_Store
+Thumbs.db
+web/media/*.mp4
+web/media/*.jpg
+web/media/*.png
+!web/media/.gitkeep
+backup_*/
+*.tmp

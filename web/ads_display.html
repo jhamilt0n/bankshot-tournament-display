@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bankshot Ads Display</title>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        iframe {
+            border: none;
+            width: 100vw;
+            height: 100vh;
+            display: none;
+            position: absolute;
+            top: 0;
+            left: 0;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        iframe.active {
+            display: block;
+            opacity: 1;
+        }
+
+        .no-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            color: white;
+            font-size: 3vw;
+            font-family: sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .debug-overlay {
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #0f0;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-width: 400px;
+            z-index: 9999;
+            display: none;
+        }
+
+        .debug-overlay.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+<div id="frameContainer"></div>
+<div class="debug-overlay" id="debugOverlay"></div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+
+// Enable debug mode by adding ?debug=1 to URL
+const DEBUG = window.location.search.includes('debug=1');
+
+function debugLog(msg) {
+    console.log(msg);
+    if (DEBUG) {
+        const overlay = document.getElementById('debugOverlay');
+        overlay.classList.add('show');
+        overlay.innerHTML += msg + '<br>';
+    }
+}
+
+function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
+    if (m.hasEndDate && m.endDate && currentDate > m.endDate) {
+        return false;
+    }
+    
+    if (m.usePerDaySchedule && m.daySchedules) {
+        var daySchedule = m.daySchedules[currentDay];
+        if (!daySchedule || !daySchedule.enabled) {
+            return false;
+        }
+        
+        if (daySchedule.startTime && daySchedule.endTime) {
+            var startParts = daySchedule.startTime.split(':');
+            var endParts = daySchedule.endTime.split(':');
+            var startTime = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+            var endTime = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+            
+            if (currentTime < startTime || currentTime > endTime) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    if (m.scheduleDays && m.scheduleDays.length > 0 && m.scheduleDays.indexOf(currentDay) === -1) {
+        return false;
+    }
+    
+    if (m.scheduleStartTime && m.scheduleEndTime) {
+        var startParts = m.scheduleStartTime.split(':');
+        var endParts = m.scheduleEndTime.split(':');
+        var startTime = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+        var endTime = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+        
+        if (currentTime < startTime || currentTime > endTime) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+var Dash = {
+    dashboards: [],
+    nextIndex: 0,
+    mediaItems: [],
+    
+    createIframes: function() {
+        var container = document.getElementById('frameContainer');
+        for (var i = 0; i < this.dashboards.length; i++) {
+            var iframe = document.createElement('iframe');
+            iframe.id = i.toString();
+            iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts');
+            container.appendChild(iframe);
+            debugLog('Created iframe ' + i);
+        }
+    },
+    
+    initializeDashboards: function() {
+        debugLog('Starting ads display...');
+        debugLog('Fetching /load_media.php...');
+        
+        fetch('/load_media.php')
+            .then(function(response) {
+                debugLog('Response status: ' + response.status);
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
+            .then(function(data) {
+                debugLog('Loaded ' + data.length + ' total items');
+                
+                // Filter for ACTIVE media with displayOnAds === true
+                var allMediaItems = data.filter(function(m) { 
+                    var isActive = m.active === true;
+                    var isAdMedia = m.displayOnAds === true;
+                    return isActive && isAdMedia;
+                });
+                
+                debugLog('Filtered to ' + allMediaItems.length + ' active ad items');
+                
+                // Sort by order
+                allMediaItems.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+                
+                // Apply schedule filtering
+                var now = new Date();
+                var currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
+                var currentTime = now.getHours() * 60 + now.getMinutes();
+                var currentDate = now.toISOString().split('T')[0];
+                
+                debugLog('Current: ' + currentDay + ' ' + Math.floor(currentTime/60) + ':' + (currentTime%60));
+                
+                Dash.mediaItems = allMediaItems.filter(function(m) {
+                    return shouldDisplayMedia(m, now, currentDay, currentTime, currentDate);
+                });
+                
+                debugLog('After schedule: ' + Dash.mediaItems.length + ' items');
+                
+                // Build dashboard array
+                for (var i = 0; i < Dash.mediaItems.length; i++) {
+                    var mediaItem = Dash.mediaItems[i];
+                    debugLog('Adding: ' + mediaItem.name);
+                    
+                    if (mediaItem.type === 'url') {
+                        var url = mediaItem.url;
+                        // Ensure full URL
+                        if (url.indexOf('http') !== 0 && url.indexOf('/') === 0) {
+                            url = window.location.origin + url;
+                        }
+                        debugLog('  URL: ' + url);
+                        Dash.dashboards.push({
+                            url: url,
+                            time: mediaItem.duration || 20,
+                            refresh: true
+                        });
+                    } else {
+                        // For images and videos, use path
+                        var path = mediaItem.path;
+                        // Ensure it's a full URL
+                        if (path.indexOf('http') !== 0) {
+                            if (path.indexOf('/') === 0) {
+                                path = window.location.origin + path;
+                            } else {
+                                path = window.location.origin + '/' + path;
+                            }
+                        }
+                        debugLog('  Path: ' + path);
+                        
+                        Dash.dashboards.push({
+                            url: 'data:text/html;charset=utf-8,' + encodeURIComponent(Dash.createMediaHTML(mediaItem, path)),
+                            time: mediaItem.duration || 20,
+                            refresh: false
+                        });
+                    }
+                }
+                
+                if (Dash.dashboards.length === 0) {
+                    debugLog('ERROR: No dashboards created!');
+                    document.body.innerHTML = '<div class="no-content">No ad media configured<br><br>Enable "Display on Ads" in Media Manager</div>';
+                    return;
+                }
+                
+                debugLog('Starting rotation with ' + Dash.dashboards.length + ' items');
+                Dash.continueStartup();
+            })
+            .catch(function(err) {
+                debugLog('ERROR: ' + err.message);
+                console.error('Error loading media:', err);
+                document.body.innerHTML = '<div class="no-content">Error loading media<br><br>' + err.message + '</div>';
+            });
+    },
+    
+    continueStartup: function() {
+        Dash.createIframes();
+        
+        for (var index = 0; index < Dash.dashboards.length; index++) {
+            Dash.loadFrame(index);
+        }
+        
+        if (Dash.dashboards.length > 0) {
+            debugLog('Showing first frame...');
+            Dash.showFrame(0);
+            setTimeout(function() {
+                Dash.display();
+            }, Dash.dashboards[0].time * 1000);
+        }
+    },
+    
+    createMediaHTML: function(mediaItem, fullPath) {
+        var mediaElement = '';
+        if (mediaItem.type === 'image') {
+            mediaElement = '<img src="' + fullPath + '" style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;" onerror="console.error(\'Failed to load image: ' + fullPath + '\')">';
+        } else if (mediaItem.type === 'video') {
+            mediaElement = '<video src="' + fullPath + '" autoplay muted loop style="position:absolute;top:0;left:0;width:100%;height:100%;object-fit:contain;background:#000;" onerror="console.error(\'Failed to load video: ' + fullPath + '\')"></video>';
+        }
+        
+        return '<!DOCTYPE html><html><head><style>html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;background:#000;}</style></head><body>' + mediaElement + '</body></html>';
+    },
+
+    startup: function() {
+        Dash.initializeDashboards();
+    },
+
+    loadFrame: function(index) {
+        var iframe = document.getElementById(index.toString());
+        if (iframe) {
+            debugLog('Loading frame ' + index);
+            iframe.src = Dash.dashboards[index].url;
+        }
+    },
+
+    display: function() {
+        if (Dash.dashboards.length === 0) return;
+        
+        var currentDashboard = Dash.dashboards[Dash.nextIndex];
+        
+        Dash.hideFrame(Dash.nextIndex - 1);
+        
+        if (currentDashboard.refresh) {
+            Dash.loadFrame(Dash.nextIndex);
+        }
+        
+        Dash.showFrame(Dash.nextIndex);
+        
+        debugLog('Displaying frame ' + Dash.nextIndex + ' for ' + currentDashboard.time + 's');
+        
+        Dash.nextIndex = (Dash.nextIndex + 1) % Dash.dashboards.length;
+        
+        setTimeout(function() {
+            Dash.display();
+        }, currentDashboard.time * 1000);
+    },
+
+    hideFrame: function(index) {
+        if (index < 0) {
+            index = Dash.dashboards.length - 1;
+        }
+        var frame = $('#' + index);
+        frame.animate({opacity: 0}, 500, function() {
+            frame.removeClass('active');
+        });
+    },
+
+    showFrame: function(index) {
+        var frame = $('#' + index);
+        frame.addClass('active').css({opacity: 0}).animate({opacity: 1}, 500);
+    }
+};
+
+window.onload = function() {
+    Dash.startup();
+};
+</script>
+
+</body>
+</html>
