@@ -1,6 +1,7 @@
 #!/bin/bash
 # Business Hours Display Manager for HDMI TV
 # Manages Chromium browser for ad display during business hours
+# UPDATED: Starts 1 hour before tournament start time
 
 DISPLAY_URL="http://localhost/ads_display.html"
 TOURNAMENT_DATA="/var/www/html/tournament_data.json"
@@ -113,13 +114,14 @@ should_start_early_for_tournament() {
         return 1
     fi
     
-    local early_start=$((tournament_start - 30))
+    # Changed from 30 to 60 minutes (1 hour early start)
+    local early_start=$((tournament_start - 60))
     local hour=$(date +%H | sed 's/^0//')
     local minute=$(date +%M | sed 's/^0//')
     local current_minutes=$((hour * 60 + minute))
     
     if [ $current_minutes -ge $early_start ] && [ $current_minutes -lt $tournament_start ]; then
-        log "Early start for tournament (30 min before $tournament_start minutes)"
+        log "Early start for tournament (1 hour before start time at $tournament_start minutes)"
         return 0
     fi
     
@@ -159,6 +161,7 @@ stop_chromium() {
 
 # Main loop
 log "=== HDMI Display Manager Starting ==="
+log "Business hours mode + 1 hour early start for tournaments"
 
 while true; do
     if is_business_hours || should_start_early_for_tournament; then
@@ -167,7 +170,7 @@ while true; do
         fi
     else
         if is_chromium_running; then
-            log "Outside business hours - stopping display"
+            log "Outside business hours and no early tournament - stopping display"
             stop_chromium
         fi
     fi
