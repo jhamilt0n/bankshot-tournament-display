@@ -2,7 +2,7 @@
 """
 Smart CATT Casting Monitor
 Automatically switches Chromecast display based on tournament status
-FIXED: Works with bankshot_monitor_multi.py data format
+UPDATED: Starts casting 1 hour before tournament start time
 """
 
 import json
@@ -10,6 +10,7 @@ import subprocess
 import time
 import socket
 import logging
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -128,12 +129,81 @@ def catt_cast_site(url):
         logging.error(f"Error casting site: {e}")
         return False
 
+def parse_start_time(start_time_str):
+    """Parse start time string like '7:00 PM' to minutes since midnight"""
+    try:
+        if not start_time_str:
+            return None
+        
+        # Extract hour and minute
+        match = re.search(r'(\d+):?(\d+)?\s*(AM|PM)', start_time_str, re.IGNORECASE)
+        if not match:
+            return None
+        
+        hour = int(match.group(1))
+        minute = int(match.group(2)) if match.group(2) else 0
+        meridiem = match.group(3).upper()
+        
+        # Convert to 24-hour format
+        if meridiem == 'PM' and hour != 12:
+            hour += 12
+        elif meridiem == 'AM' and hour == 12:
+            hour = 0
+        
+        return hour * 60 + minute
+    except Exception as e:
+        logging.error(f"Error parsing start time '{start_time_str}': {e}")
+        return None
+
+def should_start_early_for_tournament(tournament_data):
+    """Check if we should start casting 1 hour before tournament"""
+    try:
+        # Check if tournament is today
+        tournament_date = tournament_data.get('date')
+        if not tournament_date:
+            return False
+        
+        today = datetime.now().strftime('%Y/%m/%d')
+        if tournament_date != today:
+            return False
+        
+        # Check if tournament has a start time
+        start_time_str = tournament_data.get('start_time')
+        if not start_time_str:
+            return False
+        
+        # Parse start time
+        tournament_start = parse_start_time(start_time_str)
+        if tournament_start is None:
+            return False
+        
+        # Get current time in minutes
+        now = datetime.now()
+        current_minutes = now.hour * 60 + now.minute
+        
+        # Check if we're within 1 hour before tournament start
+        early_start = tournament_start - 60
+        
+        if current_minutes >= early_start and current_minutes < tournament_start:
+            logging.info(f"1 hour before tournament - early casting enabled")
+            return True
+        
+        return False
+        
+    except Exception as e:
+        logging.error(f"Error checking early start: {e}")
+        return False
+
 def should_display_tournament(tournament_data):
     """
-    Determine if tournament should be displayed based on the scraper's display_tournament flag
-    This flag is set by bankshot_monitor_multi.py based on smart logic
+    Determine if tournament should be displayed
+    Now includes 1-hour early start logic
     """
     try:
+        # Check for early start (1 hour before tournament)
+        if should_start_early_for_tournament(tournament_data):
+            return True
+        
         # Primary check: use the display_tournament flag from scraper
         should_display = tournament_data.get('display_tournament', False)
         
@@ -158,7 +228,7 @@ def should_display_tournament(tournament_data):
 def monitor_and_cast():
     """Main monitoring and casting logic"""
     logging.info("=" * 60)
-    logging.info("CATT Monitor Starting (Fixed for bankshot_monitor_multi.py)")
+    logging.info("CATT Monitor Starting - With 1 hour early casting")
     logging.info("=" * 60)
     
     state = load_cast_state()
@@ -177,10 +247,11 @@ def monitor_and_cast():
             tournament_name = tournament_data.get('tournament_name', 'Unknown')
             tournament_url = tournament_data.get('tournament_url')
             status = tournament_data.get('status', 'Unknown')
+            player_count = tournament_data.get('player_count', 0)
             should_display = should_display_tournament(tournament_data)
             
             logging.debug(f"Tournament: {tournament_name}")
-            logging.debug(f"  Status: {status}, Should Display: {should_display}")
+            logging.debug(f"  Status: {status}, Players: {player_count}, Should Display: {should_display}")
             
             # Get local IP for casting
             local_ip = get_local_ip()
@@ -196,6 +267,7 @@ def monitor_and_cast():
                 logging.info(f"🎱 Tournament ready to display")
                 logging.info(f"   Name: {tournament_name}")
                 logging.info(f"   Status: {status}")
+                logging.info(f"   Players: {player_count}")
                 
                 catt_stop()
                 time.sleep(2)
