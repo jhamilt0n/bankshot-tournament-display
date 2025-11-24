@@ -24,6 +24,23 @@ echo "Installation Script v2.0"
 echo -e "========================================${NC}"
 echo ""
 
+# Function definitions (must be before use)
+print_status() {
+    echo -e "${GREEN}✓${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}✗${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠${NC} $1"
+}
+
+print_info() {
+    echo -e "${BLUE}ℹ${NC} $1"
+}
+
 # Check if running as root
 if [ "$EUID" -eq 0 ]; then
     echo -e "${RED}Please do not run this script as root or with sudo${NC}"
@@ -55,23 +72,6 @@ if [ $? -ne 0 ]; then
 fi
 print_status "Repository cloned successfully"
 echo ""
-
-# Function to print status
-print_status() {
-    echo -e "${GREEN}✓${NC} $1"
-}
-
-print_error() {
-    echo -e "${RED}✗${NC} $1"
-}
-
-print_warning() {
-    echo -e "${YELLOW}⚠${NC} $1"
-}
-
-print_info() {
-    echo -e "${BLUE}ℹ${NC} $1"
-}
 
 # Check internet connectivity
 echo "Checking internet connectivity..."
