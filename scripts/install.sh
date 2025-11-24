@@ -48,8 +48,8 @@ apt-get install -y \
     python3 \
     python3-pip \
     git \
-    chromium-browser \
-    chromium-chromedriver \
+    chromium \
+    chromium-driver \
     avahi-daemon \
     avahi-utils \
     jq
