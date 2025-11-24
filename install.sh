@@ -199,6 +199,19 @@ sudo systemctl restart apache2
 print_status "Apache restarted"
 echo ""
 
+# Configure terminal auto-start
+echo "Configuring terminal auto-start..."
+mkdir -p /home/pi/.config/lxsession/LXDE-pi/
+cat > /home/pi/.config/lxsession/LXDE-pi/autostart << 'EOF'
+@xset s off
+@xset -dpms
+@xset s noblank
+@unclutter -idle 0.1 -root
+@lxterminal --title="Bankshot Monitor" --geometry=120x30
+EOF
+print_status "Terminal auto-start configured"
+echo ""
+
 # Enable services
 echo "Enabling services..."
 sudo systemctl enable tournament-monitor.service
