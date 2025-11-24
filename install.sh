@@ -199,8 +199,10 @@ sudo systemctl restart apache2
 print_status "Apache restarted"
 echo ""
 
-# Configure terminal auto-start
+# Configure terminal auto-start (works for both X11 and Wayland)
 echo "Configuring terminal auto-start..."
+
+# Create LXDE autostart (for X11)
 mkdir -p /home/pi/.config/lxsession/LXDE-pi/
 cat > /home/pi/.config/lxsession/LXDE-pi/autostart << 'EOF'
 @xset s off
@@ -209,7 +211,19 @@ cat > /home/pi/.config/lxsession/LXDE-pi/autostart << 'EOF'
 @unclutter -idle 0.1 -root
 @lxterminal --title="Bankshot Monitor" --geometry=120x30
 EOF
-print_status "Terminal auto-start configured"
+
+# Create desktop entry (for Wayland/labwc and modern systems)
+mkdir -p /home/pi/.config/autostart
+cat > /home/pi/.config/autostart/bankshot-terminal.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Bankshot Monitor Terminal
+Exec=lxterminal --title="Bankshot Monitor" --geometry=120x30
+Terminal=false
+X-GNOME-Autostart-enabled=true
+EOF
+
+print_status "Terminal auto-start configured (X11 and Wayland)"
 echo ""
 
 # Enable services

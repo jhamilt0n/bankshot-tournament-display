@@ -239,10 +239,21 @@ sudo chmod 664 /var/www/html/tournament_qr.png
 ### Terminal Not Auto-Starting
 
 ```bash
-# Check if autostart file exists
-cat /home/pi/.config/lxsession/LXDE-pi/autostart
+# Check your desktop session type
+echo $DESKTOP_SESSION
 
-# If missing, create it:
+# For Wayland (labwc) - use desktop entry:
+mkdir -p /home/pi/.config/autostart
+cat > /home/pi/.config/autostart/bankshot-terminal.desktop << 'EOF'
+[Desktop Entry]
+Type=Application
+Name=Bankshot Monitor Terminal
+Exec=lxterminal --title="Bankshot Monitor" --geometry=120x30
+Terminal=false
+X-GNOME-Autostart-enabled=true
+EOF
+
+# For X11 (LXDE-pi) - use autostart file:
 mkdir -p /home/pi/.config/lxsession/LXDE-pi/
 cat > /home/pi/.config/lxsession/LXDE-pi/autostart << 'EOF'
 @xset s off
