@@ -107,9 +107,9 @@ var Dash = {
                 return response.json();
             })
             .then(function(data) {
-                // Filter for ACTIVE and AD-only media (displayType === 'ad')
+                // Filter for ACTIVE media with displayOnAds set to true
                 var allMediaItems = data.filter(function(m) { 
-                    return m.active && m.displayType === 'ad';
+                    return m.active && m.displayOnAds === true;
                 });
                 
                 console.log('Loaded ' + allMediaItems.length + ' ad media items');
