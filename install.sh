@@ -274,12 +274,12 @@ sudo systemctl enable hdmi-display.service
 print_status "Services enabled"
 echo ""
 
-# Start services
-echo "Starting services..."
-sudo systemctl start tournament-monitor.service
-sudo systemctl start catt-monitor.service
-sudo systemctl start hdmi-display.service
-print_status "Services started"
+# Restart services (stops and starts, whether running or not)
+echo "Restarting services..."
+sudo systemctl restart tournament-monitor.service
+sudo systemctl restart catt-monitor.service
+sudo systemctl restart hdmi-display.service
+print_status "Services restarted with new files"
 echo ""
 
 # Get IP address
