@@ -1,42 +1,69 @@
 <?php
-require_once __DIR__ . '/vendor/autoload.php';
+/**
+ * Generate QR Code for Tournament - Updated Version
+ * Uses api.qrserver.com instead of deprecated Google Charts API
+ */
 
-use chillerlan\QRCode\QRCode;
-use chillerlan\QRCode\QROptions;
+// Load tournament data
+$data_file = __DIR__ . '/tournament_data.json';
 
-$tournament_data_file = '/var/www/html/tournament_data.json';
-$qr_output_file = '/var/www/html/qr_code.png';
-
-if (!file_exists($tournament_data_file)) {
-    error_log("Tournament data file not found");
+if (!file_exists($data_file)) {
+    error_log("No tournament data file found");
     exit(1);
 }
 
-$data = json_decode(file_get_contents($tournament_data_file), true);
+$tournament_data = json_decode(file_get_contents($data_file), true);
 
-if (!$data || !isset($data['tournament_url']) || empty($data['tournament_url'])) {
-    error_log("No tournament URL found in data");
+if (!$tournament_data || !isset($tournament_data['tournament_url'])) {
+    error_log("No tournament URL in data");
     exit(1);
 }
 
-$tournament_url = rtrim($data['tournament_url'], '/') . '/bracket?navigation=false';
+$tournament_url = $tournament_data['tournament_url'];
 
-try {
-    $options = new QROptions([
-        'version'      => 7,
-        'outputType'   => QRCode::OUTPUT_IMAGE_PNG,
-        'eccLevel'     => QRCode::ECC_L,
-        'scale'        => 10,
-        'imageBase64'  => false,
-        'cachefile'    => null,
-    ]);
-    
-    $qrcode = new QRCode($options);
-    file_put_contents($qr_output_file, $qrcode->render($tournament_url));
-    
-    echo "QR code generated successfully for: $tournament_url\n";
-} catch (Exception $e) {
-    error_log("Error generating QR code: " . $e->getMessage());
+if (empty($tournament_url)) {
+    error_log("Tournament URL is empty");
     exit(1);
 }
+
+// QR code output path
+$qr_output = __DIR__ . '/tournament_qr.png';
+
+// Use QR Server API (more reliable than Google Charts)
+$qr_api_url = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=' . urlencode($tournament_url);
+
+// Download QR code
+$qr_data = @file_get_contents($qr_api_url);
+
+if ($qr_data === false) {
+    // Fallback: Try using curl if file_get_contents fails
+    if (function_exists('curl_init')) {
+        $ch = curl_init($qr_api_url);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        $qr_data = curl_exec($ch);
+        $error = curl_error($ch);
+        curl_close($ch);
+        
+        if ($qr_data === false) {
+            error_log("Failed to generate QR code using curl: " . $error);
+            exit(1);
+        }
+    } else {
+        error_log("Failed to generate QR code and curl is not available");
+        exit(1);
+    }
+}
+
+// Save QR code
+$result = file_put_contents($qr_output, $qr_data);
+
+if ($result === false) {
+    error_log("Failed to save QR code to: " . $qr_output);
+    exit(1);
+}
+
+echo "QR code generated successfully: " . $qr_output . "\n";
+exit(0);
 ?>

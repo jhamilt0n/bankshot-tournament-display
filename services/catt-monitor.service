@@ -1,12 +1,12 @@
 [Unit]
-Description=Web Display Monitor Service
-After=network.target
+Description=CATT Casting Monitor Service
+After=network.target tournament-monitor.service
 
 [Service]
 Type=simple
 User=pi
 Group=pi
-ExecStart=/usr/bin/python3 /home/pi/web_monitor.py
+ExecStart=/usr/bin/python3 /home/pi/catt_monitor.py
 Restart=always
 RestartSec=10
 StandardOutput=journal

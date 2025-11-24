@@ -74,20 +74,13 @@
             left: 0;
             width: 20vw;
             background: linear-gradient(180deg, #1e7e34 0%, #0d4d1f 100%);
-            padding: 1vh 1vw;
+            padding: 2vh 1vw;
             display: flex;
             flex-direction: column;
-            justify-content: flex-start;
+            justify-content: center;
             align-items: center;
             box-shadow: 5px 0 20px rgba(0, 0, 0, 0.3);
             transition: transform 0.5s ease-in-out;
-            overflow-y: auto;
-        }
-
-        .qr-container img {
-            width: 100%;
-            max-width: 150px;
-            border-radius: 6px;
         }
 
         .left.hidden {
@@ -134,17 +127,16 @@
 
         .player-count {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 4vw;
+            font-size: 5vw;
             color: #ffffff;
             text-align: center;
-            margin: 1vh 0;
+            margin: 2vh 0;
             font-weight: bold;
             text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
             background: rgba(255, 255, 255, 0.15);
-            padding: 1vh;
+            padding: 1.5vh;
             border-radius: 10px;
             width: 100%;
-            flex-shrink: 0;
         }
 
         .entry-fee {
@@ -159,42 +151,39 @@
 
         .payouts-header {
             font-family: 'Oswald', sans-serif;
-            font-size: 1.6vw;
+            font-size: 2vw;
             color: #ffffff;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin: 1vh 0 0.5vh 0;
+            margin: 2vh 0 1vh 0;
             font-weight: 600;
             text-align: center;
             border-bottom: 3px solid rgba(255, 255, 255, 0.3);
-            padding-bottom: 0.5vh;
+            padding-bottom: 1vh;
             width: 100%;
-            flex-shrink: 0;
         }
 
         .payouts {
             font-family: 'Roboto', sans-serif;
-            font-size: 1.8vw;
+            font-size: 2.3vw;
             color: #ffffff;
             text-align: center;
-            line-height: 1.2;
+            line-height: 1.3;
             width: 100%;
-            flex-shrink: 1;
-            min-height: 0;
         }
-        
+
         .payouts div {
-            margin: 0.3vh 0;
-            padding: 0.5vh;
+            margin: 0.4vh 0;
+            padding: 0.6vh;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 5px;
             font-weight: 500;
         }
-        
+
         .payouts .first-place {
             background: rgba(255, 215, 0, 0.3);
             font-weight: 700;
-            font-size: 2.2vw;
+            font-size: 3vw;
             border: 2px solid rgba(255, 215, 0, 0.6);
         }
 

@@ -1,248 +1,324 @@
-# Bankshot Billiards Tournament Display System
+# Bankshot Tournament Display System
 
-Complete tournament monitoring and display system for Bankshot Billiards in Hilliard, OH.
+A comprehensive dual-display tournament management system for pool halls featuring automatic tournament detection, Chromecast casting, HDMI display management, and media rotation.
 
-## 🎯 What This Does
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-1. **Monitors Tournaments**: Scrapes DigitalPool.com every 15 minutes via GitHub Actions
-2. **Smart Display**: Automatically switches between tournament brackets and advertisements
-3. **Web-Based TVs**: Smart TVs pull updates directly via their browsers (no Raspberry Pi needed at TVs)
-4. **Media Management**: Easy web interface to manage ads, videos, and display content
-5. **QR Codes**: Automatically generates QR codes for tournament brackets
+## 🎯 Features
 
-## 📁 Repository Structure
+- ✅ **Automatic Tournament Detection** - Scrapes Digital Pool every 15 minutes via GitHub Actions
+- ✅ **Dual Display Support** - Chromecast for tournament info + HDMI TV for advertisements
+- ✅ **Real-time Updates** - Player count, payouts, and bracket updates every 60 seconds
+- ✅ **QR Code Generation** - Mobile access to tournament brackets
+- ✅ **Business Hours Scheduling** - Automatic display on/off based on hours
+- ✅ **Media Management** - Web-based upload and scheduling interface
+- ✅ **Separate Channels** - Independent ad and tournament media rotation
+- ✅ **Smart Casting Logic** - Only casts when tournament has players
 
-```
-bankshot-tournament-display/
-├── .github/workflows/
-│   └── scrape.yml              # GitHub Actions - runs scraper every 15 minutes
-├── scraper/
-│   └── bankshot_monitor_multi.py  # Tournament scraper
-├── web/
-│   ├── index.php               # Main tournament display
-│   ├── ads_display.html        # Ads-only display
-│   ├── tv.html                 # Auto-switching TV page
-│   ├── media_manager.html      # Content management interface
-│   ├── calcutta.html           # Calcutta auction display
-│   ├── qr_setup.php           # QR code generator for TV setup
-│   ├── tv_setup.html          # TV setup instructions
-│   └── *.php                  # Supporting PHP files
-├── services/
-│   ├── web-monitor.service    # Systemd service
-│   └── hdmi-display.service   # Optional HDMI display service
-├── scripts/
-│   ├── install.sh             # Main installation script
-│   ├── setup_web_server.sh    # Web server setup
-│   └── pull_tournament_data.sh # Download data from GitHub
-└── docs/
-    ├── SETUP.md               # Detailed setup guide
-    └── ARCHITECTURE.md        # System architecture
-```
+## 📋 Requirements
+
+### Hardware
+- Raspberry Pi 4 (4GB+ RAM recommended)
+- Chromecast device (any generation)
+- TV with HDMI connection
+- Network connection (WiFi or Ethernet)
+
+### Software
+- Debian 13 (Trixie) or Raspberry Pi OS
+- Apache 2.4+
+- PHP 8.4+
+- Python 3.11+
+- Chromium browser
 
 ## 🚀 Quick Start
 
-### Option 1: Full Raspberry Pi Setup (Recommended)
-
-**What you need:**
-- Raspberry Pi 4 Model B (2GB+ RAM recommended)
-- MicroSD card (16GB+)
-- Internet connection
-
-**Installation:**
+### Automated Installation (Recommended)
 
 ```bash
-# 1. Clone the repository
-cd /home/pi
+# Clone the repository
 git clone https://github.com/jhamilt0n/bankshot-tournament-display.git
 cd bankshot-tournament-display
 
-# 2. Run the installer
-sudo bash scripts/install.sh
-
-# 3. Enable GitHub Actions in your repo (see docs/SETUP.md)
+# Run the installer
+chmod +x install.sh
+./install.sh
 ```
 
-This will:
-- Install Apache, PHP, and all dependencies
-- Set up the web server on port 80
-- Configure automatic data pulls from GitHub
-- Start the monitoring service
-- Set up mDNS (bankshot-display.local)
+The installer will:
+- Install all required packages
+- Configure Apache and PHP
+- Deploy web files and scripts
+- Set up systemd services
+- Configure permissions
+- Start all services automatically
 
-### Option 2: Manual GitHub Setup (Scraper Only)
+### One-Line Installation
 
-If you only want the scraper running on GitHub:
-
-1. Upload `scraper/bankshot_monitor_multi.py` to your GitHub repo
-2. Upload `.github/workflows/scrape.yml` 
-3. Enable GitHub Actions in your repo
-4. The scraper will run every 15 minutes and commit `tournament_data.json`
-
-## 🖥️ Setting Up Your TVs
-
-After installation, your Raspberry Pi becomes a web server. Smart TVs connect to it:
-
-### Method 1: QR Code (Easiest)
-
-1. On your phone, visit: `http://bankshot-display.local/qr_setup.php`
-2. Scan the QR code with your TV's browser
-3. Bookmark the page on your TV
-4. Done!
-
-### Method 2: Manual URL
-
-Open your TV's web browser and navigate to:
-```
-http://bankshot-display.local/tv.html
-```
-
-**Supported TVs:**
-- ✅ Samsung Smart TVs
-- ✅ LG webOS TVs  
-- ✅ Sony Android TVs
-- ✅ TCL Roku/Google TVs
-- ✅ Amazon Fire TV
-- ✅ Any TV with a web browser
-
-See [docs/TV_SETUP.md](docs/TV_SETUP.md) for brand-specific instructions.
-
-## 🎬 Managing Media Content
-
-Visit `http://bankshot-display.local/media_manager.html` to:
-- Upload images and videos
-- Add website URLs (e.g., Calcutta auction page)
-- Set display duration for each item
-- Schedule content by day/time
-- Choose whether content shows on ads or tournaments
-- Drag-and-drop to reorder content
-
-## 📊 How It Works
-
-```
-┌─────────────────┐
-│  GitHub Actions │  ← Scrapes DigitalPool.com every 15 min
-│    (Cloud)       │
-└────────┬────────┘
-         │ Commits tournament_data.json
-         ↓
-┌─────────────────┐
-│  Raspberry Pi 4 │  ← Downloads from GitHub every 5 min
-│   Web Server     │  ← Serves web pages
-└────────┬────────┘
-         │ HTTP
-         ↓
-┌─────────────────┐
-│   Smart TVs     │  ← Pull updates every 30 sec
-│  (Web Browser)  │  ← Auto-switch displays
-└─────────────────┘
-```
-
-**Display Logic:**
-- When `display_tournament: true` → Show tournament display with bracket QR code
-- When `display_tournament: false` → Show advertising rotation
-- TVs check status every 30 seconds and switch automatically
-
-## 🔧 Configuration
-
-### Scraper Configuration
-Edit `scraper/bankshot_monitor_multi.py`:
-```python
-VENUE_NAME = "Bankshot Billiards"
-VENUE_CITY = "Hilliard"
-```
-
-### Web Server Configuration
-Edit `/etc/hosts` to change hostname:
 ```bash
-sudo nano /etc/hostname
-# Change to: bankshot-display
-sudo reboot
+curl -sSL https://raw.githubusercontent.com/jhamilt0n/bankshot-tournament-display/main/install.sh | bash
 ```
 
-### GitHub Actions Schedule
-Edit `.github/workflows/scrape.yml`:
-```yaml
-schedule:
-  - cron: '*/15 * * * *'  # Every 15 minutes
+## 🖥️ System Architecture
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  GitHub Repository (Tournament Data Source)                    │
+│  Scraper runs every 15 minutes via GitHub Actions              │
+└───────────────────┬────────────────────────────────────────────┘
+                    │ (pulls every 60s)
+                    ▼
+┌────────────────────────────────────────────────────────────────┐
+│  Raspberry Pi (Tournament Display System)                      │
+├────────────────────────────────────────────────────────────────┤
+│  • Tournament Monitor (Python) - Pulls from GitHub             │
+│  • CATT Monitor (Python) - Controls Chromecast                 │
+│  • HDMI Display Manager (Bash) - Business hours control        │
+│  • Apache + PHP - Web interface & APIs                         │
+│  • Media Manager - Upload & schedule content                   │
+└─────┬──────────────────────────────────────────┬───────────────┘
+      │                                          │
+      ▼                                          ▼
+┌─────────────────────┐                 ┌─────────────────────┐
+│  Chromecast TV      │                 │  HDMI TV            │
+├─────────────────────┤                 ├─────────────────────┤
+│  Shows:             │                 │  Shows:             │
+│  • Tournament info  │                 │  • Ads only         │
+│  • Bracket          │                 │  • Never tournament │
+│  • Tournament media │                 │  • Business hours   │
+└─────────────────────┘                 └─────────────────────┘
 ```
 
-## 📱 Accessing Your System
+## 📱 Web Interfaces
 
-Once installed, you can access:
+After installation, access these interfaces (replace `YOUR_PI_IP`):
 
-- **Main Display**: `http://bankshot-display.local/`
-- **TV Auto-Switch**: `http://bankshot-display.local/tv.html`
-- **Media Manager**: `http://bankshot-display.local/media_manager.html`
-- **Calcutta**: `http://bankshot-display.local/calcutta.html`
-- **QR Setup**: `http://bankshot-display.local/qr_setup.php`
-- **Tournament Data**: `http://bankshot-display.local/tournament_data.json`
+- **Ads Display** (HDMI TV): `http://YOUR_PI_IP/ads_display.html`
+- **Tournament Display** (Chromecast): `http://YOUR_PI_IP/index.php`
+- **Media Manager**: `http://YOUR_PI_IP/media_manager.html`
+- **Tournament Data API**: `http://YOUR_PI_IP/get_tournament_data.php`
 
-From any device on your network!
+## ⚙️ Configuration
+
+### Business Hours (HDMI Display)
+
+Edit `/home/pi/hdmi_display_manager.sh`:
+
+- **Sunday**: 12pm - Monday 1am
+- **Monday**: 3pm - Tuesday 1am
+- **Tuesday-Thursday**: 12pm - 1am
+- **Friday**: 12pm - Saturday 2:30am
+- **Saturday**: 12pm - Sunday 2:30am
+
+```bash
+# After editing
+sudo systemctl restart hdmi-display
+```
+
+### Chromecast Configuration
+
+```bash
+# Scan for Chromecast devices
+catt scan
+
+# If you have multiple Chromecasts, edit the monitor:
+nano /home/pi/catt_monitor.py
+# Change line 14 to:
+# CATT_COMMAND = '/home/pi/.local/bin/catt -d "Your Chromecast Name"'
+
+# Restart service
+sudo systemctl restart catt-monitor
+```
+
+### Media Management
+
+1. Open `http://YOUR_PI_IP/media_manager.html`
+2. Upload images (JPG, PNG, GIF, WEBP) or videos (MP4, WEBM, MOV, AVI)
+3. Set **Display Type**:
+   - `ad` - Shows only on HDMI TV
+   - `tournament` - Shows only on Chromecast with tournament info
+4. Configure schedule (days/times) and duration
+5. Set active/inactive status
+
+## 🔧 Service Management
+
+### Check Service Status
+
+```bash
+sudo systemctl status tournament-monitor
+sudo systemctl status catt-monitor
+sudo systemctl status hdmi-display
+```
+
+### View Logs
+
+```bash
+# Tournament monitor
+tail -f /home/pi/logs/tournament_monitor.log
+
+# CATT monitor
+tail -f /var/log/catt_monitor.log
+
+# HDMI display
+tail -f /var/log/hdmi_display.log
+```
+
+### Restart Services
+
+```bash
+sudo systemctl restart tournament-monitor
+sudo systemctl restart catt-monitor
+sudo systemctl restart hdmi-display
+```
+
+## 🪟 Windows Deployment
+
+For deploying from Windows via PowerShell:
+
+```powershell
+# Copy files using SCP
+scp *.html pi@YOUR_PI_IP:/tmp/
+scp *.php pi@YOUR_PI_IP:/tmp/
+scp *.py pi@YOUR_PI_IP:/tmp/
+scp *.service pi@YOUR_PI_IP:/tmp/
+
+# SSH into Raspberry Pi
+ssh pi@YOUR_PI_IP
+
+# Run installation commands
+./install.sh
+```
+
+See [docs/INSTALLATION.md](docs/INSTALLATION.md) for detailed Windows deployment instructions.
 
 ## 🐛 Troubleshooting
 
-### TVs can't connect to .local address
-Use IP address instead:
+### Services Not Starting
+
 ```bash
-# Find your Pi's IP address
-hostname -I
-# Use: http://192.168.1.XXX/tv.html
+# Check service logs
+sudo journalctl -u tournament-monitor -n 50
+sudo journalctl -u catt-monitor -n 50
+sudo journalctl -u hdmi-display -n 50
 ```
 
-### No tournament data showing up
+### Chromecast Not Found
+
 ```bash
-# Check GitHub Actions logs
-# Visit: https://github.com/YOUR_USERNAME/bankshot-tournament-display/actions
+# Verify network connectivity
+ping 8.8.8.8
 
-# Check Pi logs
-sudo journalctl -u web-monitor.service -f
+# Scan for devices
+catt scan
 
-# Manually pull data
-bash scripts/pull_tournament_data.sh
+# Check CATT version
+catt --version
 ```
 
-### Display not switching
+### Tournament Data Not Updating
+
 ```bash
-# Check web monitor
-sudo systemctl status web-monitor.service
+# Check tournament monitor log
+tail -50 /home/pi/logs/tournament_monitor.log
 
-# Restart service
-sudo systemctl restart web-monitor.service
-
-# Check tournament data
-cat /var/www/html/tournament_data.json | python3 -m json.tool
+# Verify GitHub access
+cd /tmp/tournament-scraper
+git pull
 ```
 
-## 📝 Advanced Usage
+### Permission Issues
 
-### Business Hours Display (Optional HDMI)
-If you want a Pi-connected HDMI display with business hours control:
 ```bash
-sudo systemctl enable hdmi-display.service
-sudo systemctl start hdmi-display.service
+# Fix web directory permissions
+sudo chown -R www-data:www-data /var/www/html/
+sudo chmod 664 /var/www/html/tournament_data.json
+sudo chmod 664 /var/www/html/tournament_qr.png
 ```
 
-Edit `scripts/hdmi_display_manager.sh` to configure hours.
+See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for more solutions.
 
-### Custom Payout Structure
-Edit `web/payout_calculator.php` to change payout percentages.
+## 📚 Documentation
 
-### Multiple Locations
-Clone and configure for multiple venues - each gets its own repository and Pi.
+- **[Installation Guide](docs/INSTALLATION.md)** - Detailed installation instructions
+- **[Configuration Guide](docs/CONFIGURATION.md)** - Customize your setup
+- **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[API Documentation](docs/API.md)** - API endpoints and usage
+
+## 🗂️ File Structure
+
+```
+bankshot-tournament-display/
+├── install.sh                    # Installation script
+├── uninstall.sh                  # Uninstallation script
+├── web/                          # Web interface files
+├── scripts/                      # System scripts
+├── services/                     # Systemd services
+├── assets/                       # Static assets
+├── docs/                         # Documentation
+└── examples/                     # Example configurations
+```
+
+## 🔄 How It Works
+
+### Data Flow
+
+1. **GitHub Actions** (every 15 minutes)
+   - Scrapes digitalpool.com for Bankshot tournaments
+   - Updates `tournament_data.json`
+   - Commits to repository
+
+2. **Tournament Monitor** (every 60 seconds)
+   - Pulls latest data from GitHub
+   - Saves to `/var/www/html/tournament_data.json`
+   - Generates QR code for tournament URL
+
+3. **CATT Monitor** (continuous)
+   - Reads tournament data
+   - Casts to Chromecast when:
+     - Tournament has players (player_count > 0)
+     - Status is "In Progress" or "Upcoming"
+   - Stops casting when tournament ends
+
+4. **HDMI Display Manager** (continuous)
+   - Checks business hours
+   - Starts/stops Chromium in kiosk mode
+   - Displays ads during business hours
+
+### Display Logic
+
+- **HDMI TV**: Shows media with `displayType === "ad"`
+- **Chromecast**: Shows tournament info + media with `displayType === "tournament"`
 
 ## 🤝 Contributing
 
-Found a bug? Have a feature request? Open an issue!
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## 📄 License
 
-MIT License - Feel free to use and modify for your pool hall!
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🎱 Credits
+## 🙏 Acknowledgments
 
-Built for Bankshot Billiards, Hilliard, OH
-Scrapes tournament data from DigitalPool.com
+- Created for Bankshot Billiards, Hilliard, OH
+- Tournament data sourced from [Digital Pool](https://digitalpool.com)
+- Built with open-source tools and libraries
+
+## 📞 Support
+
+For issues, questions, or suggestions:
+- Open an [Issue](https://github.com/jhamilt0n/bankshot-tournament-display/issues)
+- Check [Troubleshooting Guide](docs/TROUBLESHOOTING.md)
+- Review [Documentation](docs/)
+
+## 🎱 About Bankshot Billiards
+
+Bankshot Billiards is a premier pool hall in Hilliard, Ohio, hosting weekly tournaments and special events. This system was custom-built to enhance the tournament experience for players and spectators.
 
 ---
 
-**Need Help?** See detailed documentation in the `docs/` folder.
+**Made with ❤️ for the pool community**
