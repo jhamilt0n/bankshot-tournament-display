@@ -35,17 +35,25 @@ A comprehensive dual-display tournament management system for pool halls featuri
 
 ### Automated Installation (Recommended)
 
-```bash
-# Clone the repository
-git clone https://github.com/jhamilt0n/bankshot-tournament-display.git
-cd bankshot-tournament-display
+The installer automatically pulls the latest files from GitHub:
 
-# Run the installer
+```bash
+# Download and run the installer
+curl -sSL https://raw.githubusercontent.com/jhamilt0n/bankshot-tournament-display/main/install.sh -o install.sh
+chmod +x install.sh
+./install.sh
+```
+
+Or if you've already cloned the repository:
+
+```bash
+cd bankshot-tournament-display
 chmod +x install.sh
 ./install.sh
 ```
 
 The installer will:
+- Pull latest files from GitHub repository
 - Install all required packages
 - Configure Apache and PHP
 - Deploy web files and scripts
@@ -59,6 +67,8 @@ The installer will:
 ```bash
 curl -sSL https://raw.githubusercontent.com/jhamilt0n/bankshot-tournament-display/main/install.sh | bash
 ```
+
+This command downloads and runs the installer, which automatically pulls all files from GitHub.
 
 ## 🖥️ System Architecture
 

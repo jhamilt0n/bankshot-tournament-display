@@ -31,6 +31,31 @@ if [ "$EUID" -eq 0 ]; then
     exit 1
 fi
 
+# Check if git is installed
+if ! command -v git &> /dev/null; then
+    echo -e "${RED}Git is not installed. Installing git...${NC}"
+    sudo apt-get update
+    sudo apt-get install -y git
+fi
+
+# Clone or update repository
+echo "Fetching latest files from GitHub..."
+TEMP_REPO="/tmp/bankshot-tournament-display"
+
+if [ -d "$TEMP_REPO" ]; then
+    echo "Removing old temporary repository..."
+    rm -rf "$TEMP_REPO"
+fi
+
+echo "Cloning repository..."
+git clone "$REPO_URL" "$TEMP_REPO"
+if [ $? -ne 0 ]; then
+    print_error "Failed to clone repository"
+    exit 1
+fi
+print_status "Repository cloned successfully"
+echo ""
+
 # Function to print status
 print_status() {
     echo -e "${GREEN}✓${NC} $1"
@@ -121,23 +146,45 @@ echo ""
 
 # Deploy web files
 echo "Deploying web files..."
-sudo cp web/*.html "$WEB_DIR/"
-sudo cp web/*.php "$WEB_DIR/"
-sudo cp assets/Bankshot_Logo.png "$WEB_DIR/" 2>/dev/null || print_warning "Logo not found"
-sudo chown www-data:www-data "$WEB_DIR"/*.php "$WEB_DIR"/*.html 2>/dev/null
-sudo chmod 644 "$WEB_DIR"/*.php "$WEB_DIR"/*.html 2>/dev/null
+sudo cp "$TEMP_REPO/web/"*.html "$WEB_DIR/" 2>/dev/null || true
+sudo cp "$TEMP_REPO/web/"*.php "$WEB_DIR/" 2>/dev/null || true
+sudo chown -R www-data:www-data "$WEB_DIR"
 print_status "Web files deployed"
 echo ""
 
-# Deploy Python scripts
-echo "Deploying Python scripts..."
-cp scripts/tournament_monitor.py "$INSTALL_DIR/"
-cp scripts/catt_monitor.py "$INSTALL_DIR/"
-cp scripts/hdmi_display_manager.sh "$INSTALL_DIR/"
-chmod +x "$INSTALL_DIR"/tournament_monitor.py
-chmod +x "$INSTALL_DIR"/catt_monitor.py
-chmod +x "$INSTALL_DIR"/hdmi_display_manager.sh
-print_status "Python scripts deployed"
+# Deploy scripts
+echo "Deploying scripts..."
+cp "$TEMP_REPO/scripts/tournament_monitor.py" "$INSTALL_DIR/"
+cp "$TEMP_REPO/scripts/catt_monitor.py" "$INSTALL_DIR/"
+cp "$TEMP_REPO/scripts/hdmi_display_manager.sh" "$INSTALL_DIR/"
+chmod +x "$INSTALL_DIR/"*.py
+chmod +x "$INSTALL_DIR/"*.sh
+print_status "Scripts deployed"
+echo ""
+
+# Deploy service files
+echo "Deploying service files..."
+sudo cp "$TEMP_REPO/services/tournament-monitor.service" /etc/systemd/system/
+sudo cp "$TEMP_REPO/services/catt-monitor.service" /etc/systemd/system/
+sudo cp "$TEMP_REPO/services/hdmi-display.service" /etc/systemd/system/
+sudo systemctl daemon-reload
+print_status "Service files deployed"
+echo ""
+
+# Deploy assets
+echo "Deploying assets..."
+if [ -f "$TEMP_REPO/assets/Bankshot_Logo.png" ]; then
+    sudo cp "$TEMP_REPO/assets/Bankshot_Logo.png" "$WEB_DIR/"
+    print_status "Assets deployed"
+else
+    print_warning "Logo file not found, skipping"
+fi
+echo ""
+
+# Clean up temporary repository
+echo "Cleaning up..."
+rm -rf "$TEMP_REPO"
+print_status "Temporary files cleaned"
 echo ""
 
 # Create tournament data file
@@ -163,13 +210,6 @@ sudo touch /var/log/hdmi_display.log
 sudo chown pi:pi /var/log/catt_monitor.log
 sudo chown pi:pi /var/log/hdmi_display.log
 print_status "Log files created"
-echo ""
-
-# Install systemd services
-echo "Installing systemd services..."
-sudo cp services/*.service /etc/systemd/system/
-sudo systemctl daemon-reload
-print_status "Systemd services installed"
 echo ""
 
 # Configure sudoers for QR generation
