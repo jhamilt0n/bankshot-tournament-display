@@ -56,6 +56,44 @@ def get_file_hash(filepath):
         logging.error(f"Error hashing file {filepath}: {e}")
         return None
 
+def is_business_hours():
+    """Check if current time is within business hours"""
+    try:
+        now = datetime.now()
+        day = now.isoweekday()  # 1=Mon, 7=Sun
+        hour = now.hour
+        minute = now.minute
+        current_minutes = hour * 60 + minute
+        
+        # Business hours in minutes since midnight
+        if day == 7:  # Sunday: 12pm - Monday 1am (next day)
+            return current_minutes >= 720  # After 12:00pm
+        elif day == 1:  # Monday: Closes 1am, Opens 3pm - Tuesday 1am
+            if current_minutes < 60:  # Before 1:00am (from Sunday)
+                return True
+            elif current_minutes >= 900:  # After 3:00pm
+                return True
+        elif day in [2, 3, 4]:  # Tuesday-Thursday: Closes 1am, Opens 12pm - 1am
+            if current_minutes < 60:  # Before 1:00am (from previous day)
+                return True
+            elif current_minutes >= 720:  # After 12:00pm
+                return True
+        elif day == 5:  # Friday: Closes 1am, Opens 12pm - Saturday 2:30am
+            if current_minutes < 60:  # Before 1:00am (from Thursday)
+                return True
+            elif current_minutes >= 720:  # After 12:00pm
+                return True
+        elif day == 6:  # Saturday: Closes 2:30am, Opens 12pm - Sunday 2:30am
+            if current_minutes < 150:  # Before 2:30am (from Friday)
+                return True
+            elif current_minutes >= 720:  # After 12:00pm
+                return True
+        
+        return False
+    except Exception as e:
+        logging.error(f"Error checking business hours: {e}")
+        return False
+
 def load_tournament_data():
     """Load tournament data from JSON file"""
     try:
@@ -209,14 +247,18 @@ def should_start_early_for_tournament(tournament_data):
 def should_display_tournament(tournament_data):
     """
     Determine if tournament should be displayed
-    Now includes 1-hour early start logic
+    Includes: 1-hour early start, active tournaments, OR business hours
     """
     try:
         # Check for early start (1 hour before tournament)
         if should_start_early_for_tournament(tournament_data):
             return True
         
-        # Primary check: use the display_tournament flag from scraper
+        # Check business hours - always cast during business hours
+        if is_business_hours():
+            return True
+        
+        # Check for active tournament display
         should_display = tournament_data.get('display_tournament', False)
         
         # Additional safety checks
@@ -241,6 +283,7 @@ def monitor_and_cast():
     """Main monitoring and casting logic - re-casts only on file changes"""
     logging.info("=" * 60)
     logging.info("CATT Monitor Starting - File change monitoring")
+    logging.info("Casts during: Business hours OR Tournament active")
     logging.info("Re-casts only when tournament_data.json or media_config.json changes")
     logging.info("=" * 60)
     
