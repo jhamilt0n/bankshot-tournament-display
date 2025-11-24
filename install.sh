@@ -285,6 +285,14 @@ echo ""
 # Get IP address
 IP_ADDR=$(hostname -I | awk '{print $1}')
 
+# Final cleanup
+echo "Final cleanup..."
+if [ -d "$TEMP_REPO" ]; then
+    rm -rf "$TEMP_REPO"
+fi
+print_status "Cleanup complete"
+echo ""
+
 # Print summary
 echo -e "${GREEN}========================================"
 echo "Installation Complete!"
@@ -314,4 +322,7 @@ echo "  View logs:          tail -f /home/pi/logs/tournament_monitor.log"
 echo "  Check services:     sudo systemctl status tournament-monitor"
 echo "  Restart services:   sudo systemctl restart tournament-monitor"
 echo "  Uninstall:          ./uninstall.sh"
+echo ""
+echo -e "${YELLOW}Note:${NC} You can safely delete this installer script:"
+echo "  rm $0"
 echo ""
