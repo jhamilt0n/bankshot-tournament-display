@@ -2,7 +2,7 @@
 """
 Smart CATT Casting Monitor
 Automatically switches Chromecast display based on tournament status
-UPDATED: Starts casting 1 hour before tournament start time
+UPDATED: Uses dashcast for auto-refresh capability, 1-hour early start
 """
 
 import json
@@ -19,6 +19,7 @@ TOURNAMENT_DATA_FILE = '/var/www/html/tournament_data.json'
 STATE_FILE = '/var/www/html/cast_state.json'
 LOG_FILE = '/var/log/catt_monitor.log'
 CHECK_INTERVAL = 30  # Check every 30 seconds
+REFRESH_INTERVAL = 4  # Refresh dashcast every 4 cycles (2 minutes)
 CATT_COMMAND = '/home/pi/.local/bin/catt'
 
 # Setup logging
@@ -63,18 +64,16 @@ def load_cast_state():
         return {
             'is_casting_tournament': False,
             'last_tournament_url': None,
-            'last_status': None,
             'cast_started_at': None,
-            'failsafe_check_done': False
+            'refresh_counter': 0
         }
     except Exception as e:
         logging.error(f"Error loading cast state: {e}")
         return {
             'is_casting_tournament': False,
             'last_tournament_url': None,
-            'last_status': None,
             'cast_started_at': None,
-            'failsafe_check_done': False
+            'refresh_counter': 0
         }
 
 def save_cast_state(state):
@@ -108,25 +107,46 @@ def catt_stop():
         logging.error(f"Error stopping cast: {e}")
         return False
 
-def catt_cast_site(url):
-    """Cast a website using CATT"""
+def catt_dashcast(url):
+    """Cast a website using CATT dashcast (allows refresh)"""
     try:
-        logging.info(f"Casting site: {url}")
+        logging.info(f"Dashcasting site: {url}")
         result = subprocess.run(
-            [CATT_COMMAND, 'cast_site', url],
+            [CATT_COMMAND, 'dashcast', 'load', url],
             capture_output=True,
             text=True,
             timeout=30
         )
         
         if result.returncode == 0:
-            logging.info("Site cast successfully")
+            logging.info("Site dashcast successfully")
             return True
         else:
-            logging.warning(f"CATT cast returned non-zero: {result.stderr}")
+            logging.warning(f"CATT dashcast returned non-zero: {result.stderr}")
             return False
     except Exception as e:
-        logging.error(f"Error casting site: {e}")
+        logging.error(f"Error dashcasting site: {e}")
+        return False
+
+def catt_dashcast_refresh():
+    """Refresh the current dashcast"""
+    try:
+        logging.info("Refreshing dashcast...")
+        result = subprocess.run(
+            [CATT_COMMAND, 'dashcast', 'reload'],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode == 0:
+            logging.info("Dashcast refreshed successfully")
+            return True
+        else:
+            logging.warning(f"CATT dashcast refresh failed: {result.stderr}")
+            return False
+    except Exception as e:
+        logging.error(f"Error refreshing dashcast: {e}")
         return False
 
 def parse_start_time(start_time_str):
@@ -226,9 +246,9 @@ def should_display_tournament(tournament_data):
         return False
 
 def monitor_and_cast():
-    """Main monitoring and casting logic"""
+    """Main monitoring and casting logic with dashcast"""
     logging.info("=" * 60)
-    logging.info("CATT Monitor Starting - With 1 hour early casting")
+    logging.info("CATT Monitor Starting - With dashcast and auto-refresh")
     logging.info("=" * 60)
     
     state = load_cast_state()
@@ -272,23 +292,33 @@ def monitor_and_cast():
                 catt_stop()
                 time.sleep(2)
                 
-                if catt_cast_site(cast_url):
+                if catt_dashcast(cast_url):
                     state['is_casting_tournament'] = True
                     state['last_tournament_url'] = tournament_url
-                    state['last_status'] = status
                     state['cast_started_at'] = datetime.now().isoformat()
-                    state['failsafe_check_done'] = False
+                    state['refresh_counter'] = 0
                     save_cast_state(state)
-                    logging.info("✓ Successfully started casting tournament display")
+                    logging.info("✓ Successfully started dashcasting tournament display")
             
-            # SCENARIO 2: Tournament no longer should be displayed - reset state
+            # SCENARIO 2: Already casting - refresh periodically
+            elif should_display and state['is_casting_tournament']:
+                state['refresh_counter'] = state.get('refresh_counter', 0) + 1
+                
+                # Refresh every REFRESH_INTERVAL cycles (default: 2 minutes)
+                if state['refresh_counter'] >= REFRESH_INTERVAL:
+                    logging.info(f"Periodic refresh ({state['refresh_counter']} cycles)")
+                    catt_dashcast_refresh()
+                    state['refresh_counter'] = 0
+                    save_cast_state(state)
+            
+            # SCENARIO 3: Tournament no longer should be displayed
             elif not should_display and state['is_casting_tournament']:
-                logging.info("Tournament no longer should be displayed - Resetting state")
+                logging.info("Tournament no longer should be displayed - Stopping cast")
+                catt_stop()
                 state['is_casting_tournament'] = False
                 state['last_tournament_url'] = None
-                state['last_status'] = None
-                state['failsafe_check_done'] = False
                 state['cast_started_at'] = None
+                state['refresh_counter'] = 0
                 save_cast_state(state)
             
             time.sleep(CHECK_INTERVAL)
