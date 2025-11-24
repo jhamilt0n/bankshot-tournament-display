@@ -497,7 +497,7 @@ window.onload = function() {
 
 <div class="split left <?php echo ($player_count == 0) ? 'hidden' : ''; ?>" id="leftPanel">
     <div class="qr-container">
-        <img src="qr_code.png?t=<?php echo time(); ?>" alt="Tournament Bracket QR Code">
+        <img src="tournament_qr.png?t=<?php echo time(); ?>" alt="Tournament Bracket QR Code">
         <div class="qr-label">Scan for Bracket</div>
     </div>
     
