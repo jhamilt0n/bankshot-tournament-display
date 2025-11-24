@@ -282,6 +282,20 @@ sudo systemctl restart hdmi-display.service
 print_status "Services restarted with new files"
 echo ""
 
+# Setup automatic system updates
+echo "Setting up automatic system updates..."
+CRON_JOB="0 4 * * * /usr/bin/apt update && /usr/bin/apt full-upgrade -y && /usr/bin/apt clean && /usr/bin/apt autoremove -y > /dev/null 2>&1"
+
+# Check if cron job already exists
+if crontab -l 2>/dev/null | grep -q "/usr/bin/apt update && /usr/bin/apt full-upgrade"; then
+    print_warning "Auto-update cron job already exists"
+else
+    # Add cron job
+    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+    print_status "Auto-update cron job added (runs daily at 4 AM)"
+fi
+echo ""
+
 # Get IP address
 IP_ADDR=$(hostname -I | awk '{print $1}')
 
@@ -311,6 +325,10 @@ echo -e "${BLUE}Service Status:${NC}"
 systemctl is-active tournament-monitor.service && echo -e "  Tournament Monitor: ${GREEN}Running${NC}" || echo -e "  Tournament Monitor: ${RED}Stopped${NC}"
 systemctl is-active catt-monitor.service && echo -e "  CATT Monitor:       ${GREEN}Running${NC}" || echo -e "  CATT Monitor:       ${RED}Stopped${NC}"
 systemctl is-active hdmi-display.service && echo -e "  HDMI Display:       ${GREEN}Running${NC}" || echo -e "  HDMI Display:       ${RED}Stopped${NC}"
+echo ""
+echo -e "${BLUE}Auto-Update:${NC}"
+echo "  System updates run daily at 4:00 AM"
+echo "  View cron job: crontab -l"
 echo ""
 echo -e "${BLUE}Next Steps:${NC}"
 echo "  1. Scan for Chromecast: catt scan"
