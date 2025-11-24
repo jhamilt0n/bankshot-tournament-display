@@ -14,6 +14,7 @@ A comprehensive dual-display tournament management system for pool halls featuri
 - ✅ **Media Management** - Web-based upload and scheduling interface
 - ✅ **Separate Channels** - Independent ad and tournament media rotation
 - ✅ **Smart Casting Logic** - Only casts when tournament has players
+- ✅ **Auto-Start Terminal** - Monitor window opens on boot for easy system status viewing
 
 ## 📋 Requirements
 
@@ -50,6 +51,7 @@ The installer will:
 - Deploy web files and scripts
 - Set up systemd services
 - Configure permissions
+- Configure terminal auto-start on boot
 - Start all services automatically
 
 ### One-Line Installation
@@ -232,6 +234,26 @@ git pull
 sudo chown -R www-data:www-data /var/www/html/
 sudo chmod 664 /var/www/html/tournament_data.json
 sudo chmod 664 /var/www/html/tournament_qr.png
+```
+
+### Terminal Not Auto-Starting
+
+```bash
+# Check if autostart file exists
+cat /home/pi/.config/lxsession/LXDE-pi/autostart
+
+# If missing, create it:
+mkdir -p /home/pi/.config/lxsession/LXDE-pi/
+cat > /home/pi/.config/lxsession/LXDE-pi/autostart << 'EOF'
+@xset s off
+@xset -dpms
+@xset s noblank
+@unclutter -idle 0.1 -root
+@lxterminal --title="Bankshot Monitor" --geometry=120x30
+EOF
+
+# Reboot to test
+sudo reboot
 ```
 
 See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for more solutions.
