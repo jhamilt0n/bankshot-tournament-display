@@ -456,7 +456,7 @@ def get_all_todays_tournaments():
     
     try:
         log("="*60)
-        log("Searching for ALL Bankshot tournaments today...")
+        log("🔧 TESTING MODE: Searching for TOMORROW's tournaments...")
         log("="*60)
         
         driver = setup_driver(headless=True)
@@ -481,13 +481,13 @@ def get_all_todays_tournaments():
             log("No tournaments found")
             return []
         
-        # Filter to today's date
-        today = datetime.date.today()
-        today_str = today.strftime("%Y/%m/%d")
+        # 🔧 TESTING: Filter to TOMORROW's date instead of today
+        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+        tomorrow_str = tomorrow.strftime("%Y/%m/%d")
         
-        todays_tournaments = [t for t in all_tournaments if t['date'] == today_str]
+        todays_tournaments = [t for t in all_tournaments if t['date'] == tomorrow_str]
         
-        log(f"\nFound {len(todays_tournaments)} tournament(s) for today ({today_str})")
+        log(f"\n🔧 TESTING: Found {len(todays_tournaments)} tournament(s) for TOMORROW ({tomorrow_str})")
         
         for t in todays_tournaments:
             log(f"  Tournament: {t['name']}")
