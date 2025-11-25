@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bankshot Tournament Display System - Installation Script
-# Version 2.0 - Improved and tested on Debian 13 (Trixie)
+# Version 2.1 - Auto-update with logging and rotation
 
 set -e  # Exit on any error
 
@@ -20,7 +20,7 @@ MEDIA_DIR="$WEB_DIR/media"
 
 echo -e "${BLUE}========================================"
 echo "Bankshot Tournament Display System"
-echo "Installation Script v2.0"
+echo "Installation Script v2.1"
 echo -e "========================================${NC}"
 echo ""
 
@@ -282,18 +282,20 @@ sudo systemctl restart hdmi-display.service
 print_status "Services restarted with new files"
 echo ""
 
-# Setup automatic system updates
+# Setup automatic system updates with logging and rotation
 echo "Setting up automatic system updates..."
-CRON_JOB="0 4 * * * /usr/bin/apt update && /usr/bin/apt full-upgrade -y && /usr/bin/apt clean && /usr/bin/apt autoremove -y > /dev/null 2>&1"
+CRON_JOB="0 4 * * * /usr/bin/apt update && /usr/bin/apt full-upgrade -y && /usr/bin/apt clean && /usr/bin/apt autoremove -y >> /home/pi/logs/auto_update.log 2>&1 && find /home/pi/logs -name 'auto_update.log' -mtime +30 -delete"
 
 # Check if cron job already exists
 if crontab -l 2>/dev/null | grep -q "/usr/bin/apt update && /usr/bin/apt full-upgrade"; then
-    print_warning "Auto-update cron job already exists"
-else
-    # Add cron job
-    (crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
-    print_status "Auto-update cron job added (runs daily at 4 AM)"
+    # Remove old cron job without logging
+    crontab -l 2>/dev/null | grep -v "/usr/bin/apt update && /usr/bin/apt full-upgrade" | crontab -
+    print_info "Removed old auto-update cron job"
 fi
+
+# Add new cron job with logging
+(crontab -l 2>/dev/null; echo "$CRON_JOB") | crontab -
+print_status "Auto-update cron job added (runs daily at 4 AM with logging and 30-day rotation)"
 echo ""
 
 # Get IP address
@@ -328,7 +330,9 @@ systemctl is-active hdmi-display.service && echo -e "  HDMI Display:       ${GRE
 echo ""
 echo -e "${BLUE}Auto-Update:${NC}"
 echo "  System updates run daily at 4:00 AM"
+echo "  Logs: /home/pi/logs/auto_update.log (30-day rotation)"
 echo "  View cron job: crontab -l"
+echo "  View log: tail -f /home/pi/logs/auto_update.log"
 echo ""
 echo -e "${BLUE}Next Steps:${NC}"
 echo "  1. Scan for Chromecast: catt scan"
@@ -339,6 +343,7 @@ echo -e "${BLUE}Useful Commands:${NC}"
 echo "  View logs:          tail -f /home/pi/logs/tournament_monitor.log"
 echo "  Check services:     sudo systemctl status tournament-monitor"
 echo "  Restart services:   sudo systemctl restart tournament-monitor"
+echo "  View update log:    tail -f /home/pi/logs/auto_update.log"
 echo "  Uninstall:          ./uninstall.sh"
 echo ""
 echo -e "${YELLOW}Note:${NC} You can safely delete this installer script:"
