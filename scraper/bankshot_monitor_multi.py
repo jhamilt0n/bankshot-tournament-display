@@ -100,56 +100,124 @@ def setup_driver(headless=True):
         raise
 
 
-def get_official_start_time(driver, tournament_url):
+def get_tournament_details_from_page(driver, tournament_url, player_count):
     """
-    Navigate to tournament detail page and extract official start time
-    Returns: time string like "7:00 PM" or None
+    Navigate to tournament detail page and extract comprehensive details:
+    - Official start time (cleaned)
+    - Actual tournament date (from detail page, not card)
+    - Entry fee (calculated from total pot / players if not on card)
+    - Format type (Singles vs Team)
+    - Payout structure (if available from Digital Pool)
+    
+    Returns: dict with all details or None
     """
     try:
         if not tournament_url:
             return None
         
-        log(f"Fetching official start time from: {tournament_url}")
+        log(f"Fetching tournament details from: {tournament_url}")
         driver.get(tournament_url)
         time.sleep(3)  # Wait for page load
         
-        # Try the XPath you provided
-        xpath = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div/div/div/div/table/tbody/tr[3]/td[2]"
+        details = {
+            'start_time': None,
+            'date': None,
+            'entry_fee': 15,  # default
+            'format_type': 'Singles',  # default
+            'has_digital_pool_payouts': False,
+            'payouts': {}
+        }
         
+        # 1. Extract START TIME
+        xpath_start_time = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div/div/div/div/table/tbody/tr[3]/td[2]"
         try:
-            start_time_element = driver.find_element(By.XPATH, xpath)
-            start_time_text = start_time_element.text.strip()
-            if start_time_text:
-                log(f"✓ Found official start time: {start_time_text}")
-                return start_time_text
+            start_time_element = driver.find_element(By.XPATH, xpath_start_time)
+            raw_start_time = start_time_element.text.strip()
+            if raw_start_time:
+                details['start_time'] = clean_start_time_string(raw_start_time)
+                log(f"✓ Found start time: {details['start_time']}")
+                
+                # Extract date from the same element (it contains full date string)
+                date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', raw_start_time)
+                if date_match:
+                    date_str = date_match.group(1)
+                    try:
+                        parsed_date = datetime.datetime.strptime(date_str, "%a, %b %d, %Y")
+                        details['date'] = parsed_date.strftime("%Y/%m/%d")
+                        log(f"✓ Extracted date from time field: {details['date']}")
+                    except:
+                        pass
         except NoSuchElementException:
-            log("⚠ Could not find start time using provided XPath")
+            log("⚠ Could not find start time using XPath")
         
-        # Fallback: Try to find "Tournament Start" or "Play Start" label
+        # 2. Extract ENTRY FEE from total pot (if no entry fee on card)
+        xpath_total_pot = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div/div/div[1]/div[2]/div[2]/table/tbody/tr[6]/td[2]"
         try:
-            page_text = driver.find_element(By.TAG_NAME, "body").text
-            
-            # Look for various start time patterns
-            patterns = [
-                r'Tournament Start[:\s]+(\d{1,2}:\d{2}\s*[AP]\.?M\.?)',
-                r'Play Start[:\s]+(\d{1,2}:\d{2}\s*[AP]\.?M\.?)',
-                r'Start Time[:\s]+(\d{1,2}:\d{2}\s*[AP]\.?M\.?)',
-            ]
-            
-            for pattern in patterns:
-                match = re.search(pattern, page_text, re.IGNORECASE)
-                if match:
-                    start_time = match.group(1).strip()
-                    log(f"✓ Found start time via text search: {start_time}")
-                    return start_time
+            total_pot_element = driver.find_element(By.XPATH, xpath_total_pot)
+            total_pot_text = total_pot_element.text.strip()
+            # Extract dollar amount
+            pot_match = re.search(r'\$?([\d,]+)', total_pot_text)
+            if pot_match and player_count > 0:
+                total_pot = int(pot_match.group(1).replace(',', ''))
+                calculated_entry = total_pot // player_count
+                details['entry_fee'] = calculated_entry
+                log(f"✓ Calculated entry fee: ${calculated_entry} (${total_pot} / {player_count} players)")
+        except NoSuchElementException:
+            log("⚠ Could not find total pot for entry fee calculation")
         except Exception as e:
-            log(f"Error in fallback start time search: {e}")
+            log(f"⚠ Error calculating entry fee: {e}")
         
-        log("✗ Could not find official start time on detail page")
-        return None
+        # 3. Extract FORMAT TYPE (Singles vs Team)
+        xpath_format = "//*[@id='rc-tabs-1-panel-details']/div/div/table/tbody/tr[5]/td[2]"
+        try:
+            format_element = driver.find_element(By.XPATH, xpath_format)
+            format_text = format_element.text.strip()
+            details['format_type'] = format_text if format_text else 'Singles'
+            log(f"✓ Format type: {details['format_type']}")
+        except NoSuchElementException:
+            log("⚠ Could not find format type, defaulting to Singles")
+        
+        # 4. Extract PAYOUTS from Digital Pool
+        xpath_first_place = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[2]/div[2]/table/tbody/tr[2]/td[2]"
+        try:
+            first_place_element = driver.find_element(By.XPATH, xpath_first_place)
+            first_place_text = first_place_element.text.strip()
+            
+            # Check if it's NOT $0 (meaning Digital Pool has payout info)
+            if first_place_text and first_place_text != '$0' and first_place_text != '$0.00':
+                details['has_digital_pool_payouts'] = True
+                details['payouts']['1st'] = first_place_text
+                log(f"✓ Found Digital Pool payout for 1st: {first_place_text}")
+                
+                # Try to get other places
+                payout_table_xpath = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[2]/div[2]/table/tbody"
+                try:
+                    tbody = driver.find_element(By.XPATH, payout_table_xpath)
+                    rows = tbody.find_elements(By.TAG_NAME, "tr")
+                    
+                    for row in rows:
+                        cells = row.find_elements(By.TAG_NAME, "td")
+                        if len(cells) >= 2:
+                            place_text = cells[0].text.strip()
+                            amount_text = cells[1].text.strip()
+                            
+                            # Parse place (1st, 2nd, 3rd, etc.)
+                            if amount_text and amount_text != '$0':
+                                details['payouts'][place_text] = amount_text
+                                log(f"✓ Found payout for {place_text}: {amount_text}")
+                except Exception as e:
+                    log(f"⚠ Error extracting additional payouts: {e}")
+            else:
+                log("⚠ No Digital Pool payouts (showing $0), will use calculated payouts")
+        except NoSuchElementException:
+            log("⚠ Could not find payout information")
+        
+        return details
         
     except Exception as e:
-        log(f"Error fetching official start time: {e}")
+        log(f"Error fetching tournament details: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 
 
@@ -353,16 +421,34 @@ def search_tournaments_on_page(driver):
                         name_slug = re.sub(r'-+', '-', name_slug).strip('-')
                         tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
                 
-                # ENHANCED: Get official start time from detail page
-                start_time_str = None
-                if tournament_url:
-                    official_start_time = get_official_start_time(driver, tournament_url)
-                    if official_start_time:
-                        # Clean the verbose format to extract just the time
-                        start_time_str = clean_start_time_string(official_start_time)
-                        log(f"✓ Cleaned start time: {start_time_str}")
+                # Extract player count (needed for entry fee calculation)
+                player_match = re.search(r'(\d+)\s+Players?', card_text, re.IGNORECASE)
+                if player_match:
+                    player_count = int(player_match.group(1))
+                else:
+                    player_count = 0
                 
-                # Fallback: Try to get from card if official fetch failed
+                # ENHANCED: Get comprehensive details from detail page
+                start_time_str = None
+                actual_date = tournament_date  # Default to card date
+                entry_fee = 15  # default
+                format_type = 'Singles'
+                has_digital_pool_payouts = False
+                digital_pool_payouts = {}
+                
+                if tournament_url:
+                    details = get_tournament_details_from_page(driver, tournament_url, player_count)
+                    if details:
+                        if details['start_time']:
+                            start_time_str = details['start_time']
+                        if details['date']:
+                            actual_date = details['date']  # Use actual date from detail page
+                        entry_fee = details['entry_fee']
+                        format_type = details['format_type']
+                        has_digital_pool_payouts = details['has_digital_pool_payouts']
+                        digital_pool_payouts = details['payouts']
+                
+                # Fallback: Try to get start time from card if detail page failed
                 if not start_time_str:
                     priority_patterns = [
                         (r'(?:Tournament\s+)?Start[s]?[:\s]+(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)', 'Tournament Start'),
@@ -380,27 +466,8 @@ def search_tournaments_on_page(driver):
                 
                 start_time = parse_time_string(start_time_str) if start_time_str else None
                 
-                # Extract status and player count
+                # Extract status
                 actual_status = "Unknown"
-                player_count = 0
-                
-                player_match = re.search(r'(\d+)\s+Players?', card_text, re.IGNORECASE)
-                if player_match:
-                    player_count = int(player_match.group(1))
-                
-                # Extract entry fee
-                entry_fee = 15  # default
-                fee_patterns = [
-                    r'\$(\d+)(?:\.\d+)?\s*(?:entry|buy-in|fee)',
-                    r'(?:entry|buy-in|fee)[:\s]*\$(\d+)',
-                ]
-                for pattern in fee_patterns:
-                    fee_match = re.search(pattern, card_text, re.IGNORECASE)
-                    if fee_match:
-                        entry_fee = int(fee_match.group(1))
-                        break
-
-                # Check for explicit status keywords
                 status_indicators = {
                     "In Progress": ["In Progress", "Live", "Active", "Playing"],
                     "Upcoming": ["Upcoming", "Scheduled", "Future"],
@@ -431,8 +498,8 @@ def search_tournaments_on_page(driver):
                         if player_count > 0:
                             actual_status = "In Progress"
                         elif tournament_date:
-                            today = datetime.date.today()
-                            today_str = today.strftime("%Y/%m/%d")
+                            tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+                            tomorrow_str = tomorrow.strftime("%Y/%m/%d")
                             
                             if tournament_date == today_str:
                                 actual_status = "Upcoming"
@@ -442,12 +509,15 @@ def search_tournaments_on_page(driver):
                 tournament_info = {
                     'name': tournament_name,
                     'venue': f"{VENUE_NAME}, {VENUE_CITY}",
-                    'date': tournament_date,
+                    'date': actual_date,  # Use actual date from detail page
                     'start_time': start_time_str,
                     'start_time_parsed': start_time.strftime("%H:%M") if start_time else None,
                     'status': actual_status,
                     'player_count': player_count,
                     'entry_fee': entry_fee,
+                    'format_type': format_type,
+                    'has_digital_pool_payouts': has_digital_pool_payouts,
+                    'digital_pool_payouts': digital_pool_payouts,
                     'url': tournament_url,
                     'found_at': datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 }
@@ -455,9 +525,13 @@ def search_tournaments_on_page(driver):
                 tournaments.append(tournament_info)
                 log(f"✓ Successfully extracted tournament info")
                 log(f"  Name: {tournament_name}")
-                log(f"  Date: {tournament_date}")
+                log(f"  Date: {actual_date}")
                 log(f"  Start Time: {start_time_str}")
+                log(f"  Entry Fee: ${entry_fee}")
+                log(f"  Format: {format_type}")
                 log(f"  Status: {actual_status}")
+                if has_digital_pool_payouts:
+                    log(f"  Has Digital Pool Payouts: Yes")
                 
             except Exception as e:
                 log(f"Error parsing tournament card {idx}: {e}")
@@ -590,7 +664,7 @@ def check_previous_tournament_still_active():
             
             if tournament_date and tournament_url:
                 prev_date = datetime.datetime.strptime(tournament_date, "%Y/%m/%d").date()
-                today = datetime.date.today()
+                tomorrow = datetime.date.today() + datetime.timedelta(days=1)
                 
                 if prev_date < today:
                     log(f"Previous tournament from {tournament_date} was 'In Progress' - verifying actual status...")
@@ -643,6 +717,9 @@ def save_tournament_data(tournament):
             'start_time': None,
             'status': None,
             'entry_fee': 15,
+            'format_type': 'Singles',
+            'has_digital_pool_payouts': False,
+            'digital_pool_payouts': {},
             'payout_data': None,
             'last_updated': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'display_tournament': False
@@ -664,6 +741,9 @@ def save_tournament_data(tournament):
             'status': tournament['status'],
             'player_count': tournament.get('player_count', 0),
             'entry_fee': tournament.get('entry_fee', 15),
+            'format_type': tournament.get('format_type', 'Singles'),
+            'has_digital_pool_payouts': tournament.get('has_digital_pool_payouts', False),
+            'digital_pool_payouts': tournament.get('digital_pool_payouts', {}),
             'payout_data': payout_data,
             'last_updated': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
             'display_tournament': should_display
@@ -671,6 +751,8 @@ def save_tournament_data(tournament):
         
         log(f"\nTournament to display: {tournament['name']}")
         log(f"Start Time: {tournament['start_time']}")
+        log(f"Entry Fee: ${tournament.get('entry_fee', 15)}")
+        log(f"Format: {tournament.get('format_type', 'Singles')}")
         log(f"Status: {tournament['status']}")
         log(f"Display flag: {should_display}")
     
