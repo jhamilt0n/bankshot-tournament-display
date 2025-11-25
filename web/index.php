@@ -244,6 +244,7 @@
 
 <?php 
 set_time_limit(60);
+require_once 'payout_calculator.php';
 
 $tournament_data_file = '/var/www/html/tournament_data.json';
 $tournament_found = false;
@@ -520,15 +521,24 @@ window.onload = function() {
     <div class="payouts-header">PAYOUTS</div>
     <div class="payouts" id="payouts">
         <?php 
-        // Display payouts from JSON (either Digital Pool or calculated)
-        if (isset($tournament_data['payouts']) && is_array($tournament_data['payouts'])) {
-            foreach ($tournament_data['payouts'] as $payout) {
-                $place = $payout['place'] ?? '';
-                $amount = $payout['amount'] ?? '';
-                $class = ($place === '1st') ? 'first-place' : '';
-                echo "<div class='$class'>$place: $amount</div>\n";
+        // Check if Digital Pool has payouts
+        $has_digital_pool = isset($tournament_data['has_digital_pool_payouts']) 
+                            && $tournament_data['has_digital_pool_payouts'] === true;
+        
+        if ($has_digital_pool && isset($tournament_data['payouts']) && is_array($tournament_data['payouts'])) {
+            // Use Digital Pool payouts from JSON
+            $payouts = $tournament_data['payouts'];
+        } else {
+            // Calculate payouts based on player count and entry fee
+            $entry_fee_num = $tournament_data['entry_fee'] ?? 15;
+            if (is_string($entry_fee_num)) {
+                $entry_fee_num = str_replace('$', '', $entry_fee_num);
             }
+            $payouts = calculatePayouts($player_count, $entry_fee_num);
         }
+        
+        // Display payouts
+        echo formatPayoutsHTML($payouts);
         ?>
     </div>
 </div>
