@@ -554,6 +554,7 @@ let lastTournamentState = {
     tournamentName: null,
     status: null,
     lastUpdated: null,
+    hasDigitalPoolPayouts: null,
     initialized: false
 };
 
@@ -571,7 +572,8 @@ function checkForChanges() {
                 tournamentUrl: data.tournament_url || '',
                 tournamentName: data.tournament_name || '',
                 status: data.status || '',
-                lastUpdated: data.last_updated || ''
+                lastUpdated: data.last_updated || '',
+                hasDigitalPoolPayouts: data.has_digital_pool_payouts || false
             };
             
             // First run - initialize state
@@ -615,13 +617,18 @@ function checkForChanges() {
                 changed = true;
                 changeReasons.push(`status: ${lastTournamentState.status} → ${current.status}`);
             }
-            
             if (current.lastUpdated !== lastTournamentState.lastUpdated) {
                 changed = true;
                 changeReasons.push('data file updated');
             }
             
+            if (current.hasDigitalPoolPayouts !== lastTournamentState.hasDigitalPoolPayouts) {
+                changed = true;
+                changeReasons.push(`payouts: ${lastTournamentState.hasDigitalPoolPayouts ? 'Digital Pool' : 'calculated'} → ${current.hasDigitalPoolPayouts ? 'Digital Pool' : 'calculated'}`);
+            }
+            
             if (changed) {
+            
                 console.log('🔄 TOURNAMENT DATA CHANGED - RELOADING');
                 console.log('Changes:', changeReasons.join(', '));
                 console.log('Old:', lastTournamentState);
