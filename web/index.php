@@ -518,109 +518,182 @@ window.onload = function() {
 <div class="split right <?php echo ($player_count == 0) ? 'fullscreen' : ''; ?>" id="frameContainer"></div>
 
 <script>
-// IMPROVED: Track detailed state to detect player count drops to zero
+// ============================================================================
+// AGGRESSIVE TOURNAMENT CHANGE DETECTION
+// Reloads page on ANY tournament data change
+// ============================================================================
 let lastTournamentState = {
     display: null,
     playerCount: null,
+    entryFee: null,
+    tournamentUrl: null,
+    tournamentName: null,
+    status: null,
+    lastUpdated: null,
     initialized: false
 };
 
-function updatePlayerData() {
+function checkForChanges() {
     fetch('/get_tournament_data.php?nocache=' + Date.now())
         .then(response => response.json())
         .then(data => {
-            if (data.success && data.display_tournament) {
-                var playerCount = data.player_count || 0;
-                var entryFee = data.entry_fee || 15;
-                
-                // CRITICAL: Detect if player count dropped to zero
-                if (lastTournamentState.initialized && 
-                    lastTournamentState.playerCount > 0 && 
-                    playerCount === 0) {
-                    console.log('Player count dropped to zero - reloading page');
-                    location.reload();
-                    return;
-                }
-                
-                // Update state
-                lastTournamentState.playerCount = playerCount;
-                lastTournamentState.display = data.display_tournament;
-                lastTournamentState.initialized = true;
-                
-                // Show/hide left panel based on player count
-                var leftPanel = document.getElementById('leftPanel');
-                var rightPanel = document.getElementById('frameContainer');
-                
-                if (playerCount > 0) {
-                    leftPanel.classList.remove('hidden');
-                    rightPanel.classList.remove('fullscreen');
-                } else {
-                    leftPanel.classList.add('hidden');
-                    rightPanel.classList.add('fullscreen');
-                }
-                
-                document.getElementById('playerCount').textContent = playerCount + ' PLAYERS';
-                document.getElementById('entryFee').textContent = 'Entry: $' + entryFee;
-                
-                fetch('/calculate_payouts.php?players=' + playerCount + '&entry=' + entryFee)
-                    .then(response => response.json())
-                    .then(payouts => {
-                        var payoutDiv = document.getElementById('payouts');
-                        var html = '';
-                        var payoutCount = 0;
-                        
-                        if (!payouts.error) {
-                            if (payouts['1st']) {
-                                payoutCount++;
-                                html += '<div class="first-place">1st: ' + payouts['1st'] + '</div>';
-                            }
-                            
-                            if (payouts['2nd']) {
-                                payoutCount++;
-                                html += '<div>2nd: ' + payouts['2nd'] + '</div>';
-                            }
-                            
-                            if (payouts['3rd']) {
-                                payoutCount++;
-                                html += '<div>3rd: ' + payouts['3rd'] + '</div>';
-                            }
-                            
-                            if (payouts['4th']) {
-                                payoutCount++;
-                                html += '<div>4th: ' + payouts['4th'] + '</div>';
-                            }
-                            
-                            if (payouts['5th']) {
-                                payoutCount++;
-                                html += '<div>5/6: ' + payouts['5th'] + '</div>';
-                            }
-                            
-                            if (payouts['7th']) {
-                                payoutCount++;
-                                html += '<div>7/8: ' + payouts['7th'] + '</div>';
-                            }
-                        } else {
-                            html = '<div>Payouts TBD</div>';
-                        }
-                        
-                        // Add compact class if more than 4 payout places
-                        if (payoutCount > 4) {
-                            payoutDiv.classList.add('compact');
-                        } else {
-                            payoutDiv.classList.remove('compact');
-                        }
-                        
-                        payoutDiv.innerHTML = html;
-                    })
-                    .catch(err => console.error('Error loading payouts:', err));
+            if (!data.success) return;
+            
+            // Current state
+            const current = {
+                display: data.display_tournament || false,
+                playerCount: data.player_count || 0,
+                entryFee: data.entry_fee || 15,
+                tournamentUrl: data.tournament_url || '',
+                tournamentName: data.tournament_name || '',
+                status: data.status || '',
+                lastUpdated: data.last_updated || ''
+            };
+            
+            // First run - initialize state
+            if (!lastTournamentState.initialized) {
+                lastTournamentState = {...current, initialized: true};
+                console.log('🎯 Initial tournament state:', current);
+                updatePlayerData(data); // Update display
+                return;
+            }
+            
+            // Check for ANY change
+            let changed = false;
+            let changeReasons = [];
+            
+            if (current.display !== lastTournamentState.display) {
+                changed = true;
+                changeReasons.push(`display: ${lastTournamentState.display} → ${current.display}`);
+            }
+            
+            if (current.playerCount !== lastTournamentState.playerCount) {
+                changed = true;
+                changeReasons.push(`players: ${lastTournamentState.playerCount} → ${current.playerCount}`);
+            }
+            
+            if (current.entryFee !== lastTournamentState.entryFee) {
+                changed = true;
+                changeReasons.push(`entry fee: $${lastTournamentState.entryFee} → $${current.entryFee}`);
+            }
+            
+            if (current.tournamentUrl !== lastTournamentState.tournamentUrl) {
+                changed = true;
+                changeReasons.push('tournament URL changed');
+            }
+            
+            if (current.tournamentName !== lastTournamentState.tournamentName) {
+                changed = true;
+                changeReasons.push('tournament name changed');
+            }
+            
+            if (current.status !== lastTournamentState.status) {
+                changed = true;
+                changeReasons.push(`status: ${lastTournamentState.status} → ${current.status}`);
+            }
+            
+            if (current.lastUpdated !== lastTournamentState.lastUpdated) {
+                changed = true;
+                changeReasons.push('data file updated');
+            }
+            
+            if (changed) {
+                console.log('🔄 TOURNAMENT DATA CHANGED - RELOADING');
+                console.log('Changes:', changeReasons.join(', '));
+                console.log('Old:', lastTournamentState);
+                console.log('New:', current);
+                location.reload();
+            } else {
+                // No changes, but update display in case of time-based changes
+                updatePlayerData(data);
             }
         })
-        .catch(err => console.error('Error fetching tournament data:', err));
+        .catch(err => console.error('❌ Error checking tournament data:', err));
 }
 
-// Update player data every 30 seconds
-updatePlayerData();
-setInterval(updatePlayerData, 30000);
+function updatePlayerData(data) {
+    // Update player count display without reloading
+    if (data.display_tournament) {
+        var playerCount = data.player_count || 0;
+        var entryFee = data.entry_fee || 15;
+        
+        var leftPanel = document.getElementById('leftPanel');
+        var rightPanel = document.getElementById('frameContainer');
+        
+        if (leftPanel && rightPanel) {
+            if (playerCount > 0) {
+                leftPanel.classList.remove('hidden');
+                rightPanel.classList.remove('fullscreen');
+            } else {
+                leftPanel.classList.add('hidden');
+                rightPanel.classList.add('fullscreen');
+            }
+        }
+        
+        if (document.getElementById('playerCount')) {
+            document.getElementById('playerCount').textContent = playerCount + ' PLAYERS';
+        }
+        
+        if (document.getElementById('entryFee')) {
+            document.getElementById('entryFee').textContent = 'Entry: $' + entryFee;
+        }
+        
+        // Update payouts
+        fetch('/calculate_payouts.php?players=' + playerCount + '&entry=' + entryFee)
+            .then(response => response.json())
+            .then(payouts => {
+                var payoutDiv = document.getElementById('payouts');
+                if (!payoutDiv) return;
+                
+                var html = '';
+                var payoutCount = 0;
+                
+                if (!payouts.error) {
+                    if (payouts['1st']) {
+                        payoutCount++;
+                        html += '<div class="first-place">1st: ' + payouts['1st'] + '</div>';
+                    }
+                    if (payouts['2nd']) {
+                        payoutCount++;
+                        html += '<div>2nd: ' + payouts['2nd'] + '</div>';
+                    }
+                    if (payouts['3rd']) {
+                        payoutCount++;
+                        html += '<div>3rd: ' + payouts['3rd'] + '</div>';
+                    }
+                    if (payouts['4th']) {
+                        payoutCount++;
+                        html += '<div>4th: ' + payouts['4th'] + '</div>';
+                    }
+                    if (payouts['5th']) {
+                        payoutCount++;
+                        html += '<div>5/6: ' + payouts['5th'] + '</div>';
+                    }
+                    if (payouts['7th']) {
+                        payoutCount++;
+                        html += '<div>7/8: ' + payouts['7th'] + '</div>';
+                    }
+                } else {
+                    html = '<div>Payouts TBD</div>';
+                }
+                
+                if (payoutCount > 4) {
+                    payoutDiv.classList.add('compact');
+                } else {
+                    payoutDiv.classList.remove('compact');
+                }
+                
+                payoutDiv.innerHTML = html;
+            })
+            .catch(err => console.error('Error loading payouts:', err));
+    }
+}
+
+// Check every 10 seconds for rapid change detection
+setInterval(checkForChanges, 10000);
+
+// Initial check after 2 seconds
+setTimeout(checkForChanges, 2000);
 </script>
 
 <?php else: ?>
@@ -662,77 +735,6 @@ console.log('No tournament today - showing media only');
         }
     }, 2000);
 })();
-</script>
-
-<script>
-// IMPROVED: More aggressive tournament state checking
-let lastTournamentCheck = {
-    display: null,
-    playerCount: null,
-    tournamentUrl: null
-};
-
-function checkTournamentChanges() {
-    fetch('/get_tournament_data.php?nocache=' + Date.now())
-        .then(response => response.json())
-        .then(data => {
-            var currentDisplay = data.display_tournament || false;
-            var currentPlayerCount = data.player_count || 0;
-            var currentUrl = data.tournament_url || '';
-            
-            // First run - just store state
-            if (lastTournamentCheck.display === null) {
-                lastTournamentCheck.display = currentDisplay;
-                lastTournamentCheck.playerCount = currentPlayerCount;
-                lastTournamentCheck.tournamentUrl = currentUrl;
-                console.log('Initial state:', lastTournamentCheck);
-                return;
-            }
-            
-            // Check for state changes that require reload
-            var shouldReload = false;
-            var reloadReason = '';
-            
-            // Tournament display flag changed
-            if (currentDisplay !== lastTournamentCheck.display) {
-                shouldReload = true;
-                reloadReason = 'display_tournament changed from ' + lastTournamentCheck.display + ' to ' + currentDisplay;
-            }
-            
-            // Player count dropped to zero (tournament ended/reset)
-            else if (lastTournamentCheck.playerCount > 0 && currentPlayerCount === 0) {
-                shouldReload = true;
-                reloadReason = 'player count dropped to zero';
-            }
-            
-            // Player count changed significantly (new tournament or major update)
-            else if (Math.abs(currentPlayerCount - lastTournamentCheck.playerCount) >= 3) {
-                shouldReload = true;
-                reloadReason = 'player count changed by ' + Math.abs(currentPlayerCount - lastTournamentCheck.playerCount);
-            }
-            
-            // Tournament URL changed (different tournament)
-            else if (currentUrl !== lastTournamentCheck.tournamentUrl && currentUrl !== '') {
-                shouldReload = true;
-                reloadReason = 'tournament URL changed';
-            }
-            
-            if (shouldReload) {
-                console.log('🔄 Reloading page: ' + reloadReason);
-                console.log('Old state:', lastTournamentCheck);
-                console.log('New state:', {display: currentDisplay, playerCount: currentPlayerCount, tournamentUrl: currentUrl});
-                location.reload();
-            }
-        })
-        .catch(err => {
-            console.log('Tournament check failed:', err.message);
-        });
-}
-
-// Check every 15 seconds
-setInterval(checkTournamentChanges, 15000);
-// Initial check after 3 seconds
-setTimeout(checkTournamentChanges, 3000);
 </script>
 
 </body>
