@@ -498,8 +498,8 @@ def search_tournaments_on_page(driver):
                         if player_count > 0:
                             actual_status = "In Progress"
                         elif tournament_date:
-                            tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-                            tomorrow_str = tomorrow.strftime("%Y/%m/%d")
+                            today = datetime.date.today()
+                            today_str = today.strftime("%Y/%m/%d")
                             
                             if tournament_date == today_str:
                                 actual_status = "Upcoming"
@@ -557,7 +557,7 @@ def get_all_todays_tournaments():
     
     try:
         log("="*60)
-        log("🔧 TESTING MODE: Searching for TOMORROW's tournaments...")
+        log("Searching for ALL Bankshot tournaments today...")
         log("="*60)
         
         driver = setup_driver(headless=True)
@@ -582,13 +582,13 @@ def get_all_todays_tournaments():
             log("No tournaments found")
             return []
         
-        # 🔧 TESTING: Filter to TOMORROW's date instead of today
-        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
-        tomorrow_str = tomorrow.strftime("%Y/%m/%d")
+        # Filter to today's date
+        today = datetime.date.today()
+        today_str = today.strftime("%Y/%m/%d")
         
-        todays_tournaments = [t for t in all_tournaments if t['date'] == tomorrow_str]
+        todays_tournaments = [t for t in all_tournaments if t['date'] == today_str]
         
-        log(f"\n🔧 TESTING: Found {len(todays_tournaments)} tournament(s) for TOMORROW ({tomorrow_str})")
+        log(f"\nFound {len(todays_tournaments)} tournament(s) for today ({today_str})")
         
         for t in todays_tournaments:
             log(f"  Tournament: {t['name']}")
@@ -664,7 +664,7 @@ def check_previous_tournament_still_active():
             
             if tournament_date and tournament_url:
                 prev_date = datetime.datetime.strptime(tournament_date, "%Y/%m/%d").date()
-                tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+                today = datetime.date.today()
                 
                 if prev_date < today:
                     log(f"Previous tournament from {tournament_date} was 'In Progress' - verifying actual status...")
