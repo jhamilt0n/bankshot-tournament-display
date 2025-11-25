@@ -2,6 +2,7 @@
 """
 Tournament Monitor - GitHub Integration
 Pulls tournament data from GitHub repository and updates local cache
+WITH LOG ROTATION - Prevents large log files
 """
 
 import json
@@ -9,6 +10,7 @@ import subprocess
 import os
 import time
 import logging
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from pathlib import Path
 
@@ -19,15 +21,26 @@ OUTPUT_FILE = "/var/www/html/tournament_data.json"
 LOG_FILE = "/home/pi/logs/tournament_monitor.log"
 CHECK_INTERVAL = 60  # seconds
 
-# Setup logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(LOG_FILE),
-        logging.StreamHandler()
-    ]
+# Setup logging with rotation (5MB max, keep 5 backups)
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Remove any existing handlers
+logger.handlers = []
+
+# Rotating file handler
+file_handler = RotatingFileHandler(
+    LOG_FILE,
+    maxBytes=5*1024*1024,  # 5MB
+    backupCount=5
 )
+file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(file_handler)
+
+# Console handler
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+logger.addHandler(console_handler)
 
 def clone_or_pull_repo():
     """Clone repository if it doesn't exist, otherwise pull latest changes"""
@@ -96,34 +109,16 @@ def load_tournament_data():
         return None
 
 def save_tournament_data(data):
-    """Save tournament data to web-accessible location - only if changed"""
+    """Save tournament data to web-accessible location"""
     try:
-        # Load existing data if it exists
-        existing_data = None
-        if os.path.exists(OUTPUT_FILE):
-            try:
-                with open(OUTPUT_FILE, 'r') as f:
-                    existing_data = json.load(f)
-            except:
-                pass
+        # Add last updated timestamp
+        data['last_updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
-        # Compare data without timestamps
-        data_to_compare = {k: v for k, v in data.items() if k != 'last_updated'}
-        existing_to_compare = {k: v for k, v in existing_data.items() if k != 'last_updated'} if existing_data else None
+        with open(OUTPUT_FILE, 'w') as f:
+            json.dump(data, f, indent=2)
         
-        # Only write if data has actually changed
-        if data_to_compare != existing_to_compare:
-            # Add last updated timestamp
-            data['last_updated'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            
-            with open(OUTPUT_FILE, 'w') as f:
-                json.dump(data, f, indent=2)
-            
-            logging.info(f"✓ Tournament data CHANGED - saved to {OUTPUT_FILE}")
-            return True
-        else:
-            logging.debug("Tournament data unchanged - no write needed")
-            return False
+        logging.info(f"Saved tournament data to {OUTPUT_FILE}")
+        return True
     except Exception as e:
         logging.error(f"Error saving tournament data: {e}")
         return False
