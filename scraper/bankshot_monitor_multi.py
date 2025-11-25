@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
 Bankshot Billiards Tournament Monitor - Multi-Tournament Version
+ENHANCED: Clicks into tournament detail page to get official start time
 FIXED: Uses DOM element parsing instead of text parsing to properly capture tournament data
 WITH LOG ROTATION: Automatically manages log file size
 Handles multiple tournaments per day with smart priority logic:
@@ -97,6 +98,59 @@ def setup_driver(headless=True):
     except Exception as e:
         log(f"Error setting up ChromeDriver: {e}")
         raise
+
+
+def get_official_start_time(driver, tournament_url):
+    """
+    Navigate to tournament detail page and extract official start time
+    Returns: time string like "7:00 PM" or None
+    """
+    try:
+        if not tournament_url:
+            return None
+        
+        log(f"Fetching official start time from: {tournament_url}")
+        driver.get(tournament_url)
+        time.sleep(3)  # Wait for page load
+        
+        # Try the XPath you provided
+        xpath = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div/div/div/div/table/tbody/tr[3]/td[2]"
+        
+        try:
+            start_time_element = driver.find_element(By.XPATH, xpath)
+            start_time_text = start_time_element.text.strip()
+            if start_time_text:
+                log(f"✓ Found official start time: {start_time_text}")
+                return start_time_text
+        except NoSuchElementException:
+            log("⚠ Could not find start time using provided XPath")
+        
+        # Fallback: Try to find "Tournament Start" or "Play Start" label
+        try:
+            page_text = driver.find_element(By.TAG_NAME, "body").text
+            
+            # Look for various start time patterns
+            patterns = [
+                r'Tournament Start[:\s]+(\d{1,2}:\d{2}\s*[AP]\.?M\.?)',
+                r'Play Start[:\s]+(\d{1,2}:\d{2}\s*[AP]\.?M\.?)',
+                r'Start Time[:\s]+(\d{1,2}:\d{2}\s*[AP]\.?M\.?)',
+            ]
+            
+            for pattern in patterns:
+                match = re.search(pattern, page_text, re.IGNORECASE)
+                if match:
+                    start_time = match.group(1).strip()
+                    log(f"✓ Found start time via text search: {start_time}")
+                    return start_time
+        except Exception as e:
+            log(f"Error in fallback start time search: {e}")
+        
+        log("✗ Could not find official start time on detail page")
+        return None
+        
+    except Exception as e:
+        log(f"Error fetching official start time: {e}")
+        return None
 
 
 def parse_time_string(time_str):
@@ -261,19 +315,41 @@ def search_tournaments_on_page(driver):
                 date_match = re.search(r'(\d{4}/\d{2}/\d{2})', card_text)
                 tournament_date = date_match.group(1) if date_match else None
                 
-                # Extract time
-                start_time_str = None
-                priority_patterns = [
-                    (r'(?:Tournament\s+)?Start[s]?[:\s]+(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)', 'Tournament Start'),
-                    (r'(?:Play\s+)?Start[s]?[:\s]+(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)', 'Play Start'),
-                    (r'Start\s+Time[:\s]+(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)', 'Start Time'),
-                ]
+                # Get tournament URL first
+                tournament_url = None
+                try:
+                    link_element = card.find_element(By.CSS_SELECTOR, "a[href*='/tournaments/']")
+                    tournament_url = link_element.get_attribute('href')
+                except:
+                    if tournament_date and tournament_name:
+                        date_no_slashes = tournament_date.replace('/', '')
+                        name_for_url = tournament_name
+                        name_for_url = re.sub(r'^\d{4}/\d{2}/\d{2}\s+', '', name_for_url)
+                        name_slug = re.sub(r'[^a-z0-9-]', '', name_for_url.lower().replace(' ', '-'))
+                        name_slug = re.sub(r'-+', '-', name_slug).strip('-')
+                        tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
                 
-                for pattern, label in priority_patterns:
-                    time_match = re.search(pattern, card_text, re.IGNORECASE)
-                    if time_match:
-                        start_time_str = time_match.group(1).strip()
-                        break
+                # ENHANCED: Get official start time from detail page
+                start_time_str = None
+                if tournament_url:
+                    official_start_time = get_official_start_time(driver, tournament_url)
+                    if official_start_time:
+                        start_time_str = official_start_time
+                
+                # Fallback: Try to get from card if official fetch failed
+                if not start_time_str:
+                    priority_patterns = [
+                        (r'(?:Tournament\s+)?Start[s]?[:\s]+(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)', 'Tournament Start'),
+                        (r'(?:Play\s+)?Start[s]?[:\s]+(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)', 'Play Start'),
+                        (r'Start\s+Time[:\s]+(\d{1,2}(?::\d{2})?\s*[AP]\.?M\.?)', 'Start Time'),
+                    ]
+                    
+                    for pattern, label in priority_patterns:
+                        time_match = re.search(pattern, card_text, re.IGNORECASE)
+                        if time_match:
+                            start_time_str = time_match.group(1).strip()
+                            log(f"⚠ Using fallback start time from card: {start_time_str}")
+                            break
                 
                 start_time = parse_time_string(start_time_str) if start_time_str else None
                 
@@ -336,20 +412,6 @@ def search_tournaments_on_page(driver):
                             elif tournament_date < today_str:
                                 actual_status = "Completed"
                 
-                # Get tournament URL
-                tournament_url = None
-                try:
-                    link_element = card.find_element(By.CSS_SELECTOR, "a[href*='/tournaments/']")
-                    tournament_url = link_element.get_attribute('href')
-                except:
-                    if tournament_date and tournament_name:
-                        date_no_slashes = tournament_date.replace('/', '')
-                        name_for_url = tournament_name
-                        name_for_url = re.sub(r'^\d{4}/\d{2}/\d{2}\s+', '', name_for_url)
-                        name_slug = re.sub(r'[^a-z0-9-]', '', name_for_url.lower().replace(' ', '-'))
-                        name_slug = re.sub(r'-+', '-', name_slug).strip('-')
-                        tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
-                
                 tournament_info = {
                     'name': tournament_name,
                     'venue': f"{VENUE_NAME}, {VENUE_CITY}",
@@ -367,6 +429,7 @@ def search_tournaments_on_page(driver):
                 log(f"✓ Successfully extracted tournament info")
                 log(f"  Name: {tournament_name}")
                 log(f"  Date: {tournament_date}")
+                log(f"  Start Time: {start_time_str}")
                 log(f"  Status: {actual_status}")
                 
             except Exception as e:
@@ -580,6 +643,7 @@ def save_tournament_data(tournament):
         }
         
         log(f"\nTournament to display: {tournament['name']}")
+        log(f"Start Time: {tournament['start_time']}")
         log(f"Status: {tournament['status']}")
         log(f"Display flag: {should_display}")
     
@@ -597,6 +661,7 @@ def main():
     """Main execution"""
     log("\n" + "="*60)
     log("BANKSHOT BILLIARDS TOURNAMENT MONITOR - MULTI-TOURNAMENT")
+    log("ENHANCED: Fetches official start time from detail page")
     log("="*60)
     
     # Check if previous tournament might still be active
