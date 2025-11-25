@@ -670,57 +670,14 @@ function updatePlayerData(data) {
         }
         
         if (document.getElementById('entryFee')) {
-            document.getElementById('entryFee').textContent = 'Entry: $' + entryFee;
+            var feeLabel = data.entry_fee_label || 'Entry:';
+            var feeValue = data.entry_fee || '$15';
+            document.getElementById('entryFee').textContent = feeLabel + ' ' + feeValue;
         }
         
-        // Update payouts
-        fetch('/calculate_payouts.php?players=' + playerCount + '&entry=' + entryFee)
-            .then(response => response.json())
-            .then(payouts => {
-                var payoutDiv = document.getElementById('payouts');
-                if (!payoutDiv) return;
-                
-                var html = '';
-                var payoutCount = 0;
-                
-                if (!payouts.error) {
-                    if (payouts['1st']) {
-                        payoutCount++;
-                        html += '<div class="first-place">1st: ' + payouts['1st'] + '</div>';
-                    }
-                    if (payouts['2nd']) {
-                        payoutCount++;
-                        html += '<div>2nd: ' + payouts['2nd'] + '</div>';
-                    }
-                    if (payouts['3rd']) {
-                        payoutCount++;
-                        html += '<div>3rd: ' + payouts['3rd'] + '</div>';
-                    }
-                    if (payouts['4th']) {
-                        payoutCount++;
-                        html += '<div>4th: ' + payouts['4th'] + '</div>';
-                    }
-                    if (payouts['5th']) {
-                        payoutCount++;
-                        html += '<div>5/6: ' + payouts['5th'] + '</div>';
-                    }
-                    if (payouts['7th']) {
-                        payoutCount++;
-                        html += '<div>7/8: ' + payouts['7th'] + '</div>';
-                    }
-                } else {
-                    html = '<div>Payouts TBD</div>';
-                }
-                
-                if (payoutCount > 4) {
-                    payoutDiv.classList.add('compact');
-                } else {
-                    payoutDiv.classList.remove('compact');
-                }
-                
-                payoutDiv.innerHTML = html;
-            })
-            .catch(err => console.error('Error loading payouts:', err));
+        // Note: Payouts are already rendered by PHP
+        // If payouts change (has_digital_pool_payouts flag changes), page will reload automatically
+        // No need to recalculate dynamically
     }
 }
 
