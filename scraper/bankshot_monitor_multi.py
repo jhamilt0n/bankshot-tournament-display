@@ -168,6 +168,30 @@ def parse_time_string(time_str):
         return None
 
 
+def clean_start_time_string(raw_time_str):
+    """
+    Clean verbose start time formats to extract just the time
+    Examples:
+    - "Wed, Nov 26, 2025 7:00 PM (America/New_York)" -> "7:00 PM"
+    - "7:00 PM" -> "7:00 PM"
+    """
+    if not raw_time_str:
+        return None
+    
+    # Pattern to extract time like "7:00 PM" or "19:00"
+    time_pattern = r'(\d{1,2}:\d{2}\s*[AP]\.?M\.?)'
+    match = re.search(time_pattern, raw_time_str, re.IGNORECASE)
+    
+    if match:
+        clean_time = match.group(1).strip()
+        # Normalize format (remove periods, ensure space before AM/PM)
+        clean_time = re.sub(r'([AP])\.?M\.?', r'\1M', clean_time, flags=re.IGNORECASE)
+        clean_time = re.sub(r'(\d)([AP]M)', r'\1 \2', clean_time, flags=re.IGNORECASE)
+        return clean_time
+    
+    return raw_time_str  # Return as-is if we can't parse it
+
+
 def search_tournaments_on_page(driver):
     """Search for Bankshot tournaments on the current page using DOM parsing"""
     tournaments = []
@@ -334,7 +358,9 @@ def search_tournaments_on_page(driver):
                 if tournament_url:
                     official_start_time = get_official_start_time(driver, tournament_url)
                     if official_start_time:
-                        start_time_str = official_start_time
+                        # Clean the verbose format to extract just the time
+                        start_time_str = clean_start_time_string(official_start_time)
+                        log(f"✓ Cleaned start time: {start_time_str}")
                 
                 # Fallback: Try to get from card if official fetch failed
                 if not start_time_str:
@@ -347,7 +373,8 @@ def search_tournaments_on_page(driver):
                     for pattern, label in priority_patterns:
                         time_match = re.search(pattern, card_text, re.IGNORECASE)
                         if time_match:
-                            start_time_str = time_match.group(1).strip()
+                            raw_time = time_match.group(1).strip()
+                            start_time_str = clean_start_time_string(raw_time)
                             log(f"⚠ Using fallback start time from card: {start_time_str}")
                             break
                 
