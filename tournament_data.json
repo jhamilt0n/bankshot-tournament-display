@@ -1,13 +1,12 @@
 {
-  "tournament_name": "2025/11/24 Monday Night 10-Ball Tournament",
-  "tournament_url": "https://digitalpool.com/tournaments/20251124-monday-night-10-ball-tournament/",
-  "venue": "Bankshot Billiards, Hilliard",
-  "date": "2025/11/24",
+  "tournament_name": "No tournaments to display",
+  "tournament_url": null,
+  "venue": null,
+  "date": null,
   "start_time": null,
-  "status": "In Progress",
-  "player_count": 11,
+  "status": null,
   "entry_fee": 15,
-  "payout_data": "payouts15.json",
-  "last_updated": "2025-11-24 22:05:47",
-  "display_tournament": true
+  "payout_data": null,
+  "last_updated": "2025-11-24 23:27:04",
+  "display_tournament": false
 }
