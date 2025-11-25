@@ -244,7 +244,6 @@
 
 <?php 
 set_time_limit(60);
-require_once 'payout_calculator.php';
 
 $tournament_data_file = '/var/www/html/tournament_data.json';
 $tournament_found = false;
@@ -503,40 +502,35 @@ window.onload = function() {
     
     <div class="player-count" id="playerCount"><?php echo $player_count; ?> PLAYERS</div>
     
-    <?php
-$entry_label = "Entry";
-if (isset($tournament_data['format_type']) && $tournament_data['format_type'] !== 'Singles') {
-    $entry_label = "Team Entry";
-}
-?>
-<div class="entry-fee" id="entryFee"><?php echo $entry_label; ?>: $<?php echo $entry_fee; ?></div>
+    <div class="entry-fee" id="entryFee">
+        <?php 
+        // Get entry fee label and value
+        $fee_label = $tournament_data['entry_fee_label'] ?? 'Entry:';
+        $fee_value = $tournament_data['entry_fee'] ?? '$15';
+        
+        // If entry fee is just a number, add $ sign
+        if (is_numeric($fee_value)) {
+            $fee_value = '$' . $fee_value;
+        }
+        
+        echo $fee_label . ' ' . $fee_value;
+        ?>
+    </div>
     
     <div class="payouts-header">PAYOUTS</div>
     <div class="payouts" id="payouts">
-    <?php 
-    // Check if Digital Pool has payouts
-    if (isset($tournament_data['has_digital_pool_payouts']) && 
-        $tournament_data['has_digital_pool_payouts'] === true &&
-        !empty($tournament_data['digital_pool_payouts'])) {
-        
-        // Use Digital Pool payouts
-        $payouts = $tournament_data['digital_pool_payouts'];
-        $payout_html = '';
-        
-        foreach ($payouts as $place => $amount) {
-            $class = ($place === '1st' || strpos($place, '1st') !== false) ? 'class="first-place"' : '';
-            $payout_html .= "<div $class>$place: $amount</div>";
+        <?php 
+        // Display payouts from JSON (either Digital Pool or calculated)
+        if (isset($tournament_data['payouts']) && is_array($tournament_data['payouts'])) {
+            foreach ($tournament_data['payouts'] as $payout) {
+                $place = $payout['place'] ?? '';
+                $amount = $payout['amount'] ?? '';
+                $class = ($place === '1st') ? 'first-place' : '';
+                echo "<div class='$class'>$place: $amount</div>\n";
+            }
         }
-        
-        echo $payout_html;
-    } else {
-        // Use calculated payouts
-        $payout_html = formatPayoutsHTML($player_count, $entry_fee);
-        $payout_html = str_replace('<div>1st:', '<div class="first-place">1st:', $payout_html);
-        echo $payout_html;
-    }
-    ?>
-</div>
+        ?>
+    </div>
 </div>
 
 <div class="split right <?php echo ($player_count == 0) ? 'fullscreen' : ''; ?>" id="frameContainer"></div>
@@ -617,6 +611,7 @@ function checkForChanges() {
                 changed = true;
                 changeReasons.push(`status: ${lastTournamentState.status} → ${current.status}`);
             }
+            
             if (current.lastUpdated !== lastTournamentState.lastUpdated) {
                 changed = true;
                 changeReasons.push('data file updated');
@@ -628,7 +623,6 @@ function checkForChanges() {
             }
             
             if (changed) {
-            
                 console.log('🔄 TOURNAMENT DATA CHANGED - RELOADING');
                 console.log('Changes:', changeReasons.join(', '));
                 console.log('Old:', lastTournamentState);
@@ -666,44 +660,58 @@ function updatePlayerData(data) {
         }
         
         if (document.getElementById('entryFee')) {
-    var entryLabel = 'Entry';
-    if (data.format_type && data.format_type !== 'Singles') {
-        entryLabel = 'Team Entry';
-    }
-    document.getElementById('entryFee').textContent = entryLabel + ': $' + entryFee;
-}
+            document.getElementById('entryFee').textContent = 'Entry: $' + entryFee;
+        }
         
         // Update payouts
-        if (data.has_digital_pool_payouts && data.digital_pool_payouts && Object.keys(data.digital_pool_payouts).length > 0) {
-    // Use Digital Pool payouts
-    var payoutDiv = document.getElementById('payouts');
-    if (!payoutDiv) return;
-    
-    var html = '';
-    var payoutCount = 0;
-    
-    for (var place in data.digital_pool_payouts) {
-        payoutCount++;
-        var amount = data.digital_pool_payouts[place];
-        var cssClass = (place === '1st' || place.indexOf('1st') !== -1) ? 'class="first-place"' : '';
-        html += '<div ' + cssClass + '>' + place + ': ' + amount + '</div>';
+        fetch('/calculate_payouts.php?players=' + playerCount + '&entry=' + entryFee)
+            .then(response => response.json())
+            .then(payouts => {
+                var payoutDiv = document.getElementById('payouts');
+                if (!payoutDiv) return;
+                
+                var html = '';
+                var payoutCount = 0;
+                
+                if (!payouts.error) {
+                    if (payouts['1st']) {
+                        payoutCount++;
+                        html += '<div class="first-place">1st: ' + payouts['1st'] + '</div>';
+                    }
+                    if (payouts['2nd']) {
+                        payoutCount++;
+                        html += '<div>2nd: ' + payouts['2nd'] + '</div>';
+                    }
+                    if (payouts['3rd']) {
+                        payoutCount++;
+                        html += '<div>3rd: ' + payouts['3rd'] + '</div>';
+                    }
+                    if (payouts['4th']) {
+                        payoutCount++;
+                        html += '<div>4th: ' + payouts['4th'] + '</div>';
+                    }
+                    if (payouts['5th']) {
+                        payoutCount++;
+                        html += '<div>5/6: ' + payouts['5th'] + '</div>';
+                    }
+                    if (payouts['7th']) {
+                        payoutCount++;
+                        html += '<div>7/8: ' + payouts['7th'] + '</div>';
+                    }
+                } else {
+                    html = '<div>Payouts TBD</div>';
+                }
+                
+                if (payoutCount > 4) {
+                    payoutDiv.classList.add('compact');
+                } else {
+                    payoutDiv.classList.remove('compact');
+                }
+                
+                payoutDiv.innerHTML = html;
+            })
+            .catch(err => console.error('Error loading payouts:', err));
     }
-    
-    if (payoutCount > 4) {
-        payoutDiv.classList.add('compact');
-    } else {
-        payoutDiv.classList.remove('compact');
-    }
-    
-    payoutDiv.innerHTML = html;
-} else {
-    // Use calculated payouts
-    fetch('/calculate_payouts.php?players=' + playerCount + '&entry=' + entryFee)
-        .then(response => response.json())
-        .then(payouts => {
-            // ... existing calculated payout code ...
-        })
-        .catch(err => console.error('Error loading payouts:', err));
 }
 
 // Check every 10 seconds for rapid change detection
