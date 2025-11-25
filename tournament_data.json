@@ -7,7 +7,10 @@
   "status": "Upcoming",
   "player_count": 0,
   "entry_fee": 15,
+  "format_type": "Singles",
+  "has_digital_pool_payouts": false,
+  "digital_pool_payouts": {},
   "payout_data": "payouts15.json",
-  "last_updated": "2025-11-25 11:59:32",
+  "last_updated": "2025-11-25 12:25:23",
   "display_tournament": true
 }
