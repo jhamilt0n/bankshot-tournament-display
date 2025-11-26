@@ -74,13 +74,14 @@
             left: 0;
             width: 20vw;
             background: linear-gradient(180deg, #1e7e34 0%, #0d4d1f 100%);
-            padding: 2vh 1vw;
+            padding: 1vh 0.8vw;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: space-evenly;
             align-items: center;
             box-shadow: 5px 0 20px rgba(0, 0, 0, 0.3);
             transition: transform 0.5s ease-in-out;
+            overflow: hidden;
         }
 
         .left.hidden {
@@ -101,25 +102,25 @@
 
         .qr-container {
             text-align: center;
-            margin: 2vh 0;
+            margin: 0.5vh 0;
             background: white;
-            padding: 1.5vh;
-            border-radius: 12px;
+            padding: 0.8vh;
+            border-radius: 8px;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            width: 100%;
+            width: 90%;
         }
 
         .qr-container img {
             width: 100%;
-            max-width: 200px;
+            max-width: 140px;
             border-radius: 6px;
         }
 
         .qr-label {
             font-family: 'Oswald', sans-serif;
-            font-size: 1.5vw;
+            font-size: 1.1vw;
             color: #1e7e34;
-            margin-top: 1vh;
+            margin-top: 0.5vh;
             font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -127,54 +128,54 @@
 
         .player-count {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 5vw;
+            font-size: 3.5vw;
             color: #ffffff;
             text-align: center;
-            margin: 2vh 0;
+            margin: 0.8vh 0;
             font-weight: bold;
             text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
             background: rgba(255, 255, 255, 0.15);
-            padding: 1.5vh;
+            padding: 0.8vh;
             border-radius: 10px;
             width: 100%;
         }
 
         .entry-fee {
             font-family: 'Oswald', sans-serif;
-            font-size: 2.2vw;
+            font-size: 1.6vw;
             color: #ffffff;
             text-align: center;
-            margin: 1.5vh 0;
+            margin: 0.5vh 0;
             font-weight: 500;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
 
         .payouts-header {
             font-family: 'Oswald', sans-serif;
-            font-size: 2vw;
+            font-size: 1.6vw;
             color: #ffffff;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin: 2vh 0 1vh 0;
+            margin: 0.8vh 0 0.3vh 0;
             font-weight: 600;
             text-align: center;
             border-bottom: 3px solid rgba(255, 255, 255, 0.3);
-            padding-bottom: 1vh;
+            padding-bottom: 0.3vh;
             width: 100%;
         }
 
         .payouts {
             font-family: 'Roboto', sans-serif;
-            font-size: 2.3vw;
+            font-size: 1.5vw;
             color: #ffffff;
             text-align: center;
-            line-height: 1.3;
+            line-height: 1.1;
             width: 100%;
         }
 
         .payouts div {
-            margin: 0.4vh 0;
-            padding: 0.6vh;
+            margin: 0.2vh 0;
+            padding: 0.4vh;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 5px;
             font-weight: 500;
@@ -183,23 +184,23 @@
         .payouts .first-place {
             background: rgba(255, 215, 0, 0.3);
             font-weight: 700;
-            font-size: 3vw;
+            font-size: 2vw;
             border: 2px solid rgba(255, 215, 0, 0.6);
         }
 
         /* Dynamic scaling for many payouts */
         .payouts.compact {
-            font-size: 1.9vw;
-            line-height: 1.2;
+            font-size: 1.3vw;
+            line-height: 1.0;
         }
 
         .payouts.compact div {
-            margin: 0.3vh 0;
-            padding: 0.5vh;
+            margin: 0.15vh 0;
+            padding: 0.3vh;
         }
 
         .payouts.compact .first-place {
-            font-size: 2.4vw;
+            font-size: 1.8vw;
         }
 
         iframe {
@@ -612,8 +613,8 @@ window.onload = function() {
 
 <script>
 // ============================================================================
-// AGGRESSIVE TOURNAMENT CHANGE DETECTION
-// Reloads page on ANY tournament data change
+// TOURNAMENT CHANGE DETECTION (without last_updated timestamp)
+// Reloads page on meaningful tournament data changes only
 // ============================================================================
 let lastTournamentState = {
     display: null,
@@ -622,7 +623,6 @@ let lastTournamentState = {
     tournamentUrl: null,
     tournamentName: null,
     status: null,
-    lastUpdated: null,
     hasDigitalPoolPayouts: null,
     initialized: false
 };
@@ -633,7 +633,7 @@ function checkForChanges() {
         .then(data => {
             if (!data.success) return;
             
-            // Current state
+            // Current state (WITHOUT last_updated)
             const current = {
                 display: data.display_tournament || false,
                 playerCount: data.player_count || 0,
@@ -641,7 +641,6 @@ function checkForChanges() {
                 tournamentUrl: data.tournament_url || '',
                 tournamentName: data.tournament_name || '',
                 status: data.status || '',
-                lastUpdated: data.last_updated || '',
                 hasDigitalPoolPayouts: data.has_digital_pool_payouts || false
             };
             
@@ -653,7 +652,7 @@ function checkForChanges() {
                 return;
             }
             
-            // Check for ANY change
+            // Check for ANY meaningful change
             let changed = false;
             let changeReasons = [];
             
@@ -734,14 +733,10 @@ function updatePlayerData(data) {
             var feeValue = data.entry_fee || '$15';
             document.getElementById('entryFee').textContent = feeLabel + ' ' + feeValue;
         }
-        
-        // Note: Payouts are already rendered by PHP
-        // If payouts change (has_digital_pool_payouts flag changes), page will reload automatically
-        // No need to recalculate dynamically
     }
 }
 
-// Check every 10 seconds for rapid change detection
+// Check every 10 seconds for change detection
 setInterval(checkForChanges, 10000);
 
 // Initial check after 2 seconds
