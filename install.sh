@@ -112,10 +112,11 @@ if [ -f "$WEB_DIR/google-credentials.json" ]; then
     
     # Remove any existing cron job
     crontab -u www-data -l 2>/dev/null | grep -v "update_payouts.php" | crontab -u www-data - 2>/dev/null || true
+    crontab -u www-data -l 2>/dev/null | grep -v "specialeventpayouts.php" | crontab -u www-data - 2>/dev/null || true
     
     # Add new cron job
     (crontab -u www-data -l 2>/dev/null; echo "* * * * * /usr/bin/php $WEB_DIR/update_payouts.php >> $WEB_DIR/payout_updater.log 2>&1") | crontab -u www-data -
-    
+    (crontab -u www-data -l 2>/dev/null; echo "* * * * * /usr/bin/php $WEB_DIR/specialeventpayouts.php >> $WEB_DIR/sepayout_updater.log 2>&1") | crontab -u www-data -
     echo "✓ Cron job installed - payouts will update every minute"
 else
     echo "⚠ WARNING: google-credentials.json not found!"
