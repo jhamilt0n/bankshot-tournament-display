@@ -2,6 +2,7 @@
 /**
  * Generate QR Code for Tournament - Updated Version
  * Uses api.qrserver.com instead of deprecated Google Charts API
+ * Links directly to bracket view without navigation
  */
 
 // Load tournament data
@@ -25,6 +26,9 @@ if (empty($tournament_url)) {
     error_log("Tournament URL is empty");
     exit(1);
 }
+
+// Append bracket view with no navigation to the URL
+$tournament_url = rtrim($tournament_url, '/') . '/bracket?navigation=false';
 
 // QR code output path
 $qr_output = __DIR__ . '/tournament_qr.png';
@@ -65,5 +69,6 @@ if ($result === false) {
 }
 
 echo "QR code generated successfully: " . $qr_output . "\n";
+echo "URL: " . $tournament_url . "\n";
 exit(0);
 ?>
