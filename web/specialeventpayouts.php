@@ -1,8 +1,8 @@
 #!/usr/bin/env php
 <?php
 /**
- * Pi Payout Updater
- * Reads entry fee and player count from Google Sheets
+ * Pi Payout Updater - Special Events with Added Money
+ * Reads entry fee, player count, and added money from Google Sheets
  * Calculates payouts and writes them back
  * 
  * Run via cron every minute
@@ -22,8 +22,9 @@ $SHEET_NAME = 'Special Event Payout Calculator';
 // Input cells - read from source data, not formatted display
 $ENTRY_FEE_CELL = 'B2'; // From Special Event Payout Calculator sheet
 $PLAYER_COUNT_RANGE = 'B1'; // From Special Event Payout Calculator sheet
+$ADDED_MONEY_CELL = 'B3'; // Added money from house/sponsors
 
-// Output cells)
+// Output cells
 $OUTPUT_SHEET = 'Special Event Payout Calculator';
 $OUTPUT_CELLS = [
     'E1',  // 1st place
@@ -68,11 +69,25 @@ try {
     $playerCountResponse = $service->spreadsheets_values->get($SPREADSHEET_ID, $playerCountRange);
     $playerCountValues = $playerCountResponse->getValues();
     $playerCount = null;
-    if (!empty($playerCountValues)&& !empty($playerCountValues[0][0])) {
+    if (!empty($playerCountValues) && !empty($playerCountValues[0][0])) {
         $playerCount = floatval($playerCountValues[0][0]);
     }
     
-    logMessage("Read values - Entry Fee: \$$entryFee, Player Count: $playerCount");
+    // Get added money from Special Event Payout Calculator sheet B3
+    $addedMoneyRange = "{$SHEET_NAME}!{$ADDED_MONEY_CELL}";
+    $addedMoneyResponse = $service->spreadsheets_values->get($SPREADSHEET_ID, $addedMoneyRange);
+    $addedMoneyValues = $addedMoneyResponse->getValues();
+    $addedMoney = 0; // Default to 0 if not specified
+    if (!empty($addedMoneyValues) && !empty($addedMoneyValues[0][0])) {
+        $addedMoney = floatval($addedMoneyValues[0][0]);
+    }
+    
+    // Calculate prize pools
+    $entryPool = $entryFee * $playerCount;
+    $totalPrizePool = $entryPool + $addedMoney;
+    
+    logMessage("Read values - Entry Fee: \$$entryFee, Player Count: $playerCount, Added Money: \$$addedMoney");
+    logMessage("Prize pool - Entries: \$$entryPool + Added: \$$addedMoney = Total: \$$totalPrizePool");
     
     // Validate inputs
     if (!$entryFee || !$playerCount) {
@@ -117,9 +132,9 @@ try {
         exit(0);
     }
     
-    // Calculate payouts
+    // Calculate payouts with added money
     logMessage("Calculating payouts...");
-    $calculator = new TournamentPayoutCalculator($entryFee, $playerCount);
+    $calculator = new TournamentPayoutCalculator($entryFee, $playerCount, $addedMoney);
     $payoutsArray = $calculator->getPayoutsArray();
     
     // Format payouts for output

@@ -10,6 +10,7 @@
  * - Places 9-12 always tie (same amount)
  * - Last place paid ALWAYS equals entry fee exactly
  * - Remaining prize pool distributed proportionally to higher places
+ * - Supports added money (house adds extra to prize pool)
  * - Payout rounding matches entry fee:
  *   - Entry fee ends in 0 → Payouts end in 0 (round to $10)
  *   - Entry fee ends in 5 → Payouts can end in 5 (round to $5)
@@ -20,11 +21,13 @@ class TournamentPayoutCalculator {
     private $entryFee;
     private $numPlayers;
     private $totalPrizePool;
+    private $addedMoney;
     
-    public function __construct($entryFee, $numPlayers) {
+    public function __construct($entryFee, $numPlayers, $addedMoney = 0) {
         $this->entryFee = $entryFee;
         $this->numPlayers = $numPlayers;
-        $this->totalPrizePool = $entryFee * $numPlayers;
+        $this->addedMoney = $addedMoney;
+        $this->totalPrizePool = ($entryFee * $numPlayers) + $addedMoney;
     }
     
     /**
