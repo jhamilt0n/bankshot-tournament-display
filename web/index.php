@@ -244,7 +244,72 @@
 
 <?php 
 set_time_limit(60);
-require_once 'payout_calculator.php';
+require_once 'tournament_payout_calculator.php';
+
+// Helper function to convert class output to display format
+function calculatePayouts($player_count, $entry_fee) {
+    if ($player_count < 8) {
+        return []; // Minimum 8 players
+    }
+    
+    $calculator = new TournamentPayoutCalculator($entry_fee, $player_count);
+    $payouts_array = $calculator->getPayoutsArray();
+    
+    // Convert to format expected by formatPayoutsHTML()
+    $formatted_payouts = [];
+    foreach ($payouts_array as $place => $amount) {
+        $place_label = getPlaceLabel($place);
+        $formatted_payouts[] = [
+            'place' => $place_label,
+            'amount' => '$' . number_format($amount, 2)
+        ];
+    }
+    
+    return $formatted_payouts;
+}
+
+function getPlaceLabel($place) {
+    $labels = [
+        1 => '1st',
+        2 => '2nd', 
+        3 => '3rd',
+        4 => '4th',
+        5 => '5th-6th',
+        6 => '5th-6th',
+        7 => '7th-8th',
+        8 => '7th-8th',
+        9 => '9th-12th',
+        10 => '9th-12th',
+        11 => '9th-12th',
+        12 => '9th-12th'
+    ];
+    return $labels[$place] ?? $place . 'th';
+}
+
+function formatPayoutsHTML($payouts) {
+    if (empty($payouts)) {
+        return '<div>Calculating...</div>';
+    }
+    
+    $html = '';
+    $seen_places = []; // Track which tied places we've already shown
+    
+    foreach ($payouts as $payout) {
+        $place = $payout['place'] ?? '';
+        $amount = $payout['amount'] ?? '';
+        
+        // Skip duplicate tied places (e.g., show "5th-6th" once, not twice)
+        if (in_array($place, $seen_places)) {
+            continue;
+        }
+        $seen_places[] = $place;
+        
+        $class = ($place === '1st') ? 'first-place' : '';
+        $html .= "<div class='$class'>$place: $amount</div>\n";
+    }
+    
+    return $html;
+}
 
 $tournament_data_file = '/var/www/html/tournament_data.json';
 $tournament_found = false;
