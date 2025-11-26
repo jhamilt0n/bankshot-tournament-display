@@ -687,11 +687,6 @@ function checkForChanges() {
                 changeReasons.push(`status: ${lastTournamentState.status} → ${current.status}`);
             }
             
-            if (current.lastUpdated !== lastTournamentState.lastUpdated) {
-                changed = true;
-                changeReasons.push('data file updated');
-            }
-            
             if (current.hasDigitalPoolPayouts !== lastTournamentState.hasDigitalPoolPayouts) {
                 changed = true;
                 changeReasons.push(`payouts: ${lastTournamentState.hasDigitalPoolPayouts ? 'Digital Pool' : 'calculated'} → ${current.hasDigitalPoolPayouts ? 'Digital Pool' : 'calculated'}`);
