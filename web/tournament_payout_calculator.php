@@ -8,8 +8,11 @@
  * - Places 5/6 always tie (same amount)
  * - Places 7/8 always tie (same amount)
  * - Places 9-12 always tie (same amount)
- * - Last place paid must be >= entry fee
- * - All payouts must be divisible by 5
+ * - Last place paid ALWAYS equals entry fee exactly
+ * - Remaining prize pool distributed proportionally to higher places
+ * - Payout rounding matches entry fee:
+ *   - Entry fee ends in 0 → Payouts end in 0 (round to $10)
+ *   - Entry fee ends in 5 → Payouts can end in 5 (round to $5)
  */
 
 class TournamentPayoutCalculator {
@@ -72,23 +75,38 @@ class TournamentPayoutCalculator {
                 return ["error" => "Invalid number of places"];
         }
         
-        // Convert percentages to dollar amounts
+        // STEP 1: Set last place to EXACTLY the entry fee
+        $lastPlace = max(array_keys($percentages));
+        $payouts[$lastPlace] = $this->entryFee;
+        
+        // STEP 2: Calculate remaining prize pool for other places
+        $remainingPool = $this->totalPrizePool - $this->entryFee;
+        
+        // STEP 3: Calculate total percentage for places other than last
+        $totalPercentageExceptLast = 0;
         foreach ($percentages as $place => $percentage) {
-            $amount = ($this->totalPrizePool * $percentage / 100);
-            $payouts[$place] = $this->roundToNearestFive($amount);
+            if ($place != $lastPlace) {
+                $totalPercentageExceptLast += $percentage;
+            }
         }
         
-        // Adjust to ensure last place >= entry fee
-        $lastPlace = max(array_keys($payouts));
-        if ($payouts[$lastPlace] < $this->entryFee) {
-            $payouts[$lastPlace] = $this->roundToNearestFive($this->entryFee);
+        // STEP 4: Distribute remaining pool proportionally to higher places
+        foreach ($percentages as $place => $percentage) {
+            if ($place != $lastPlace) {
+                // Calculate proportional share of remaining pool
+                $proportionalShare = ($percentage / $totalPercentageExceptLast) * $remainingPool;
+                $payouts[$place] = $this->roundToNearestFive($proportionalShare);
+            }
         }
         
-        // Handle ties for places 5/6, 7/8, and 9-12
+        // STEP 5: Handle ties for places 5/6, 7/8, and 9-12
         $payouts = $this->applyTieRules($payouts);
         
-        // Final adjustment to match total prize pool
+        // STEP 6: Final adjustment to match total prize pool exactly
         $payouts = $this->adjustToTotal($payouts);
+        
+        // STEP 7: Sort by place number (ascending)
+        ksort($payouts);
         
         return $payouts;
     }
@@ -223,22 +241,39 @@ class TournamentPayoutCalculator {
     
     /**
      * Apply tie rules: 5/6 same, 7/8 same, 9-12 same
+     * Preserves last place at entry fee
      */
     private function applyTieRules($payouts) {
+        $lastPlace = max(array_keys($payouts));
+        
         // Handle 5/6 tie
         if (isset($payouts[5]) && isset($payouts[6])) {
-            $average = ($payouts[5] + $payouts[6]) / 2;
-            $average = $this->roundToNearestFive($average);
-            $payouts[5] = $average;
-            $payouts[6] = $average;
+            // If 6 is last place, set both to entry fee
+            if ($lastPlace == 6) {
+                $payouts[5] = $this->entryFee;
+                $payouts[6] = $this->entryFee;
+            } else {
+                // Normal tie handling
+                $average = ($payouts[5] + $payouts[6]) / 2;
+                $average = $this->roundToNearestFive($average);
+                $payouts[5] = $average;
+                $payouts[6] = $average;
+            }
         }
         
         // Handle 7/8 tie
         if (isset($payouts[7]) && isset($payouts[8])) {
-            $average = ($payouts[7] + $payouts[8]) / 2;
-            $average = $this->roundToNearestFive($average);
-            $payouts[7] = $average;
-            $payouts[8] = $average;
+            // If 8 is last place, set both to entry fee
+            if ($lastPlace == 8) {
+                $payouts[7] = $this->entryFee;
+                $payouts[8] = $this->entryFee;
+            } else {
+                // Normal tie handling
+                $average = ($payouts[7] + $payouts[8]) / 2;
+                $average = $this->roundToNearestFive($average);
+                $payouts[7] = $average;
+                $payouts[8] = $average;
+            }
         }
         
         // Handle 9-12 tie (if we ever extend to 12 places)
@@ -255,14 +290,22 @@ class TournamentPayoutCalculator {
     }
     
     /**
-     * Round amount to nearest 5
+     * Round amount based on entry fee
+     * - If entry fee ends in 0, round to nearest 10
+     * - If entry fee ends in 5, round to nearest 5
      */
     private function roundToNearestFive($amount) {
+        // If entry fee ends in 0 (e.g., $20, $30), round to nearest 10
+        if ($this->entryFee % 10 == 0) {
+            return round($amount / 10) * 10;
+        }
+        // Otherwise (entry fee ends in 5, e.g., $15, $25), round to nearest 5
         return round($amount / 5) * 5;
     }
     
     /**
      * Adjust payouts to match total prize pool exactly
+     * Preserves last place at entry fee, adjusts first place
      */
     private function adjustToTotal($payouts) {
         $currentTotal = array_sum($payouts);
@@ -270,11 +313,11 @@ class TournamentPayoutCalculator {
         
         if ($difference != 0) {
             // Adjust first place to make up the difference
-            // Make sure it stays divisible by 5
+            // Make sure it stays divisible by proper amount
             $adjustment = $this->roundToNearestFive($difference);
             $payouts[1] += $adjustment;
             
-            // If we still have a small difference, distribute among top places
+            // If we still have a small difference, add/subtract from first place
             $currentTotal = array_sum($payouts);
             $difference = $this->totalPrizePool - $currentTotal;
             
