@@ -1,0 +1,30 @@
+# Sensitive credentials - DO NOT COMMIT
+google-credentials.json
+
+# Logs
+*.log
+*.log.*
+*.log.*.gz
+payout_updater.log
+payout_updater.log.*
+
+# Composer dependencies
+vendor/
+composer.lock
+
+# System files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Backup files
+*.backup
+*.bak
+
+# PHP temporary files
+*.php~

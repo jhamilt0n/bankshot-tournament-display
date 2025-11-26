@@ -356,33 +356,4 @@ class TournamentPayoutCalculator {
 // USAGE EXAMPLES
 // ============================================================================
 
-// Example 1: 12 players at $20 entry fee (matching spreadsheet)
-echo "EXAMPLE 1: 12 players @ $20 entry fee\n";
-echo str_repeat("=", 70) . "\n";
-$calc1 = new TournamentPayoutCalculator(20, 12);
-echo $calc1->displayPayouts();
-echo "\n\n";
-
-// Example 2: 20 players at $25 entry fee
-echo "EXAMPLE 2: 20 players @ $25 entry fee\n";
-echo str_repeat("=", 70) . "\n";
-$calc2 = new TournamentPayoutCalculator(25, 20);
-echo $calc2->displayPayouts();
-echo "\n\n";
-
-// Example 3: 32 players at $50 entry fee
-echo "EXAMPLE 3: 32 players @ $50 entry fee\n";
-echo str_repeat("=", 70) . "\n";
-$calc3 = new TournamentPayoutCalculator(50, 32);
-echo $calc3->displayPayouts();
-echo "\n\n";
-
-// Example 4: Get payouts as array for programmatic use
-echo "EXAMPLE 4: Getting payouts as array (48 players @ $30 entry fee)\n";
-echo str_repeat("=", 70) . "\n";
-$calc4 = new TournamentPayoutCalculator(30, 48);
-$payouts = $calc4->getPayoutsArray();
-echo "Array format:\n";
-print_r($payouts);
-
 ?>
