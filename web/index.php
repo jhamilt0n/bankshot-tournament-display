@@ -389,6 +389,10 @@ function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
 var Dash = {
     dashboards: [],
     nextIndex: 0,
+    mediaItems: [],
+    totalCycleDuration: 0,
+    cycleStartTime: null,
+    
     createIframes: function() {
         var frameContainer = document.getElementById('frameContainer');
         
@@ -439,6 +443,15 @@ var Dash = {
                 
                 console.log('After schedule filter: ' + filteredMedia.length + ' items to display');
                 
+                Dash.mediaItems = filteredMedia;
+                
+                // Calculate total cycle duration
+                Dash.totalCycleDuration = 0;
+                for (var i = 0; i < filteredMedia.length; i++) {
+                    Dash.totalCycleDuration += (filteredMedia[i].duration || 20);
+                }
+                console.log('Total media cycle duration: ' + Dash.totalCycleDuration + ' seconds');
+                
                 // Build dashboards
                 for (var i = 0; i < filteredMedia.length; i++) {
                     var mediaItem = filteredMedia[i];
@@ -483,6 +496,7 @@ var Dash = {
         }
         
         if (Dash.dashboards.length > 0) {
+            Dash.cycleStartTime = Date.now();
             Dash.showFrame(0);
             setTimeout(function() {
                 Dash.display();
@@ -533,6 +547,14 @@ var Dash = {
         
         this.nextIndex = (this.nextIndex + 1) % Dash.dashboards.length;
         
+        // Check if we've completed a full cycle
+        if (this.nextIndex === 0) {
+            var cycleEndTime = Date.now();
+            var actualCycleDuration = (cycleEndTime - Dash.cycleStartTime) / 1000;
+            console.log('Completed media cycle: ' + actualCycleDuration + ' seconds');
+            Dash.cycleStartTime = Date.now(); // Reset cycle timer
+        }
+        
         setTimeout(function() {
             Dash.display();
         }, currentDashboard.time * 1000);
@@ -573,10 +595,12 @@ window.onload = function() {
         <?php 
         // Get entry fee label and value
         $fee_label = $tournament_data['entry_fee_label'] ?? 'Entry:';
-        $fee_value = $tournament_data['entry_fee'] ?? '$15';
+        $fee_value = $tournament_data['entry_fee'] ?? 15;
         
-        // If entry fee is just a number, add $ sign
+        // ALWAYS ensure dollar sign is present
         if (is_numeric($fee_value)) {
+            $fee_value = '$' . $fee_value;
+        } elseif (!str_starts_with($fee_value, '$')) {
             $fee_value = '$' . $fee_value;
         }
         
@@ -613,8 +637,7 @@ window.onload = function() {
 
 <script>
 // ============================================================================
-// TOURNAMENT CHANGE DETECTION (without last_updated timestamp)
-// Reloads page on meaningful tournament data changes only
+// TOURNAMENT CHANGE DETECTION - Only checks after completing media cycle
 // ============================================================================
 let lastTournamentState = {
     display: null,
@@ -627,11 +650,34 @@ let lastTournamentState = {
     initialized: false
 };
 
+let lastCheckTime = Date.now();
+let minimumCheckInterval = Dash.totalCycleDuration * 1000; // Convert to milliseconds
+
+// Ensure we wait at least one full media cycle before first check
+setTimeout(function() {
+    console.log('🔍 Starting change detection after initial media cycle');
+    checkForChanges();
+    
+    // Then check every cycle completion
+    setInterval(function() {
+        var now = Date.now();
+        var timeSinceLastCheck = now - lastCheckTime;
+        
+        // Only check if we've waited at least one full cycle
+        if (timeSinceLastCheck >= minimumCheckInterval) {
+            checkForChanges();
+        }
+    }, 10000); // Check every 10 seconds, but respect cycle duration
+    
+}, Dash.totalCycleDuration * 1000);
+
 function checkForChanges() {
     fetch('/get_tournament_data.php?nocache=' + Date.now())
         .then(response => response.json())
         .then(data => {
             if (!data.success) return;
+            
+            lastCheckTime = Date.now();
             
             // Current state (WITHOUT last_updated)
             const current = {
@@ -648,7 +694,7 @@ function checkForChanges() {
             if (!lastTournamentState.initialized) {
                 lastTournamentState = {...current, initialized: true};
                 console.log('🎯 Initial tournament state:', current);
-                updatePlayerData(data); // Update display
+                updatePlayerData(data);
                 return;
             }
             
@@ -730,17 +776,19 @@ function updatePlayerData(data) {
         
         if (document.getElementById('entryFee')) {
             var feeLabel = data.entry_fee_label || 'Entry:';
-            var feeValue = data.entry_fee || '$15';
+            var feeValue = data.entry_fee || 15;
+            
+            // ALWAYS ensure dollar sign
+            if (typeof feeValue === 'number' || !isNaN(feeValue)) {
+                feeValue = '$' + feeValue;
+            } else if (!String(feeValue).startsWith('$')) {
+                feeValue = '$' + feeValue;
+            }
+            
             document.getElementById('entryFee').textContent = feeLabel + ' ' + feeValue;
         }
     }
 }
-
-// Check every 10 seconds for change detection
-setInterval(checkForChanges, 10000);
-
-// Initial check after 2 seconds
-setTimeout(checkForChanges, 2000);
 </script>
 
 <?php else: ?>

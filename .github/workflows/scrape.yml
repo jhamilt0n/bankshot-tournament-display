@@ -2,7 +2,18 @@ name: Scrape Tournaments
 
 on:
   schedule:
+    # Run every 15 minutes (standard schedule)
     - cron: '*/15 * * * *'
+    
+    # GUARANTEED runs at 7:30 PM and 7:45 PM Eastern Time
+    # During EDT (Daylight Saving Time): UTC-4
+    - cron: '30 23 * * *'  # 7:30 PM EDT = 23:30 UTC
+    - cron: '45 23 * * *'  # 7:45 PM EDT = 23:45 UTC
+    
+    # During EST (Standard Time): UTC-5
+    - cron: '30 0 * * *'   # 7:30 PM EST = 00:30 UTC next day
+    - cron: '45 0 * * *'   # 7:45 PM EST = 00:45 UTC next day
+    
   workflow_dispatch:
 
 jobs:
