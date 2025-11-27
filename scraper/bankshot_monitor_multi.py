@@ -109,34 +109,42 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
             'payouts': {}
         }
         
-        # Extract START TIME (tr[3]/td[2]/text()[1]) - Get ONLY first text node
+        # Extract START TIME (tr[3]/td[2]) - First line is ALWAYS local time
         xpath_start_time = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div/div/div/div/table/tbody/tr[3]/td[2]"
         try:
-            # Use XPath to get ONLY the first text node (not all text)
-            raw_time = driver.execute_script("""
-                var result = document.evaluate(
-                    arguments[0] + '/text()[1]',
-                    document,
-                    null,
-                    XPathResult.STRING_TYPE,
-                    null
-                );
-                return result.stringValue.trim();
-            """, xpath_start_time)
+            elem = driver.find_element(By.XPATH, xpath_start_time)
+            raw_time = elem.text.strip()
             
             if raw_time:
-                details['start_time'] = clean_start_time_string(raw_time)
-                log(f"✓ Start time: {details['start_time']}")
+                # The field contains:
+                # Line 1: Local time (could be AM or PM) - e.g., "Wed, Nov 27, 2025 7:00 PM (America/New_York)"
+                # Line 2: UTC time - e.g., "Thu, Nov 28, 2025 12:00 AM (UTC)"
+                # We want Line 1 (local time)
                 
-                # Extract date from the local time line
-                date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', raw_time)
-                if date_match:
-                    try:
-                        parsed = datetime.datetime.strptime(date_match.group(1), "%a, %b %d, %Y")
-                        details['date'] = parsed.strftime("%Y/%m/%d")
-                        log(f"✓ Date: {details['date']}")
-                    except Exception:
-                        pass
+                # Split by newline and take FIRST line
+                lines = [line.strip() for line in raw_time.split('\n') if line.strip()]
+                if lines:
+                    local_time_line = lines[0]
+                    
+                    # Alternative: Find the line that doesn't contain "UTC"
+                    # This is more robust in case ordering changes
+                    for line in lines:
+                        if '(UTC)' not in line and line:
+                            local_time_line = line
+                            break
+                    
+                    details['start_time'] = clean_start_time_string(local_time_line)
+                    log(f"✓ Start time: {details['start_time']} (from: {local_time_line[:50]}...)")
+                    
+                    # Extract date from the local time line
+                    date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', local_time_line)
+                    if date_match:
+                        try:
+                            parsed = datetime.datetime.strptime(date_match.group(1), "%a, %b %d, %Y")
+                            details['date'] = parsed.strftime("%Y/%m/%d")
+                            log(f"✓ Date: {details['date']}")
+                        except Exception:
+                            pass
         except NoSuchElementException:
             log("⚠ Start time not found")
         
