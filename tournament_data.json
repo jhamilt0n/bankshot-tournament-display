@@ -4,7 +4,7 @@
   "venue": "Bankshot Billiards, Hilliard",
   "date": "2025/11/26",
   "start_time": "7:11 PM",
-  "status": "In Progress",
+  "status": "Completed",
   "player_count": 14,
   "entry_fee": 15,
   "format_type": "Singles",
@@ -12,5 +12,5 @@
   "digital_pool_payouts": {},
   "payout_data": "payouts15.json",
   "last_updated": "2025-11-26 23:47:17",
-  "display_tournament": true
+  "display_tournament": false
 }
