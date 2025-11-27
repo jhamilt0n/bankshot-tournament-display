@@ -109,11 +109,26 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
             'payouts': {}
         }
         
-        # Extract START TIME (tr[3]/td[2])
+        # Extract START TIME (tr[3]/td[2]) - Get FIRST text node only (local time)
         xpath_start_time = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div/div/div/div/table/tbody/tr[3]/td[2]"
         try:
             elem = driver.find_element(By.XPATH, xpath_start_time)
-            raw_time = elem.text.strip()
+            # Use JavaScript to get only the first text node (local time, not UTC)
+            raw_time = driver.execute_script("""
+                var element = arguments[0];
+                var firstTextNode = null;
+                for (var i = 0; i < element.childNodes.length; i++) {
+                    if (element.childNodes[i].nodeType === 3) {  // Text node
+                        var text = element.childNodes[i].textContent.trim();
+                        if (text) {
+                            firstTextNode = text;
+                            break;
+                        }
+                    }
+                }
+                return firstTextNode || element.textContent;
+            """, elem)
+            
             if raw_time:
                 details['start_time'] = clean_start_time_string(raw_time)
                 log(f"✓ Start time: {details['start_time']}")
@@ -387,9 +402,7 @@ def search_tournaments_on_page(driver):
                     if details:
                         if details['start_time']:
                             start_time_str = details['start_time']
-                        # Use detail page date ONLY if it matches the card date
-                        # This prevents midnight (12:00 AM) from showing next day's date
-                        if details['date'] and details['date'] == tournament_date:
+                        if details['date']:
                             actual_date = details['date']
                         entry_fee = details['entry_fee']
                         format_type = details['format_type']
