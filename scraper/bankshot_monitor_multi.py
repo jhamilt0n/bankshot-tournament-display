@@ -387,7 +387,9 @@ def search_tournaments_on_page(driver):
                     if details:
                         if details['start_time']:
                             start_time_str = details['start_time']
-                        if details['date']:
+                        # Use detail page date ONLY if it matches the card date
+                        # This prevents midnight (12:00 AM) from showing next day's date
+                        if details['date'] and details['date'] == tournament_date:
                             actual_date = details['date']
                         entry_fee = details['entry_fee']
                         format_type = details['format_type']
