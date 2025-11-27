@@ -109,26 +109,27 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
             'payouts': {}
         }
         
-        # Extract START TIME (tr[3]/td[2]) - Handle both local and UTC times
+        # Extract START TIME (tr[3]/td[2]/text()[1]) - Get ONLY first text node
         xpath_start_time = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div/div/div/div/table/tbody/tr[3]/td[2]"
         try:
-            elem = driver.find_element(By.XPATH, xpath_start_time)
-            raw_time = elem.text.strip()
+            # Use XPath to get ONLY the first text node (not all text)
+            raw_time = driver.execute_script("""
+                var result = document.evaluate(
+                    arguments[0] + '/text()[1]',
+                    document,
+                    null,
+                    XPathResult.STRING_TYPE,
+                    null
+                );
+                return result.stringValue.trim();
+            """, xpath_start_time)
             
             if raw_time:
-                # Field contains both local time (PM) and UTC time (AM)
-                # Example: "Wed, Nov 27, 2025 7:00 PM (America/New_York)\nThu, Nov 28, 2025 12:00 AM (UTC)"
-                # We want the local time (first line), not UTC
-                
-                # Split by newline and take first line only
-                lines = raw_time.split('\n')
-                local_time_line = lines[0].strip()
-                
-                details['start_time'] = clean_start_time_string(local_time_line)
+                details['start_time'] = clean_start_time_string(raw_time)
                 log(f"✓ Start time: {details['start_time']}")
                 
                 # Extract date from the local time line
-                date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', local_time_line)
+                date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', raw_time)
                 if date_match:
                     try:
                         parsed = datetime.datetime.strptime(date_match.group(1), "%a, %b %d, %Y")
