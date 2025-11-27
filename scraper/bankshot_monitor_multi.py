@@ -366,10 +366,15 @@ def search_tournaments_on_page(driver):
                     tournament_url = link_element.get_attribute('href')
                 except:
                     if tournament_date and tournament_name:
-                        date_no_slashes = tournament_date.replace('/', '')
-                        name_slug = re.sub(r'[^a-z0-9-]', '', tournament_name.lower().replace(' ', '-'))
-                        name_slug = re.sub(r'-+', '-', name_slug).strip('-')
-                        tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
+    # FIX: Remove any date prefix from tournament name first
+    name_for_slug = tournament_name
+    name_for_slug = re.sub(r'^\d{4}[/-]\d{2}[/-]\d{2}\s*', '', name_for_slug)  # Remove "2025/11/27 " or "2025-11-27 "
+    name_for_slug = re.sub(r'^\d{8}\s*', '', name_for_slug)  # Remove "20251127 "
+    
+    date_no_slashes = tournament_date.replace('/', '').replace('-', '')
+    name_slug = re.sub(r'[^a-z0-9-]', '', name_for_slug.lower().replace(' ', '-'))
+    name_slug = re.sub(r'-+', '-', name_slug).strip('-')
+    tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
                 
                 # Get comprehensive details from detail page (including DIRECT entry fee)
                 start_time_str = None
