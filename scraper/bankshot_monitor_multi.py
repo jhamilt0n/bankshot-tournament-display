@@ -115,36 +115,45 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
             elem = driver.find_element(By.XPATH, xpath_start_time)
             raw_time = elem.text.strip()
             
+            log(f"DEBUG: Raw time text: {repr(raw_time[:200])}")  # Show first 200 chars
+            
             if raw_time:
-                # The field contains:
-                # Line 1: Local time (could be AM or PM) - e.g., "Wed, Nov 27, 2025 7:00 PM (America/New_York)"
-                # Line 2: UTC time - e.g., "Thu, Nov 28, 2025 12:00 AM (UTC)"
-                # We want Line 1 (local time)
+                # Split by various possible separators
+                lines = []
+                for sep in ['\n', '\r\n', '\r']:
+                    if sep in raw_time:
+                        lines = [line.strip() for line in raw_time.split(sep) if line.strip()]
+                        log(f"DEBUG: Split by {repr(sep)}, got {len(lines)} lines")
+                        break
                 
-                # Split by newline and take FIRST line
-                lines = [line.strip() for line in raw_time.split('\n') if line.strip()]
-                if lines:
-                    local_time_line = lines[0]
-                    
-                    # Alternative: Find the line that doesn't contain "UTC"
-                    # This is more robust in case ordering changes
-                    for line in lines:
-                        if '(UTC)' not in line and line:
-                            local_time_line = line
-                            break
-                    
-                    details['start_time'] = clean_start_time_string(local_time_line)
-                    log(f"✓ Start time: {details['start_time']} (from: {local_time_line[:50]}...)")
-                    
-                    # Extract date from the local time line
-                    date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', local_time_line)
-                    if date_match:
-                        try:
-                            parsed = datetime.datetime.strptime(date_match.group(1), "%a, %b %d, %Y")
-                            details['date'] = parsed.strftime("%Y/%m/%d")
-                            log(f"✓ Date: {details['date']}")
-                        except Exception:
-                            pass
+                if not lines:
+                    lines = [raw_time]  # Single line
+                
+                log(f"DEBUG: All lines: {lines}")
+                
+                # Get local time (first line OR first non-UTC line)
+                local_time_line = lines[0] if lines else ""
+                
+                # Find first line without UTC
+                for i, line in enumerate(lines):
+                    log(f"DEBUG: Line {i}: '{line[:80]}...' - Has UTC: {'(UTC)' in line}")
+                    if '(UTC)' not in line and line:
+                        local_time_line = line
+                        log(f"DEBUG: Selected line {i} (no UTC)")
+                        break
+                
+                details['start_time'] = clean_start_time_string(local_time_line)
+                log(f"✓ Start time: {details['start_time']} (from: {local_time_line[:50]}...)")
+                
+                # Extract date from the local time line
+                date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', local_time_line)
+                if date_match:
+                    try:
+                        parsed = datetime.datetime.strptime(date_match.group(1), "%a, %b %d, %Y")
+                        details['date'] = parsed.strftime("%Y/%m/%d")
+                        log(f"✓ Date: {details['date']}")
+                    except Exception:
+                        pass
         except NoSuchElementException:
             log("⚠ Start time not found")
         
