@@ -3,6 +3,7 @@
 Bankshot Billiards Tournament Monitor - Multi-Tournament Version
 ENHANCED: Gets entry fee DIRECTLY from Digital Pool (tr[18]/td[2])
 CLEANED: Removed unused payout_data legacy code
+FIXED: URL construction removes date prefix to prevent duplicates
 """
 
 import datetime
@@ -30,7 +31,7 @@ LOG_FILE = "/home/pi/logs/tournament_monitor.log"
 
 
 def setup_logging():
-    """Configure rotating log handler"""
+    """Configure rotating log handler with graceful fallback"""
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     logger.handlers = []
@@ -90,10 +91,7 @@ def setup_driver(headless=True):
 
 
 def get_tournament_details_from_page(driver, tournament_url, player_count):
-    """
-    Get tournament details with DIRECT entry fee extraction from Digital Pool
-    XPath tr[18]/td[2] for entry fee
-    """
+    """Get tournament details with DIRECT entry fee extraction from Digital Pool"""
     try:
         if not tournament_url:
             return None
@@ -105,7 +103,7 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
         details = {
             'start_time': None,
             'date': None,
-            'entry_fee': 15,  # default fallback
+            'entry_fee': 15,
             'format_type': 'Singles',
             'has_digital_pool_payouts': False,
             'payouts': {}
@@ -120,19 +118,18 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
                 details['start_time'] = clean_start_time_string(raw_time)
                 log(f"✓ Start time: {details['start_time']}")
                 
-                # Extract date from start time field
                 date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', raw_time)
                 if date_match:
                     try:
                         parsed = datetime.datetime.strptime(date_match.group(1), "%a, %b %d, %Y")
                         details['date'] = parsed.strftime("%Y/%m/%d")
                         log(f"✓ Date: {details['date']}")
-                    except:
+                    except Exception:
                         pass
         except NoSuchElementException:
             log("⚠ Start time not found")
         
-        # Extract ENTRY FEE DIRECTLY from Digital Pool (tr[18]/td[2]) - PRIMARY METHOD
+        # Extract ENTRY FEE DIRECTLY from Digital Pool (tr[18]/td[2])
         xpath_entry_fee = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div/div/div/div/table/tbody/tr[18]/td[2]"
         try:
             elem = driver.find_element(By.XPATH, xpath_entry_fee)
@@ -146,7 +143,7 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
         except NoSuchElementException:
             log("⚠ Entry fee field not found at tr[18]/td[2]")
             
-            # FALLBACK: Calculate from total pot (only if direct field not found)
+            # FALLBACK: Calculate from total pot
             xpath_total_pot = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div/div/div[1]/div[2]/div[2]/table/tbody/tr[6]/td[2]"
             try:
                 elem = driver.find_element(By.XPATH, xpath_total_pot)
@@ -157,8 +154,8 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
                     total_pot = int(pot_match.group(1).replace(',', ''))
                     calculated = total_pot // player_count
                     details['entry_fee'] = calculated
-                    log(f"⚠ Calculated entry fee from pot: ${calculated} (${total_pot} / {player_count})")
-            except:
+                    log(f"⚠ Calculated entry fee from pot: ${calculated}")
+            except Exception:
                 log("⚠ Could not calculate from pot, using default $15")
         
         # Extract FORMAT TYPE
@@ -168,7 +165,7 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
             format_text = elem.text.strip()
             details['format_type'] = format_text if format_text else 'Singles'
             log(f"✓ Format: {details['format_type']}")
-        except:
+        except Exception:
             pass
         
         # Extract PAYOUTS from Digital Pool (if available)
@@ -181,7 +178,7 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
                 details['has_digital_pool_payouts'] = True
                 details['payouts']['1st'] = first_text
                 log(f"✓ Digital Pool payout 1st: {first_text}")
-        except:
+        except Exception:
             pass
         
         return details
@@ -201,15 +198,15 @@ def parse_time_string(time_str):
             try:
                 parsed = datetime.datetime.strptime(time_str, fmt)
                 return parsed.time()
-            except:
+            except Exception:
                 continue
         return None
-    except:
+    except Exception:
         return None
 
 
 def clean_start_time_string(raw):
-    """Extract clean time from verbose formats like 'Wed, Nov 26, 2025 7:00 PM (America/New_York)'"""
+    """Extract clean time from verbose formats"""
     if not raw:
         return None
     
@@ -296,7 +293,7 @@ def search_tournaments_on_page(driver):
                     log(f"Found {len(cards)} elements with selector: {selector}")
                     tournament_cards = cards
                     break
-            except:
+            except Exception:
                 continue
         
         if not tournament_cards:
@@ -328,7 +325,7 @@ def search_tournaments_on_page(driver):
                         if heading.text and heading.text.strip() and VENUE_NAME not in heading.text:
                             tournament_name = heading.text.strip()
                             break
-                    except:
+                    except Exception:
                         continue
                 
                 if not tournament_name:
@@ -336,7 +333,7 @@ def search_tournaments_on_page(driver):
                         title_elem = card.find_element(By.CSS_SELECTOR, "[class*='title'], [class*='Title']")
                         if title_elem.text:
                             tournament_name = title_elem.text.strip()
-                    except:
+                    except Exception:
                         pass
                 
                 if not tournament_name:
@@ -364,19 +361,20 @@ def search_tournaments_on_page(driver):
                 try:
                     link_element = card.find_element(By.CSS_SELECTOR, "a[href*='/tournaments/']")
                     tournament_url = link_element.get_attribute('href')
-                except:
+                except Exception:
+                    # Fallback: construct URL from tournament name and date
                     if tournament_date and tournament_name:
-    # FIX: Remove any date prefix from tournament name first
-    name_for_slug = tournament_name
-    name_for_slug = re.sub(r'^\d{4}[/-]\d{2}[/-]\d{2}\s*', '', name_for_slug)  # Remove "2025/11/27 " or "2025-11-27 "
-    name_for_slug = re.sub(r'^\d{8}\s*', '', name_for_slug)  # Remove "20251127 "
-    
-    date_no_slashes = tournament_date.replace('/', '').replace('-', '')
-    name_slug = re.sub(r'[^a-z0-9-]', '', name_for_slug.lower().replace(' ', '-'))
-    name_slug = re.sub(r'-+', '-', name_slug).strip('-')
-    tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
+                        # Remove any date prefix from tournament name
+                        name_for_slug = tournament_name
+                        name_for_slug = re.sub(r'^\d{4}[/-]\d{2}[/-]\d{2}\s*', '', name_for_slug)
+                        name_for_slug = re.sub(r'^\d{8}\s*', '', name_for_slug)
+                        
+                        date_no_slashes = tournament_date.replace('/', '').replace('-', '')
+                        name_slug = re.sub(r'[^a-z0-9-]', '', name_for_slug.lower().replace(' ', '-'))
+                        name_slug = re.sub(r'-+', '-', name_slug).strip('-')
+                        tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
                 
-                # Get comprehensive details from detail page (including DIRECT entry fee)
+                # Get comprehensive details from detail page
                 start_time_str = None
                 actual_date = tournament_date
                 entry_fee = 15
@@ -391,7 +389,7 @@ def search_tournaments_on_page(driver):
                             start_time_str = details['start_time']
                         if details['date']:
                             actual_date = details['date']
-                        entry_fee = details['entry_fee']  # From Digital Pool directly!
+                        entry_fee = details['entry_fee']
                         format_type = details['format_type']
                         has_digital_pool_payouts = details['has_digital_pool_payouts']
                         digital_pool_payouts = details['payouts']
@@ -432,7 +430,7 @@ def search_tournaments_on_page(driver):
                     'start_time_parsed': start_time.strftime("%H:%M") if start_time else None,
                     'status': actual_status,
                     'player_count': player_count,
-                    'entry_fee': entry_fee,  # From Digital Pool!
+                    'entry_fee': entry_fee,
                     'format_type': format_type,
                     'has_digital_pool_payouts': has_digital_pool_payouts,
                     'digital_pool_payouts': digital_pool_payouts,
@@ -517,7 +515,7 @@ def get_all_todays_tournaments():
         if driver:
             try:
                 driver.quit()
-            except:
+            except Exception:
                 pass
 
 
@@ -561,10 +559,9 @@ def determine_which_tournament_to_display(tournaments):
 
 
 def check_previous_tournament_still_active():
-    """Check if previous tournament is still in progress (after-midnight scenario)"""
+    """Check if previous tournament is still in progress"""
     driver = None
     try:
-        # Try to read from multiple possible locations
         import os
         data_file = None
         for path in [DATA_FILE, 'tournament_data.json']:
@@ -614,7 +611,7 @@ def check_previous_tournament_still_active():
                         if driver:
                             try:
                                 driver.quit()
-                            except:
+                            except Exception:
                                 pass
         
         return None
@@ -624,7 +621,7 @@ def check_previous_tournament_still_active():
 
 
 def save_tournament_data(tournament):
-    """Save tournament data to JSON files - CLEANED (no payout_data field)"""
+    """Save tournament data to JSON files"""
     if not tournament:
         output_data = {
             'tournament_name': 'No tournaments to display',
@@ -651,7 +648,7 @@ def save_tournament_data(tournament):
             'start_time': tournament['start_time'],
             'status': tournament['status'],
             'player_count': tournament.get('player_count', 0),
-            'entry_fee': tournament.get('entry_fee', 15),  # From Digital Pool!
+            'entry_fee': tournament.get('entry_fee', 15),
             'format_type': tournament.get('format_type', 'Singles'),
             'has_digital_pool_payouts': tournament.get('has_digital_pool_payouts', False),
             'digital_pool_payouts': tournament.get('digital_pool_payouts', {}),
@@ -664,11 +661,10 @@ def save_tournament_data(tournament):
         log(f"Status: {tournament['status']}")
         log(f"Display flag: {should_display}")
     
-    # Save to both locations, create directories if needed
+    # Save to multiple locations with directory creation
     import os
     for file_path in [DATA_FILE, DATA_FILE_BACKUP]:
         try:
-            # Create directory if it doesn't exist
             dir_path = os.path.dirname(file_path)
             if dir_path and not os.path.exists(dir_path):
                 os.makedirs(dir_path, exist_ok=True)
