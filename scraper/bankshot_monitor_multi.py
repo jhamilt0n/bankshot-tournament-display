@@ -73,18 +73,50 @@ def log(message):
 
 def setup_driver(headless=True):
     chrome_options = Options()
+    
+    # Make headless mode less detectable
     if headless:
-        chrome_options.add_argument('--headless')
+        chrome_options.add_argument('--headless=new')  # Use new headless mode
+    
+    # Basic Chrome settings
     chrome_options.add_argument('--no-sandbox')
     chrome_options.add_argument('--disable-dev-shm-usage')
     chrome_options.add_argument('--disable-gpu')
     chrome_options.add_argument('--start-maximized')
-    chrome_options.add_argument('--user-agent=Mozilla/5.0 (X11; Linux armv7l) AppleWebKit/537.36')
     chrome_options.add_argument('--disable-extensions')
+    
+    # Make it look like a real browser
+    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    
+    # Set timezone to America/New_York
+    chrome_options.add_argument('--lang=en-US')
+    
+    # Disable automation flags
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    
+    # Set timezone using prefs
+    prefs = {
+        "profile.default_content_setting_values.notifications": 2,
+        "credentials_enable_service": False,
+        "profile.password_manager_enabled": False
+    }
+    chrome_options.add_experimental_option("prefs", prefs)
     
     try:
         service = Service(executable_path='/usr/bin/chromedriver')
-        return webdriver.Chrome(service=service, options=chrome_options)
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        
+        # Override navigator.webdriver flag
+        driver.execute_cdp_cmd('Network.setUserAgentOverride', {
+            "userAgent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        })
+        
+        # Set timezone to Eastern Time
+        driver.execute_cdp_cmd('Emulation.setTimezoneOverride', {'timezoneId': 'America/New_York'})
+        
+        return driver
     except Exception as e:
         log(f"Error setting up ChromeDriver: {e}")
         raise
@@ -109,67 +141,46 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
             'payouts': {}
         }
         
-        # Extract START TIME (tr[3]/td[2]) - Get HTML to see structure
+        # Extract START TIME (tr[3]/td[2]) - But trust card date over detail date
         xpath_start_time = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div/div/div/div/table/tbody/tr[3]/td[2]"
         try:
             elem = driver.find_element(By.XPATH, xpath_start_time)
-            
-            # Get innerHTML to see the actual structure
-            inner_html = elem.get_attribute('innerHTML')
-            log(f"DEBUG: innerHTML: {inner_html[:300]}")
-            
-            # Get all text using JavaScript to access all text nodes
-            all_text = driver.execute_script("""
-                function getAllText(element) {
-                    var text = '';
-                    for (var i = 0; i < element.childNodes.length; i++) {
-                        var node = element.childNodes[i];
-                        if (node.nodeType === 3) {  // Text node
-                            text += node.textContent + '|TEXTNODE|';
-                        } else if (node.nodeType === 1) {  // Element node
-                            text += getAllText(node);
-                        }
-                    }
-                    return text;
-                }
-                return getAllText(arguments[0]);
-            """, elem)
-            log(f"DEBUG: All text nodes: {all_text[:300]}")
-            
             raw_time = elem.text.strip()
-            log(f"DEBUG: elem.text: {repr(raw_time[:200])}")
             
-            if raw_time:
-                # Try to find time with timezone that's NOT UTC
-                non_utc_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4}\s+\d{1,2}:\d{2}\s*[AP]M)\s*\([^)]*(?!UTC)[^)]*\)', raw_time, re.IGNORECASE)
-                
-                if non_utc_match:
-                    local_time_line = non_utc_match.group(1)
-                    log(f"DEBUG: Found non-UTC time: {local_time_line}")
-                else:
-                    # Split by newline
+            log(f"DEBUG: Time field text: {repr(raw_time)}")
+            
+            # Check if we have local time (with timezone like America/New_York)
+            has_local_time = 'America/' in raw_time or 'US/' in raw_time
+            has_only_utc = '(UTC)' in raw_time and not has_local_time
+            
+            if has_only_utc:
+                log("⚠ Only UTC time found - Digital Pool not showing local time to scraper")
+                log("⚠ Skipping time extraction - will use card date instead")
+                # Don't extract time or date from detail page
+            else:
+                # We have local time - extract it
+                if raw_time:
+                    # Split by newline and look for non-UTC line
                     lines = [line.strip() for line in raw_time.split('\n') if line.strip()]
-                    log(f"DEBUG: Split lines: {lines}")
-                    
-                    # Get first non-UTC line
                     local_time_line = lines[0] if lines else ""
+                    
                     for line in lines:
                         if '(UTC)' not in line and line:
                             local_time_line = line
                             break
-                
-                details['start_time'] = clean_start_time_string(local_time_line)
-                log(f"✓ Start time: {details['start_time']} (from: {local_time_line[:50]}...)")
-                
-                # Extract date
-                date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', local_time_line)
-                if date_match:
-                    try:
-                        parsed = datetime.datetime.strptime(date_match.group(1), "%a, %b %d, %Y")
-                        details['date'] = parsed.strftime("%Y/%m/%d")
-                        log(f"✓ Date: {details['date']}")
-                    except Exception:
-                        pass
+                    
+                    details['start_time'] = clean_start_time_string(local_time_line)
+                    log(f"✓ Start time: {details['start_time']}")
+                    
+                    # Extract date
+                    date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', local_time_line)
+                    if date_match:
+                        try:
+                            parsed = datetime.datetime.strptime(date_match.group(1), "%a, %b %d, %Y")
+                            details['date'] = parsed.strftime("%Y/%m/%d")
+                            log(f"✓ Date: {details['date']}")
+                        except Exception:
+                            pass
         except NoSuchElementException:
             log("⚠ Start time not found")
         
