@@ -109,43 +109,59 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
             'payouts': {}
         }
         
-        # Extract START TIME (tr[3]/td[2]) - First line is ALWAYS local time
+        # Extract START TIME (tr[3]/td[2]) - Get HTML to see structure
         xpath_start_time = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div/div/div/div/table/tbody/tr[3]/td[2]"
         try:
             elem = driver.find_element(By.XPATH, xpath_start_time)
-            raw_time = elem.text.strip()
             
-            log(f"DEBUG: Raw time text: {repr(raw_time[:200])}")  # Show first 200 chars
+            # Get innerHTML to see the actual structure
+            inner_html = elem.get_attribute('innerHTML')
+            log(f"DEBUG: innerHTML: {inner_html[:300]}")
+            
+            # Get all text using JavaScript to access all text nodes
+            all_text = driver.execute_script("""
+                function getAllText(element) {
+                    var text = '';
+                    for (var i = 0; i < element.childNodes.length; i++) {
+                        var node = element.childNodes[i];
+                        if (node.nodeType === 3) {  // Text node
+                            text += node.textContent + '|TEXTNODE|';
+                        } else if (node.nodeType === 1) {  // Element node
+                            text += getAllText(node);
+                        }
+                    }
+                    return text;
+                }
+                return getAllText(arguments[0]);
+            """, elem)
+            log(f"DEBUG: All text nodes: {all_text[:300]}")
+            
+            raw_time = elem.text.strip()
+            log(f"DEBUG: elem.text: {repr(raw_time[:200])}")
             
             if raw_time:
-                # Split by various possible separators
-                lines = []
-                for sep in ['\n', '\r\n', '\r']:
-                    if sep in raw_time:
-                        lines = [line.strip() for line in raw_time.split(sep) if line.strip()]
-                        log(f"DEBUG: Split by {repr(sep)}, got {len(lines)} lines")
-                        break
+                # Try to find time with timezone that's NOT UTC
+                non_utc_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4}\s+\d{1,2}:\d{2}\s*[AP]M)\s*\([^)]*(?!UTC)[^)]*\)', raw_time, re.IGNORECASE)
                 
-                if not lines:
-                    lines = [raw_time]  # Single line
-                
-                log(f"DEBUG: All lines: {lines}")
-                
-                # Get local time (first line OR first non-UTC line)
-                local_time_line = lines[0] if lines else ""
-                
-                # Find first line without UTC
-                for i, line in enumerate(lines):
-                    log(f"DEBUG: Line {i}: '{line[:80]}...' - Has UTC: {'(UTC)' in line}")
-                    if '(UTC)' not in line and line:
-                        local_time_line = line
-                        log(f"DEBUG: Selected line {i} (no UTC)")
-                        break
+                if non_utc_match:
+                    local_time_line = non_utc_match.group(1)
+                    log(f"DEBUG: Found non-UTC time: {local_time_line}")
+                else:
+                    # Split by newline
+                    lines = [line.strip() for line in raw_time.split('\n') if line.strip()]
+                    log(f"DEBUG: Split lines: {lines}")
+                    
+                    # Get first non-UTC line
+                    local_time_line = lines[0] if lines else ""
+                    for line in lines:
+                        if '(UTC)' not in line and line:
+                            local_time_line = line
+                            break
                 
                 details['start_time'] = clean_start_time_string(local_time_line)
                 log(f"✓ Start time: {details['start_time']} (from: {local_time_line[:50]}...)")
                 
-                # Extract date from the local time line
+                # Extract date
                 date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', local_time_line)
                 if date_match:
                     try:
