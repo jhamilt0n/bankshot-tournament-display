@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bankshot Tournament Display - Installation Script
-# This script sets up the tournament display system on a Raspberry Pi
+# Updated: Added Special Event Payouts with sepayout_updater.log
 
 set -e  # Exit on any error
 
@@ -27,9 +27,9 @@ echo ""
 echo "Step 2: Installing Composer (PHP package manager)..."
 if [ ! -f /usr/local/bin/composer ]; then
     curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
-    echo "Composer installed successfully"
+    echo "✓ Composer installed successfully"
 else
-    echo "Composer already installed"
+    echo "✓ Composer already installed"
 fi
 
 echo ""
@@ -43,7 +43,7 @@ if [ -d "$SCRIPT_DIR/web/media" ]; then
     cp -r "$SCRIPT_DIR/web/media" "$WEB_DIR/"
 fi
 
-# Copy any image files
+# Copy any image files (logo, etc)
 if ls "$SCRIPT_DIR"/web/*.png &> /dev/null; then
     cp "$SCRIPT_DIR"/web/*.png "$WEB_DIR/"
 fi
@@ -70,54 +70,89 @@ echo ""
 echo "Step 5: Setting file permissions..."
 chown -R www-data:www-data "$WEB_DIR"
 chmod 755 "$WEB_DIR"
-chmod 644 "$WEB_DIR"/*.php
-chmod 644 "$WEB_DIR"/*.html
-chmod 755 "$WEB_DIR"/update_payouts.php  # Make executable
+chmod 644 "$WEB_DIR"/*.php 2>/dev/null || true
+chmod 644 "$WEB_DIR"/*.html 2>/dev/null || true
+chmod 755 "$WEB_DIR"/update_payouts.php
+chmod 755 "$WEB_DIR"/specialeventpayouts.php
 
 # Set permissions for media directory
 if [ -d "$WEB_DIR/media" ]; then
     chmod 755 "$WEB_DIR/media"
-    chmod 644 "$WEB_DIR/media"/*
+    chmod 644 "$WEB_DIR/media"/* 2>/dev/null || true
 fi
 
-# Create log file with proper permissions
+# Create BOTH log files with proper permissions
+echo "Creating log files..."
 touch "$WEB_DIR/payout_updater.log"
+touch "$WEB_DIR/sepayout_updater.log"
 chown www-data:www-data "$WEB_DIR/payout_updater.log"
-chmod 644 "$WEB_DIR/payout_updater.log"
+chown www-data:www-data "$WEB_DIR/sepayout_updater.log"
+chmod 664 "$WEB_DIR/payout_updater.log"
+chmod 664 "$WEB_DIR/sepayout_updater.log"
 
 echo ""
 echo "Step 6: Enabling Apache modules and restarting service..."
-a2enmod php8.2 2>/dev/null || a2enmod php8.1 2>/dev/null || a2enmod php8.0 2>/dev/null || a2enmod php7.4 2>/dev/null || echo "PHP module already enabled"
+# Try multiple PHP versions
+a2enmod php8.4 2>/dev/null || a2enmod php8.2 2>/dev/null || a2enmod php8.1 2>/dev/null || a2enmod php8.0 2>/dev/null || a2enmod php7.4 2>/dev/null || echo "PHP module already enabled"
 systemctl restart apache2
 systemctl enable apache2
 
 echo ""
-echo "Step 7: Setting up log rotation..."
+echo "Step 7: Setting up log rotation for BOTH logs..."
+# Create logrotate config for both payout logs
+cat > /etc/logrotate.d/bankshot-payout << 'EOF'
+# Logrotate configuration for Bankshot Tournament Payout Updaters
 
-# Install logrotate configuration
-if [ -f "$SCRIPT_DIR/bankshot-payout-logrotate" ]; then
-    cp "$SCRIPT_DIR/bankshot-payout-logrotate" /etc/logrotate.d/bankshot-payout
-    chmod 644 /etc/logrotate.d/bankshot-payout
-    echo "✓ Log rotation configured (weekly, 10MB max, keep 4 weeks)"
-else
-    echo "⚠ Warning: logrotate config not found, logs will grow indefinitely"
-fi
+/var/www/html/payout_updater.log {
+    size 10M
+    weekly
+    rotate 4
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0664 www-data www-data
+    postrotate
+    endscript
+}
+
+/var/www/html/sepayout_updater.log {
+    size 10M
+    weekly
+    rotate 4
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0664 www-data www-data
+    postrotate
+    endscript
+}
+EOF
+
+chmod 644 /etc/logrotate.d/bankshot-payout
+echo "✓ Log rotation configured for both logs (weekly, 10MB max, keep 4 weeks)"
 
 echo ""
-echo "Step 8: Setting up automatic payout updates (cron job)..."
+echo "Step 8: Setting up automatic payout updates (cron jobs)..."
 
 # Check if google-credentials.json exists
 if [ -f "$WEB_DIR/google-credentials.json" ]; then
-    echo "Google credentials found. Setting up cron job..."
+    echo "Google credentials found. Setting up cron jobs..."
     
-    # Remove any existing cron job
-    crontab -u www-data -l 2>/dev/null | grep -v "update_payouts.php" | crontab -u www-data - 2>/dev/null || true
-    crontab -u www-data -l 2>/dev/null | grep -v "specialeventpayouts.php" | crontab -u www-data - 2>/dev/null || true
+    # Remove any existing cron jobs
+    crontab -u www-data -l 2>/dev/null | grep -v "update_payouts.php" | grep -v "specialeventpayouts.php" | crontab -u www-data - 2>/dev/null || true
     
-    # Add new cron job
+    # Add BOTH cron jobs
+    (crontab -u www-data -l 2>/dev/null; echo "# Regular tournament payouts") | crontab -u www-data -
     (crontab -u www-data -l 2>/dev/null; echo "* * * * * /usr/bin/php $WEB_DIR/update_payouts.php >> $WEB_DIR/payout_updater.log 2>&1") | crontab -u www-data -
+    
+    (crontab -u www-data -l 2>/dev/null; echo "# Special event payouts with added money") | crontab -u www-data -
     (crontab -u www-data -l 2>/dev/null; echo "* * * * * /usr/bin/php $WEB_DIR/specialeventpayouts.php >> $WEB_DIR/sepayout_updater.log 2>&1") | crontab -u www-data -
-    echo "✓ Cron job installed - payouts will update every minute"
+    
+    echo "✓ Both cron jobs installed - payouts update every minute"
+    echo "  - Regular tournaments: update_payouts.php → payout_updater.log"
+    echo "  - Special events: specialeventpayouts.php → sepayout_updater.log"
 else
     echo "⚠ WARNING: google-credentials.json not found!"
     echo ""
@@ -146,21 +181,34 @@ echo "=========================================="
 echo "Installation Complete! ✓"
 echo "=========================================="
 echo ""
-echo "Access your tournament display at:"
-echo "  http://$LOCAL_IP/"
-echo "  http://$(hostname).local/"
+echo "🌐 Access your tournament display at:"
+echo "   http://$LOCAL_IP/"
+echo "   http://$(hostname).local/"
 echo ""
-echo "API Endpoints:"
-echo "  http://$LOCAL_IP/tournament_payout_api.php"
-echo "  http://$LOCAL_IP/get_ip.php"
+echo "📊 Media Manager:"
+echo "   http://$LOCAL_IP/media_manager.html"
 echo ""
-echo "Log file location:"
-echo "  $WEB_DIR/payout_updater.log"
+echo "📺 Ads Display (HDMI TV):"
+echo "   http://$LOCAL_IP/ads_display.html"
+echo ""
+echo "🎱 API Endpoints:"
+echo "   http://$LOCAL_IP/tournament_payout_api.php"
+echo "   http://$LOCAL_IP/get_ip.php"
+echo "   http://$LOCAL_IP/get_tournament_data.php"
+echo ""
+echo "📋 Calcutta & Side Pot:"
+echo "   http://$LOCAL_IP/calcutta.html"
+echo "   http://$LOCAL_IP/sidepot.html"
+echo ""
+echo "📝 Log files:"
+echo "   Regular tournaments: $WEB_DIR/payout_updater.log"
+echo "   Special events: $WEB_DIR/sepayout_updater.log"
 echo ""
 if [ ! -f "$WEB_DIR/google-credentials.json" ]; then
     echo "⚠ Remember to set up Google Sheets integration!"
     echo "  See GOOGLE_SHEETS_SETUP.md for instructions"
     echo ""
 fi
-echo "To view logs: tail -f $WEB_DIR/payout_updater.log"
+echo "View logs: tail -f $WEB_DIR/payout_updater.log"
+echo "           tail -f $WEB_DIR/sepayout_updater.log"
 echo ""

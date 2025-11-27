@@ -1,6 +1,6 @@
 #!/bin/bash
 # Bankshot Tournament Display - Uninstallation Script
-# This script removes the tournament display system
+# Updated: Includes sepayout_updater.log cleanup
 
 set -e  # Exit on any error
 
@@ -22,8 +22,8 @@ echo "The following will be removed:"
 echo "  - All PHP and HTML files in $WEB_DIR"
 echo "  - Google credentials (google-credentials.json)"
 echo "  - Composer dependencies (vendor directory)"
-echo "  - Cron job for automatic updates"
-echo "  - Log files"
+echo "  - Cron jobs for payout updates"
+echo "  - BOTH log files (payout_updater.log & sepayout_updater.log)"
 echo ""
 read -p "Are you sure you want to continue? (yes/no): " CONFIRM
 
@@ -33,9 +33,10 @@ if [ "$CONFIRM" != "yes" ]; then
 fi
 
 echo ""
-echo "Step 1: Removing cron job..."
+echo "Step 1: Removing cron jobs..."
 crontab -u www-data -l 2>/dev/null | grep -v "update_payouts.php" | crontab -u www-data - 2>/dev/null || true
-echo "✓ Cron job removed"
+crontab -u www-data -l 2>/dev/null | grep -v "specialeventpayouts.php" | crontab -u www-data - 2>/dev/null || true
+echo "✓ Cron jobs removed"
 
 echo ""
 echo "Step 2: Backing up files (to /tmp/bankshot-backup)..."
@@ -52,6 +53,9 @@ fi
 if [ -f "$WEB_DIR/payout_updater.log" ]; then
     cp "$WEB_DIR/payout_updater.log" "$BACKUP_DIR/"
 fi
+if [ -f "$WEB_DIR/sepayout_updater.log" ]; then
+    cp "$WEB_DIR/sepayout_updater.log" "$BACKUP_DIR/"
+fi
 
 echo "✓ Backup created at: $BACKUP_DIR"
 
@@ -62,6 +66,7 @@ echo "Step 3: Removing tournament display files..."
 rm -f "$WEB_DIR/tournament_payout_calculator.php"
 rm -f "$WEB_DIR/tournament_payout_api.php"
 rm -f "$WEB_DIR/update_payouts.php"
+rm -f "$WEB_DIR/specialeventpayouts.php"
 rm -f "$WEB_DIR/get_ip.php"
 rm -f "$WEB_DIR/get_tournament_data.php"
 rm -f "$WEB_DIR/index.php"
@@ -96,11 +101,13 @@ rm -f "$WEB_DIR/composer.lock"
 echo "✓ Composer dependencies removed"
 
 echo ""
-echo "Step 6: Removing log files and logrotate config..."
+echo "Step 6: Removing BOTH log files and logrotate config..."
 rm -f "$WEB_DIR/payout_updater.log"
-rm -f "$WEB_DIR/payout_updater.log"*.gz  # Remove compressed old logs
+rm -f "$WEB_DIR/payout_updater.log"*.gz
+rm -f "$WEB_DIR/sepayout_updater.log"
+rm -f "$WEB_DIR/sepayout_updater.log"*.gz
 rm -f /etc/logrotate.d/bankshot-payout
-echo "✓ Log files and rotation config removed"
+echo "✓ Both log files and rotation config removed"
 
 echo ""
 echo "Step 7: Restoring default Apache page..."
@@ -133,6 +140,7 @@ echo "Backup location: $BACKUP_DIR"
 echo "  - google-credentials.json"
 echo "  - tournament_data.json"
 echo "  - payout_updater.log"
+echo "  - sepayout_updater.log"
 echo ""
 echo "Apache and PHP remain installed."
 echo "To completely remove Apache: sudo apt-get remove --purge apache2 php libapache2-mod-php"

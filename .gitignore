@@ -1,12 +1,42 @@
-﻿*.log
-logs/
-__pycache__/
-*.pyc
+# Logs
+*.log
+*.log.*
+*.log.*.gz
+payout_updater.log
+payout_updater.log.*
+sepayout_updater.log
+sepayout_updater.log.*
+
+# System files
 .DS_Store
 Thumbs.db
+__pycache__/
+*.pyc
+
+# Media files (large binary files)
 web/media/*.mp4
 web/media/*.jpg
 web/media/*.png
 !web/media/.gitkeep
+
+# Backup files
 backup_*/
 *.tmp
+*.backup
+*.bak
+
+# Sensitive credentials - DO NOT COMMIT
+google-credentials.json
+
+# Composer dependencies
+vendor/
+composer.lock
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# PHP temporary files
+*.php~

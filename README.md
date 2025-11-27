@@ -15,6 +15,7 @@ A comprehensive dual-display tournament management system for pool halls featuri
 - ✅ **Separate Channels** - Independent ad and tournament media rotation
 - ✅ **Smart Casting Logic** - Only casts when tournament has players
 - ✅ **Auto-Start Terminal** - Monitor window opens on boot for easy system status viewing
+- ✅ **Special Event Support** - Added money tournament payouts with separate log file
 
 ## 📋 Requirements
 
@@ -35,47 +36,48 @@ A comprehensive dual-display tournament management system for pool halls featuri
 
 ### Automated Installation (Recommended)
 
-The installer automatically pulls the latest files from GitHub:
+**Note:** The installer must be run with root privileges to install system packages and configure services. Use `sudo` to run it:
 
 ```bash
-# Download and run the installer
-curl -sSL https://raw.githubusercontent.com/jhamilt0n/bankshot-tournament-display/main/install.sh -o install.sh
-chmod +x install.sh
-./install.sh
+# Clone the repository
+git clone https://github.com/jhamilt0n/bankshot-tournament-display.git
+cd bankshot-tournament-display
+
+# Run the installer with sudo
+sudo bash install.sh
 ```
 
-Or if you've already cloned the repository:
+Or download and run directly from GitHub:
 
 ```bash
-cd bankshot-tournament-display
+curl -sSL https://raw.githubusercontent.com/jhamilt0n/bankshot-tournament-display/main/install.sh -o install.sh
 chmod +x install.sh
-./install.sh
+sudo bash install.sh
 ```
 
 The installer will:
-- Pull latest files from GitHub repository
-- Install all required packages
+- Install all required packages (Apache, PHP, Composer, etc.)
 - Configure Apache and PHP
 - Deploy web files and scripts
 - Set up systemd services
 - Configure permissions
 - Configure terminal auto-start on boot
+- Set up BOTH payout log files (regular + special events)
 - Start all services automatically
 
 ### One-Line Installation
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/jhamilt0n/bankshot-tournament-display/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/jhamilt0n/bankshot-tournament-display/main/install.sh | sudo bash
 ```
-
-This command downloads and runs the installer, which automatically pulls all files from GitHub.
 
 ## 🖥️ System Architecture
 
 ```
 ┌────────────────────────────────────────────────────────────────┐
 │  GitHub Repository (Tournament Data Source)                    │
-│  Scraper runs every 15 minutes via GitHub Actions              │
+│  • Scraper runs every 15 minutes via GitHub Actions            │
+│  • Updates tournament_data.json in repo                         │
 └───────────────────┬────────────────────────────────────────────┘
                     │ (pulls every 60s)
                     ▼
@@ -87,6 +89,11 @@ This command downloads and runs the installer, which automatically pulls all fil
 │  • HDMI Display Manager (Bash) - Business hours control        │
 │  • Apache + PHP - Web interface & APIs                         │
 │  • Media Manager - Upload & schedule content                   │
+│  • Pi API (get_ip.php) - IP discovery endpoint                 │
+│                                                                 │
+│  Payout Systems (Google Sheets Integration):                   │
+│  • update_payouts.php → payout_updater.log                     │
+│  • specialeventpayouts.php → sepayout_updater.log              │
 └─────┬──────────────────────────────────────────┬───────────────┘
       │                                          │
       ▼                                          ▼
@@ -102,12 +109,16 @@ This command downloads and runs the installer, which automatically pulls all fil
 
 ## 📱 Web Interfaces
 
-After installation, access these interfaces (replace `YOUR_PI_IP`):
+After installation, access these interfaces (replace `YOUR_PI_IP` with your Pi's IP address):
 
+- **Tournament Display** (Main): `http://YOUR_PI_IP/`
 - **Ads Display** (HDMI TV): `http://YOUR_PI_IP/ads_display.html`
-- **Tournament Display** (Chromecast): `http://YOUR_PI_IP/index.php`
 - **Media Manager**: `http://YOUR_PI_IP/media_manager.html`
 - **Tournament Data API**: `http://YOUR_PI_IP/get_tournament_data.php`
+- **Pi IP Discovery API**: `http://YOUR_PI_IP/get_ip.php`
+- **Payout API**: `http://YOUR_PI_IP/tournament_payout_api.php`
+- **Calcutta Display**: `http://YOUR_PI_IP/calcutta.html`
+- **Side Pot Display**: `http://YOUR_PI_IP/sidepot.html`
 
 ## ⚙️ Configuration
 
@@ -146,10 +157,22 @@ sudo systemctl restart catt-monitor
 1. Open `http://YOUR_PI_IP/media_manager.html`
 2. Upload images (JPG, PNG, GIF, WEBP) or videos (MP4, WEBM, MOV, AVI)
 3. Set **Display Type**:
-   - `ad` - Shows only on HDMI TV
-   - `tournament` - Shows only on Chromecast with tournament info
+   - `Ads` - Shows only on HDMI TV
+   - `Tournaments` - Shows only on Chromecast with tournament info
 4. Configure schedule (days/times) and duration
 5. Set active/inactive status
+
+### Google Sheets Integration
+
+The system supports automatic payout calculations with Google Sheets:
+
+**Two Independent Payout Systems:**
+1. **Regular Tournaments** - `update_payouts.php` → `payout_updater.log`
+2. **Special Events** - `specialeventpayouts.php` → `sepayout_updater.log`
+
+Both run via cron every minute, completely separate.
+
+See `GOOGLE_SHEETS_SETUP.md` for setup instructions.
 
 ## 🔧 Service Management
 
@@ -172,6 +195,12 @@ tail -f /var/log/catt_monitor.log
 
 # HDMI display
 tail -f /var/log/hdmi_display.log
+
+# Regular payout updater
+tail -f /var/www/html/payout_updater.log
+
+# Special event payout updater
+tail -f /var/www/html/sepayout_updater.log
 ```
 
 ### Restart Services
@@ -196,11 +225,26 @@ scp *.service pi@YOUR_PI_IP:/tmp/
 # SSH into Raspberry Pi
 ssh pi@YOUR_PI_IP
 
-# Run installation commands
-./install.sh
+# Run installation
+sudo bash install.sh
 ```
 
-See [docs/INSTALLATION.md](docs/INSTALLATION.md) for detailed Windows deployment instructions.
+## 📊 Log Management
+
+Both payout log files are automatically rotated:
+- **Size**: Rotates when reaching 10MB
+- **Frequency**: Weekly rotation
+- **Retention**: Keeps 4 weeks of compressed logs
+- **Location**: `/etc/logrotate.d/bankshot-payout`
+
+View log status:
+```bash
+# Check rotation status
+cat /var/lib/logrotate/status | grep bankshot
+
+# Force rotation (testing)
+sudo logrotate -f /etc/logrotate.d/bankshot-payout
+```
 
 ## 🐛 Troubleshooting
 
@@ -237,6 +281,21 @@ cd /tmp/tournament-scraper
 git pull
 ```
 
+### Payout Updates Not Working
+
+```bash
+# Check both payout logs
+tail -50 /var/www/html/payout_updater.log
+tail -50 /var/www/html/sepayout_updater.log
+
+# Verify cron jobs
+crontab -u www-data -l
+
+# Test Google Sheets connection
+php /var/www/html/update_payouts.php
+php /var/www/html/specialeventpayouts.php
+```
+
 ### Permission Issues
 
 ```bash
@@ -244,6 +303,8 @@ git pull
 sudo chown -R www-data:www-data /var/www/html/
 sudo chmod 664 /var/www/html/tournament_data.json
 sudo chmod 664 /var/www/html/tournament_qr.png
+sudo chmod 664 /var/www/html/payout_updater.log
+sudo chmod 664 /var/www/html/sepayout_updater.log
 ```
 
 ### Terminal Not Auto-Starting
@@ -285,19 +346,38 @@ See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for more solutions.
 - **[Configuration Guide](docs/CONFIGURATION.md)** - Customize your setup
 - **[Troubleshooting Guide](docs/TROUBLESHOOTING.md)** - Common issues and solutions
 - **[API Documentation](docs/API.md)** - API endpoints and usage
+- **[Google Sheets Setup](GOOGLE_SHEETS_SETUP.md)** - Payout automation setup
 
 ## 🗂️ File Structure
 
 ```
 bankshot-tournament-display/
-├── install.sh                    # Installation script
-├── uninstall.sh                  # Uninstallation script
-├── web/                          # Web interface files
-├── scripts/                      # System scripts
-├── services/                     # Systemd services
-├── assets/                       # Static assets
-├── docs/                         # Documentation
-└── examples/                     # Example configurations
+├── install.sh                          # Installation script
+├── uninstall.sh                        # Uninstallation script
+├── .github/workflows/scrape.yml        # GitHub Actions scraper
+├── web/                                # Web interface files
+│   ├── index.php                       # Main tournament display
+│   ├── ads_display.html                # HDMI TV ad display
+│   ├── media_manager.html              # Media upload interface
+│   ├── get_ip.php                      # Pi IP discovery API
+│   ├── tournament_payout_api.php       # Payout calculation API
+│   ├── update_payouts.php              # Regular tournament payouts
+│   ├── specialeventpayouts.php         # Special event payouts
+│   ├── calcutta.html                   # Calcutta display
+│   ├── sidepot.html                    # Side pot display
+│   └── media/                          # Uploaded media files
+├── scripts/                            # System scripts
+│   ├── tournament_monitor.py           # GitHub repo monitor
+│   ├── catt_monitor.py                 # Chromecast controller
+│   └── hdmi_display_manager.sh         # HDMI business hours
+├── scraper/                            # Tournament scraper
+│   └── bankshot_monitor_multi.py       # Multi-tournament scraper
+├── services/                           # Systemd services
+│   ├── tournament-monitor.service
+│   ├── catt-monitor.service
+│   └── hdmi-display.service
+├── tournament_data.json                # Current tournament data
+└── bankshot-payout-logrotate           # Log rotation config
 ```
 
 ## 🔄 How It Works
@@ -326,10 +406,16 @@ bankshot-tournament-display/
    - Starts/stops Chromium in kiosk mode
    - Displays ads during business hours
 
+5. **Payout Updaters** (every 60 seconds)
+   - Read Google Sheets data
+   - Calculate tournament payouts
+   - Write results back to sheets
+   - Log to separate files
+
 ### Display Logic
 
-- **HDMI TV**: Shows media with `displayType === "ad"`
-- **Chromecast**: Shows tournament info + media with `displayType === "tournament"`
+- **HDMI TV**: Shows media with `displayOnAds === true`
+- **Chromecast**: Shows tournament info + media with `displayOnTournaments === true`
 
 ## 🤝 Contributing
 
