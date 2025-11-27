@@ -1,84 +1,102 @@
-name: Scrape Tournaments
+name: Scrape Tournament Data
 
 on:
   schedule:
-    # Run every 15 minutes (standard schedule)
-    - cron: '*/15 * * * *'
-    
-    # GUARANTEED runs at 7:30 PM and 7:45 PM Eastern Time
-    # During EDT (Daylight Saving Time): UTC-4
-    - cron: '30 23 * * *'  # 7:30 PM EDT = 23:30 UTC
-    - cron: '45 23 * * *'  # 7:45 PM EDT = 23:45 UTC
-    
-    # During EST (Standard Time): UTC-5
-    - cron: '30 0 * * *'   # 7:30 PM EST = 00:30 UTC next day
-    - cron: '45 0 * * *'   # 7:45 PM EST = 00:45 UTC next day
-    
-  workflow_dispatch:
+    - cron: '*/15 * * * *'   # Every 15 minutes
+    - cron: '30 23 * * *'    # 7:30 PM EDT (23:30 UTC)
+    - cron: '45 23 * * *'    # 7:45 PM EDT (23:45 UTC)
+    - cron: '30 0 * * *'     # 7:30 PM EST (00:30 UTC next day)
+    - cron: '45 0 * * *'     # 7:45 PM EST (00:45 UTC next day)
+  workflow_dispatch:         # Allow manual trigger
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    
-    env:
-      TZ: America/New_York
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: '3.11'
       
-      - name: Install Chrome
-        uses: browser-actions/setup-chrome@latest
-        with:
-          chrome-version: stable
-      
-      - name: Install Python packages
-        run: pip install selenium webdriver-manager
-      
-      - name: Modify scraper for GitHub Actions
+      - name: Install Chrome and ChromeDriver
         run: |
-          cp scraper/bankshot_monitor_multi.py scraper_github.py
-          sed -i 's|/home/pi/tournament_data.json|tournament_data.json|g' scraper_github.py
-          sed -i 's|/var/www/html/tournament_data.json|tournament_data.json|g' scraper_github.py
-          sed -i 's|/home/pi/logs/tournament_monitor.log|scraper.log|g' scraper_github.py
-          python3 -c "
-          import re
-          with open('scraper_github.py', 'r') as f:
-              content = f.read()
-          old_pattern = r\"service = Service\(executable_path='/usr/bin/chromedriver'\)\"
-          new_code = \"from webdriver_manager.chrome import ChromeDriverManager\\n        service = Service(ChromeDriverManager().install())\"
-          content = re.sub(old_pattern, new_code, content)
-          with open('scraper_github.py', 'w') as f:
-              f.write(content)
-          "
+          sudo apt-get update
+          sudo apt-get install -y wget unzip chromium-browser chromium-chromedriver
+          
+      - name: Install Python dependencies
+        run: |
+          pip install selenium
+      
+      - name: Create necessary directories
+        run: |
+          mkdir -p logs
       
       - name: Run tournament scraper
-        run: python3 scraper_github.py || true
-        continue-on-error: true
-      
-      - name: Verify tournament data
         run: |
+          echo "===================="
+          echo "Starting scraper at $(date)"
+          echo "===================="
+          
+          # Run scraper and capture exit code
+          python3 scraper/bankshot_monitor_multi.py 2>&1 | tee scraper.log
+          SCRAPER_EXIT_CODE=${PIPESTATUS[0]}
+          
+          echo "===================="
+          echo "Scraper finished with exit code: $SCRAPER_EXIT_CODE"
+          echo "===================="
+          
+          # Show what was written
           if [ -f tournament_data.json ]; then
-            cat tournament_data.json | python3 -m json.tool
+            echo "tournament_data.json contents:"
+            cat tournament_data.json
           else
-            echo "{\"tournament_name\":\"No tournaments found\",\"status\":null,\"display_tournament\":false,\"last_updated\":\"$(date '+%Y-%m-%d %H:%M:%S')\"}" > tournament_data.json
+            echo "ERROR: tournament_data.json was not created!"
+          fi
+          
+          # Exit with scraper's exit code
+          exit $SCRAPER_EXIT_CODE
+        
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git add tournament_data.json scraper.log 2>/dev/null || true
+          
+          if git diff --staged --quiet; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No changes detected in tournament_data.json"
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected in tournament_data.json"
+            git diff --staged tournament_data.json
           fi
       
       - name: Commit and push changes
+        if: steps.check_changes.outputs.changes == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
-          git add tournament_data.json scraper.log 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "Update tournament data - $(date '+%Y-%m-%d %I:%M %p EST')"
-          git push --force-with-lease origin main || true
+          git commit -m "Update tournament data - $(date '+%Y-%m-%d %I:%M %p EST')"
+          git push origin main
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: No changes to commit
+        if: steps.check_changes.outputs.changes == 'false'
+        run: |
+          echo "No changes detected - skipping commit"
+          echo "This is normal if tournament data hasn't changed since last run"
+          echo "Current tournament_data.json timestamp: $(jq -r '.last_updated' tournament_data.json || echo 'N/A')"
+      
+      - name: Upload scraper log as artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: scraper-log-${{ github.run_number }}
+          path: scraper.log
+          retention-days: 7
