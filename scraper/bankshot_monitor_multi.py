@@ -35,12 +35,28 @@ def setup_logging():
     logger.setLevel(logging.INFO)
     logger.handlers = []
     
-    handler = RotatingFileHandler(LOG_FILE, maxBytes=5*1024*1024, backupCount=5)
-    formatter = logging.Formatter('[%(asctime)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+    # Create log directory if it doesn't exist
+    import os
+    log_dir = os.path.dirname(LOG_FILE)
+    if log_dir and not os.path.exists(log_dir):
+        try:
+            os.makedirs(log_dir, exist_ok=True)
+        except Exception as e:
+            print(f"Warning: Could not create log directory {log_dir}: {e}")
     
+    # Try to set up file logging, fall back to console-only if it fails
+    try:
+        handler = RotatingFileHandler(LOG_FILE, maxBytes=5*1024*1024, backupCount=5)
+        formatter = logging.Formatter('[%(asctime)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+        handler.setFormatter(formatter)
+        logger.addHandler(handler)
+    except Exception as e:
+        print(f"Warning: Could not set up file logging: {e}")
+        print("Continuing with console-only logging")
+    
+    # Always add console handler
     console_handler = logging.StreamHandler()
+    formatter = logging.Formatter('[%(asctime)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
     
@@ -543,7 +559,18 @@ def check_previous_tournament_still_active():
     """Check if previous tournament is still in progress (after-midnight scenario)"""
     driver = None
     try:
-        with open(DATA_FILE, 'r') as f:
+        # Try to read from multiple possible locations
+        import os
+        data_file = None
+        for path in [DATA_FILE, 'tournament_data.json']:
+            if os.path.exists(path):
+                data_file = path
+                break
+        
+        if not data_file:
+            return None
+            
+        with open(data_file, 'r') as f:
             prev_data = json.load(f)
         
         if prev_data.get('display_tournament') and prev_data.get('status') == 'In Progress':
@@ -632,14 +659,28 @@ def save_tournament_data(tournament):
         log(f"Status: {tournament['status']}")
         log(f"Display flag: {should_display}")
     
-    # Save to both locations
+    # Save to both locations, create directories if needed
+    import os
     for file_path in [DATA_FILE, DATA_FILE_BACKUP]:
         try:
+            # Create directory if it doesn't exist
+            dir_path = os.path.dirname(file_path)
+            if dir_path and not os.path.exists(dir_path):
+                os.makedirs(dir_path, exist_ok=True)
+            
             with open(file_path, 'w') as f:
                 json.dump(output_data, f, indent=2)
             log(f"✓ Saved to {file_path}")
         except Exception as e:
             log(f"✗ Error saving to {file_path}: {e}")
+    
+    # Also save to current directory for GitHub Actions
+    try:
+        with open('tournament_data.json', 'w') as f:
+            json.dump(output_data, f, indent=2)
+        log(f"✓ Saved to tournament_data.json (current directory)")
+    except Exception as e:
+        log(f"✗ Error saving to current directory: {e}")
 
 
 def main():
