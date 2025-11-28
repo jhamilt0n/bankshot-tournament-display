@@ -345,10 +345,12 @@ if (!$tournament_found) {
 <script>
 
 function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
+    // Check if media has expired based on end date
     if (m.hasEndDate && m.endDate && currentDate > m.endDate) {
         return false;
     }
     
+    // Per-day schedule mode (each day has its own start/end time)
     if (m.usePerDaySchedule && m.daySchedules) {
         var daySchedule = m.daySchedules[currentDay];
         if (!daySchedule || !daySchedule.enabled) {
@@ -361,25 +363,48 @@ function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
             var startTime = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
             var endTime = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
             
-            if (currentTime < startTime || currentTime > endTime) {
-                return false;
+            // Handle midnight crossover (e.g., 22:00 to 02:00)
+            if (endTime < startTime) {
+                // Schedule spans midnight - show if AFTER start OR BEFORE end
+                // Example: 22:00 to 02:00
+                // Show if: currentTime >= 22:00 (1320) OR currentTime <= 02:00 (120)
+                // Hide only if: currentTime is between 02:00 and 22:00
+                if (currentTime < startTime && currentTime > endTime) {
+                    return false;
+                }
+            } else {
+                // Normal schedule - show if BETWEEN start and end
+                if (currentTime < startTime || currentTime > endTime) {
+                    return false;
+                }
             }
         }
         return true;
     }
     
+    // Check if current day is in the selected days list
     if (m.scheduleDays && m.scheduleDays.length > 0 && m.scheduleDays.indexOf(currentDay) === -1) {
         return false;
     }
     
+    // Simple schedule mode (same time range for all selected days)
     if (m.scheduleStartTime && m.scheduleEndTime) {
         var startParts = m.scheduleStartTime.split(':');
         var endParts = m.scheduleEndTime.split(':');
         var startTime = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
         var endTime = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
         
-        if (currentTime < startTime || currentTime > endTime) {
-            return false;
+        // Handle midnight crossover
+        if (endTime < startTime) {
+            // Schedule spans midnight
+            if (currentTime < startTime && currentTime > endTime) {
+                return false;
+            }
+        } else {
+            // Normal schedule
+            if (currentTime < startTime || currentTime > endTime) {
+                return false;
+            }
         }
     }
     

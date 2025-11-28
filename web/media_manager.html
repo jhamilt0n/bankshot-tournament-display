@@ -411,6 +411,17 @@
             color: #666;
         }
 
+        .midnight-indicator {
+            font-size: 0.75rem;
+            color: #f59e0b;
+            font-weight: 600;
+            background: #fffbeb;
+            padding: 2px 8px;
+            border-radius: 3px;
+            display: inline-block;
+            margin-left: 4px;
+        }
+
         .schedule-mode-toggle {
             margin-bottom: 12px;
         }
@@ -468,6 +479,29 @@
         input:checked + .slider:before {
             transform: translateX(26px);
         }
+
+        .info-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .info-box p {
+            color: #856404;
+            margin: 0;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .info-box ul {
+            margin: 10px 0 0 20px;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
@@ -492,6 +526,16 @@
                     <div class="stat-value" id="totalDuration">0s</div>
                     <div class="stat-label">Total Duration</div>
                 </div>
+            </div>
+
+            <div class="info-box">
+                <p><strong>💡 Scheduling Tips:</strong></p>
+                <ul>
+                    <li><strong>Drag & Drop:</strong> Reorder cards to change display sequence</li>
+                    <li><strong>Midnight Crossover:</strong> Set end time earlier than start time (e.g., 10:00 PM to 2:00 AM)</li>
+                    <li><strong>Per-Day Mode:</strong> Different schedules for each day of the week</li>
+                    <li><strong>Display On:</strong> Choose "Ads" for HDMI TV, "Tournaments" for Chromecast during tournaments</li>
+                </ul>
             </div>
 
             <div class="url-section">
@@ -520,12 +564,6 @@
                     Choose Files
                 </button>
                 <input type="file" id="fileInput" accept="image/*,video/*" multiple onchange="handleFiles(this.files)">
-            </div>
-
-            <div style="background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-                <p style="color: #856404; margin: 0;">
-                    <strong>💡 Tip:</strong> Drag and drop cards to reorder them! The display order matches the order shown here.
-                </p>
             </div>
 
             <div id="mediaContainer">
@@ -728,6 +766,16 @@
             });
         }
 
+        function checkMidnightCrossover(startTime, endTime) {
+            // Convert time strings to minutes
+            const startParts = startTime.split(':');
+            const endParts = endTime.split(':');
+            const startMinutes = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+            const endMinutes = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+            
+            return endMinutes < startMinutes;
+        }
+
         function renderMedia() {
             const container = document.getElementById('mediaContainer');
             
@@ -862,6 +910,8 @@
                 const daySchedules = item.daySchedules || {};
                 scheduleHTML = days.map(day => {
                     const schedule = daySchedules[day] || { enabled: true, startTime: '00:00', endTime: '23:59' };
+                    const crossesMidnight = checkMidnightCrossover(schedule.startTime, schedule.endTime);
+                    
                     return `
                         <div class="day-time-row">
                             <label class="day-checkbox-label">
@@ -880,6 +930,7 @@
                                        value="${schedule.endTime || '23:59'}"
                                        onchange="updateDayScheduleTime('${item.id}', '${day}', 'end', this.value)"
                                        ${!schedule.enabled ? 'disabled' : ''}>
+                                ${crossesMidnight ? '<span class="midnight-indicator">⏰ Next day</span>' : ''}
                             </div>
                         </div>
                     `;
@@ -898,6 +949,11 @@
                     </label>
                 `).join('');
                 
+                const crossesMidnight = checkMidnightCrossover(
+                    item.scheduleStartTime || '00:00', 
+                    item.scheduleEndTime || '23:59'
+                );
+                
                 scheduleHTML = `
                     <div style="display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px;">
                         ${dayCheckboxes}
@@ -912,6 +968,7 @@
                                value="${item.scheduleEndTime || '23:59'}"
                                onchange="updateScheduleEndTime('${item.id}', this.value)"
                                style="padding: 5px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.85rem;">
+                        ${crossesMidnight ? '<span class="midnight-indicator">⏰ Spans midnight</span>' : ''}
                     </div>
                 `;
             }
@@ -945,14 +1002,14 @@
                                            ${item.displayOnAds !== false ? 'checked' : ''}
                                            onchange="updateDisplayOnAds('${item.id}', this.checked)"
                                            style="margin-right: 6px;">
-                                    Ads
+                                    Ads (HDMI TV)
                                 </label>
                                 <label style="display: inline-flex; align-items: center; font-size: 0.9rem;">
                                     <input type="checkbox" 
                                            ${item.displayOnTournaments !== false ? 'checked' : ''}
                                            onchange="updateDisplayOnTournaments('${item.id}', this.checked)"
                                            style="margin-right: 6px;">
-                                    Tournaments
+                                    Tournaments (Chromecast)
                                 </label>
                             </div>
                         </div>
@@ -960,7 +1017,7 @@
                         <div class="day-time-schedule">
                             <div class="schedule-mode-toggle">
                                 <label>
-                                    <span style="font-weight: 600; margin-right: 8px;">Per-Day Times:</span>
+                                    <span style="font-weight: 600; margin-right: 8px;">Per-Day Schedule:</span>
                                     <label class="toggle-switch">
                                         <input type="checkbox" 
                                                ${usePerDay ? 'checked' : ''}
@@ -1057,6 +1114,7 @@
                     item.daySchedules[day].endTime = value;
                 }
                 saveMedia();
+                renderMedia();
             }
         }
 
@@ -1094,6 +1152,7 @@
             if (item) {
                 item.scheduleStartTime = time;
                 saveMedia();
+                renderMedia();
             }
         }
 
@@ -1102,6 +1161,7 @@
             if (item) {
                 item.scheduleEndTime = time;
                 saveMedia();
+                renderMedia();
             }
         }
 
