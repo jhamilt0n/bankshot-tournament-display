@@ -12,6 +12,7 @@ import json
 import sys
 import re
 import logging
+import random
 from logging.handlers import RotatingFileHandler
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -20,6 +21,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.webdriver.common.action_chains import ActionChains
 
 
 # Configuration
@@ -71,6 +73,75 @@ def log(message):
     logging.info(message)
 
 
+def human_delay(min_seconds=1, max_seconds=3):
+    """Add random delay to simulate human behavior"""
+    delay = random.uniform(min_seconds, max_seconds)
+    time.sleep(delay)
+
+
+def simulate_human_mouse_movement(driver):
+    """Simulate random mouse movements like a human"""
+    try:
+        action = ActionChains(driver)
+        # Get window size
+        window_size = driver.get_window_size()
+        width = window_size['width']
+        height = window_size['height']
+        
+        # Random movements (3-5 moves)
+        num_moves = random.randint(3, 5)
+        for _ in range(num_moves):
+            x = random.randint(100, width - 100)
+            y = random.randint(100, height - 100)
+            action.move_by_offset(x - width//2, y - height//2)
+            action.perform()
+            time.sleep(random.uniform(0.1, 0.3))
+            action = ActionChains(driver)  # Reset chain
+    except Exception:
+        pass  # Silently fail - not critical
+
+
+def simulate_human_scrolling(driver):
+    """Simulate human-like scrolling behavior"""
+    try:
+        # Get page height
+        total_height = driver.execute_script("return document.body.scrollHeight")
+        viewport_height = driver.execute_script("return window.innerHeight")
+        
+        # Scroll down in chunks with random pauses
+        current_position = 0
+        scroll_increment = viewport_height // 3
+        
+        while current_position < total_height:
+            # Random scroll amount (between 1/4 and 1/2 viewport)
+            scroll_by = random.randint(scroll_increment, scroll_increment * 2)
+            current_position += scroll_by
+            
+            driver.execute_script(f"window.scrollTo(0, {current_position});")
+            
+            # Random pause between scrolls (like human reading)
+            time.sleep(random.uniform(0.3, 0.8))
+            
+            # Sometimes scroll back up a bit (like re-reading)
+            if random.random() < 0.2:  # 20% chance
+                back_scroll = random.randint(50, 150)
+                current_position -= back_scroll
+                driver.execute_script(f"window.scrollTo(0, {current_position});")
+                time.sleep(random.uniform(0.2, 0.5))
+        
+        # Scroll back to top naturally
+        scroll_speed = random.randint(3, 6)
+        for _ in range(scroll_speed):
+            current_position -= total_height // scroll_speed
+            driver.execute_script(f"window.scrollTo(0, {max(0, current_position)});")
+            time.sleep(random.uniform(0.1, 0.3))
+        
+        driver.execute_script("window.scrollTo(0, 0);")
+        time.sleep(random.uniform(0.5, 1.0))
+    except Exception:
+        pass  # Silently fail - not critical
+
+
 def setup_driver(headless=True):
     chrome_options = Options()
     
@@ -85,6 +156,11 @@ def setup_driver(headless=True):
     chrome_options.add_argument('--start-maximized')
     chrome_options.add_argument('--disable-extensions')
     
+    # Randomize window size slightly to avoid fingerprinting
+    width = random.randint(1920, 1930)
+    height = random.randint(1080, 1090)
+    chrome_options.add_argument(f'--window-size={width},{height}')
+    
     # Make it look like a real browser
     chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
     chrome_options.add_argument('--disable-blink-features=AutomationControlled')
@@ -93,14 +169,22 @@ def setup_driver(headless=True):
     chrome_options.add_argument('--lang=en-US')
     
     # Disable automation flags
-    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
     
-    # Set timezone using prefs
+    # Additional stealth settings
+    chrome_options.add_argument('--disable-web-security')
+    chrome_options.add_argument('--disable-features=IsolateOrigins,site-per-process')
+    chrome_options.add_argument('--disable-site-isolation-trials')
+    
+    # Set realistic prefs
     prefs = {
         "profile.default_content_setting_values.notifications": 2,
         "credentials_enable_service": False,
-        "profile.password_manager_enabled": False
+        "profile.password_manager_enabled": False,
+        "profile.default_content_settings.popups": 0,
+        "directory_upgrade": True,
+        "plugins.always_open_pdf_externally": True
     }
     chrome_options.add_experimental_option("prefs", prefs)
     
@@ -116,6 +200,37 @@ def setup_driver(headless=True):
         # Set timezone to Eastern Time
         driver.execute_cdp_cmd('Emulation.setTimezoneOverride', {'timezoneId': 'America/New_York'})
         
+        # Execute stealth JavaScript to hide automation
+        stealth_js = """
+        Object.defineProperty(navigator, 'webdriver', {
+            get: () => undefined
+        });
+        
+        // Overwrite the `plugins` property to use a custom getter
+        Object.defineProperty(navigator, 'plugins', {
+            get: () => [1, 2, 3, 4, 5]
+        });
+        
+        // Overwrite the `languages` property to use a custom getter
+        Object.defineProperty(navigator, 'languages', {
+            get: () => ['en-US', 'en']
+        });
+        
+        // Overwrite the `chrome` property
+        window.chrome = {
+            runtime: {}
+        };
+        
+        // Pass the Permissions Test
+        const originalQuery = window.navigator.permissions.query;
+        window.navigator.permissions.query = (parameters) => (
+            parameters.name === 'notifications' ?
+                Promise.resolve({ state: Notification.permission }) :
+                originalQuery(parameters)
+        );
+        """
+        driver.execute_script(stealth_js)
+        
         return driver
     except Exception as e:
         log(f"Error setting up ChromeDriver: {e}")
@@ -130,7 +245,15 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
         
         log(f"Fetching details from: {tournament_url}")
         driver.get(tournament_url)
-        time.sleep(3)
+        
+        # Random delay instead of fixed 3 seconds
+        human_delay(2, 4)
+        
+        # Simulate human scrolling behavior
+        simulate_human_scrolling(driver)
+        
+        # Random mouse movements
+        simulate_human_mouse_movement(driver)
         
         details = {
             'start_time': None,
@@ -308,28 +431,30 @@ def search_tournaments_on_page(driver):
             log("✗ Could not find search input")
             return []
         
+        # Human-like interaction with search box
         search_input.click()
-        time.sleep(0.5)
+        human_delay(0.3, 0.7)
         search_input.clear()
-        time.sleep(0.5)
+        human_delay(0.2, 0.5)
         
+        # Type like a human with random delays between characters
         for char in search_term:
             search_input.send_keys(char)
-            time.sleep(0.05)
+            time.sleep(random.uniform(0.05, 0.15))  # Randomized typing speed
         
-        time.sleep(1)
+        human_delay(0.5, 1.2)  # Pause before hitting enter (like thinking)
         
         from selenium.webdriver.common.keys import Keys
         search_input.send_keys(Keys.ENTER)
         
         log("Waiting for search results...")
-        time.sleep(8)
+        human_delay(3, 5)  # Random wait for results
         
-        # Scroll to load all content
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(2)
-        driver.execute_script("window.scrollTo(0, 0);")
-        time.sleep(2)
+        # Human-like scrolling to load all content
+        simulate_human_scrolling(driver)
+        
+        # Small pause at top after scrolling
+        human_delay(1, 2)
         
         # Find tournament cards
         card_selectors = [
@@ -540,7 +665,12 @@ def get_all_todays_tournaments():
             log("✗ Page load timeout")
             return []
         
-        time.sleep(3)
+        # Add human-like delay after page load
+        human_delay(2, 4)
+        
+        # Simulate some initial browsing behavior
+        simulate_human_mouse_movement(driver)
+        human_delay(1, 2)
         
         all_tournaments = search_tournaments_on_page(driver)
         
@@ -644,7 +774,10 @@ def check_previous_tournament_still_active():
                     try:
                         driver = setup_driver(headless=True)
                         driver.get(tournament_url)
-                        time.sleep(3)
+                        human_delay(2, 4)
+                        
+                        # Simulate human behavior
+                        simulate_human_scrolling(driver)
                         
                         page_text = driver.page_source
                         
