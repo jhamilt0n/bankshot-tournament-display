@@ -3,13 +3,13 @@
   "tournament_url": "https://digitalpool.com/tournaments/20251128-friday-night-8-ball-tournament/",
   "venue": "Bankshot Billiards, Hilliard",
   "date": "2025/11/28",
-  "start_time": null,
+  "start_time": "7:00 PM",
   "status": "Upcoming",
   "player_count": 0,
-  "entry_fee": 15,
+  "entry_fee": 20,
   "format_type": "Singles",
   "has_digital_pool_payouts": false,
   "digital_pool_payouts": {},
-  "last_updated": "2025-11-28 11:52:23",
+  "last_updated": "2025-11-28 12:42:22",
   "display_tournament": true
 }
