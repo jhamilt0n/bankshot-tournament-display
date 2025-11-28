@@ -19,7 +19,7 @@ GITHUB_REPO_URL = "https://github.com/jhamilt0n/bankshot-tournament-display.git"
 LOCAL_REPO_PATH = "/tmp/tournament-scraper"
 OUTPUT_FILE = "/var/www/html/tournament_data.json"
 LOG_FILE = "/home/pi/logs/tournament_monitor.log"
-CHECK_INTERVAL = 60  # seconds
+CHECK_INTERVAL = 300  # seconds
 
 # Setup logging with rotation (5MB max, keep 5 backups)
 logger = logging.getLogger()
