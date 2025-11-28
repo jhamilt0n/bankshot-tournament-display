@@ -2,7 +2,7 @@ name: Scrape Tournament Data
 
 on:
   schedule:
-    - cron: '*/15 * * * *'   # Every 15 minutes
+    - cron: '*/60 * * * *'   # Every 60 minutes
     - cron: '30 23 * * *'    # 7:30 PM EDT (23:30 UTC)
     - cron: '45 23 * * *'    # 7:45 PM EDT (23:45 UTC)
     - cron: '30 0 * * *'     # 7:30 PM EST (00:30 UTC next day)
