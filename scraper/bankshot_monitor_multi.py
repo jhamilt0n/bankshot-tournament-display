@@ -901,7 +901,7 @@ def main():
         log("\n" + "="*60)
         log("MONITOR COMPLETED")
         log("="*60)
-        sys.exit(0 if prev_tournament_data.get('display_tournament') else 1)
+        sys.exit(0)  # Scraper completed successfully
     
     # Get all today's tournaments
     tournaments = get_all_todays_tournaments()
@@ -916,7 +916,7 @@ def main():
     log("MONITOR COMPLETED")
     log("="*60)
     
-    sys.exit(0 if selected_tournament else 1)
+    sys.exit(0)  # Scraper completed successfully
 
 
 if __name__ == "__main__":
