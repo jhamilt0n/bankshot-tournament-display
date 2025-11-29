@@ -1,17 +1,15 @@
 {
-  "tournament_name": "2025/11/28 Friday Night 8-Ball Tournament",
-  "tournament_url": "https://digitalpool.com/tournaments/20251128-friday-night-8-ball-tournament/",
+  "tournament_name": "2025/11/29 Saturday Night 8-Ball Tournament",
+  "tournament_url": "https://digitalpool.com/tournaments/20251129-saturday-night-8-ball-tournament/",
   "venue": "Bankshot Billiards, Hilliard",
-  "date": "2025/11/28",
-  "start_time": "7:22 PM",
-  "status": "Completed",
-  "player_count": 17,
+  "date": "2025/11/29",
+  "start_time": "7:00 PM",
+  "status": "Upcoming",
+  "player_count": 0,
   "entry_fee": 20,
   "format_type": "Singles",
-  "has_digital_pool_payouts": true,
-  "digital_pool_payouts": {
-    "1st": "$180"
-  },
-  "last_updated": "2025-11-29 03:08:04",
-  "display_tournament": false
+  "has_digital_pool_payouts": false,
+  "digital_pool_payouts": {},
+  "last_updated": "2025-11-29 17:13:06",
+  "display_tournament": true
 }
