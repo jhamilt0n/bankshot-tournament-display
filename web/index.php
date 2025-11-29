@@ -74,7 +74,7 @@
             left: 0;
             width: 20vw;
             background: linear-gradient(180deg, #1e7e34 0%, #0d4d1f 100%);
-            padding: 1vh 0.8vw;
+            padding: 1.5vh 1vw;
             display: flex;
             flex-direction: column;
             justify-content: space-evenly;
@@ -102,105 +102,105 @@
 
         .qr-container {
             text-align: center;
-            margin: 0.5vh 0;
+            margin: 1vh 0;
             background: white;
-            padding: 0.8vh;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            width: 90%;
+            padding: 1.5vh;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+            width: 95%;
         }
 
         .qr-container img {
             width: 100%;
-            max-width: 140px;
-            border-radius: 6px;
+            max-width: 220px;
+            border-radius: 8px;
         }
 
         .qr-label {
             font-family: 'Oswald', sans-serif;
-            font-size: 1.1vw;
+            font-size: 1.6vw;
             color: #1e7e34;
-            margin-top: 0.5vh;
-            font-weight: 600;
+            margin-top: 1vh;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
         }
 
         .player-count {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 3.5vw;
+            font-size: 4.2vw;
             color: #ffffff;
             text-align: center;
-            margin: 0.8vh 0;
+            margin: 1.2vh 0;
             font-weight: bold;
             text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
             background: rgba(255, 255, 255, 0.15);
-            padding: 0.8vh;
+            padding: 1.2vh;
             border-radius: 10px;
             width: 100%;
         }
 
         .entry-fee {
             font-family: 'Oswald', sans-serif;
-            font-size: 1.6vw;
+            font-size: 2vw;
             color: #ffffff;
             text-align: center;
-            margin: 0.5vh 0;
-            font-weight: 500;
+            margin: 0.8vh 0;
+            font-weight: 600;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
 
         .payouts-header {
             font-family: 'Oswald', sans-serif;
-            font-size: 1.6vw;
+            font-size: 2vw;
             color: #ffffff;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin: 0.8vh 0 0.3vh 0;
-            font-weight: 600;
+            margin: 1vh 0 0.5vh 0;
+            font-weight: 700;
             text-align: center;
             border-bottom: 3px solid rgba(255, 255, 255, 0.3);
-            padding-bottom: 0.3vh;
+            padding-bottom: 0.5vh;
             width: 100%;
         }
 
         .payouts {
             font-family: 'Roboto', sans-serif;
-            font-size: 1.5vw;
+            font-size: 1.8vw;
             color: #ffffff;
             text-align: center;
-            line-height: 1.1;
+            line-height: 1.2;
             width: 100%;
         }
 
         .payouts div {
-            margin: 0.2vh 0;
-            padding: 0.4vh;
+            margin: 0.3vh 0;
+            padding: 0.6vh;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 5px;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .payouts .first-place {
             background: rgba(255, 215, 0, 0.3);
             font-weight: 700;
-            font-size: 2vw;
+            font-size: 2.4vw;
             border: 2px solid rgba(255, 215, 0, 0.6);
         }
 
         /* Dynamic scaling for many payouts */
         .payouts.compact {
-            font-size: 1.3vw;
-            line-height: 1.0;
+            font-size: 1.5vw;
+            line-height: 1.1;
         }
 
         .payouts.compact div {
-            margin: 0.15vh 0;
-            padding: 0.3vh;
+            margin: 0.2vh 0;
+            padding: 0.4vh;
         }
 
         .payouts.compact .first-place {
-            font-size: 1.8vw;
+            font-size: 2vw;
         }
 
         iframe {
