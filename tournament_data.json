@@ -8,8 +8,10 @@
   "player_count": 17,
   "entry_fee": 20,
   "format_type": "Singles",
-  "has_digital_pool_payouts": false,
-  "digital_pool_payouts": {},
-  "last_updated": "2025-11-29 00:55:54",
+  "has_digital_pool_payouts": true,
+  "digital_pool_payouts": {
+    "1st": "$180"
+  },
+  "last_updated": "2025-11-29 01:03:47",
   "display_tournament": true
 }
