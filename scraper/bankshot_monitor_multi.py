@@ -13,7 +13,7 @@ import sys
 import re
 import logging
 import random
-import pytz
+from zoneinfo import ZoneInfo
 from logging.handlers import RotatingFileHandler
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -680,8 +680,7 @@ def get_all_todays_tournaments():
             return []
         
         # Filter to today's date - USE EASTERN TIME, NOT UTC
-        import pytz
-        eastern = pytz.timezone('America/New_York')
+        eastern = ZoneInfo('America/New_York')
         today_eastern = datetime.datetime.now(eastern).date()
         today_str = today_eastern.strftime("%Y/%m/%d")
         
@@ -771,7 +770,7 @@ def check_previous_tournament_still_active():
                 prev_date = datetime.datetime.strptime(tournament_date, "%Y/%m/%d").date()
                 
                 # Use Eastern time, not UTC
-                eastern = pytz.timezone('America/New_York')
+                eastern = ZoneInfo('America/New_York')
                 today_eastern = datetime.datetime.now(eastern).date()
                 
                 if prev_date < today_eastern:
