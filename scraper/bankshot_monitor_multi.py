@@ -13,6 +13,7 @@ import sys
 import re
 import logging
 import random
+import pytz
 from logging.handlers import RotatingFileHandler
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -678,13 +679,15 @@ def get_all_todays_tournaments():
             log("No tournaments found")
             return []
         
-        # Filter to today's date
-        today = datetime.date.today()
-        today_str = today.strftime("%Y/%m/%d")
+        # Filter to today's date - USE EASTERN TIME, NOT UTC
+        import pytz
+        eastern = pytz.timezone('America/New_York')
+        today_eastern = datetime.datetime.now(eastern).date()
+        today_str = today_eastern.strftime("%Y/%m/%d")
         
         todays_tournaments = [t for t in all_tournaments if t['date'] == today_str]
         
-        log(f"\nFound {len(todays_tournaments)} tournament(s) for today ({today_str})")
+        log(f"\nFound {len(todays_tournaments)} tournament(s) for today ({today_str} Eastern)")
         
         for t in todays_tournaments:
             log(f"  Tournament: {t['name']}")
@@ -766,9 +769,12 @@ def check_previous_tournament_still_active():
             
             if tournament_date and tournament_url:
                 prev_date = datetime.datetime.strptime(tournament_date, "%Y/%m/%d").date()
-                today = datetime.date.today()
                 
-                if prev_date < today:
+                # Use Eastern time, not UTC
+                eastern = pytz.timezone('America/New_York')
+                today_eastern = datetime.datetime.now(eastern).date()
+                
+                if prev_date < today_eastern:
                     log(f"Previous tournament from {tournament_date} was 'In Progress' - verifying...")
                     
                     try:
