@@ -890,13 +890,28 @@ def main():
     
     if prev_tournament_data:
         log("Using previous tournament data (after-midnight scenario)")
+        
+        # Use the same save logic as save_tournament_data()
+        import os
+        for file_path in [DATA_FILE, DATA_FILE_BACKUP]:
+            try:
+                dir_path = os.path.dirname(file_path)
+                if dir_path and not os.path.exists(dir_path):
+                    os.makedirs(dir_path, exist_ok=True)
+                
+                with open(file_path, 'w') as f:
+                    json.dump(prev_tournament_data, f, indent=2)
+                log(f"✓ Saved to {file_path}")
+            except Exception as e:
+                log(f"✗ Error saving to {file_path}: {e}")
+        
+        # Also save to current directory for GitHub Actions
         try:
-            with open(DATA_FILE, 'w') as f:
+            with open('tournament_data.json', 'w') as f:
                 json.dump(prev_tournament_data, f, indent=2)
-            with open(DATA_FILE_BACKUP, 'w') as f:
-                json.dump(prev_tournament_data, f, indent=2)
+            log(f"✓ Saved to tournament_data.json (current directory)")
         except Exception as e:
-            log(f"✗ Error saving: {e}")
+            log(f"✗ Error saving to current directory: {e}")
         
         log("\n" + "="*60)
         log("MONITOR COMPLETED")
