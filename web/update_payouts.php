@@ -33,7 +33,15 @@ $OUTPUT_CELLS = [
     'G11', // 4th place
     'G12', // 5th-6th place
     'G13', // 7th-8th place
-    'G14'  // 9th-12th place
+    'G14', // 9th-12th place
+    'G15', // 13th-16th place
+    'G16', // 17th-24th place
+    'G17', // 25th-32nd place
+    'G18', // 33rd-48th place
+    'G19', // 49th-64th place
+    'G20', // 65th-96th place
+    'G21', // 97th-128th place
+    'G22'  // 129th-256th place
 ];
 
 // Log function
@@ -122,10 +130,20 @@ try {
         exit(0);
     }
     
-    // Calculate payouts
+    // Calculate payouts (limit to top 12 places to fit sheet layout)
     logMessage("Calculating payouts...");
     $calculator = new TournamentPayoutCalculator($entryFee, $playerCount);
-    $payoutsArray = $calculator->getPayoutsArray();
+    $allPayouts = $calculator->getPayoutsArray();
+    
+    // Only use first 12 places (fits in 7 output cells with ties)
+    $payoutsArray = [];
+    foreach ($allPayouts as $place => $amount) {
+        if ($place <= 12) {
+            $payoutsArray[$place] = $amount;
+        }
+    }
+    
+    logMessage("Using first 12 places from " . count($allPayouts) . " total places");
     
     // Format payouts for output
     $values = [];

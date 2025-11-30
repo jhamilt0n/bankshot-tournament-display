@@ -29,11 +29,19 @@ $OUTPUT_SHEET = 'Special Event Payout Calculator';
 $OUTPUT_CELLS = [
     'E1',  // 1st place
     'E2',  // 2nd place
-    'E3', // 3rd place
-    'E4', // 4th place
-    'E5', // 5th-6th place
-    'E6', // 7th-8th place
-    'E7'  // 9th-12th place
+    'E3',  // 3rd place
+    'E4',  // 4th place
+    'E5',  // 5th-6th place
+    'E6',  // 7th-8th place
+    'E7',  // 9th-12th place
+    'E8',  // 13th-16th place
+    'E9',  // 17th-24th place
+    'E10', // 25th-32nd place
+    'E11', // 33rd-48th place
+    'E12', // 49th-64th place
+    'E13', // 65th-96th place
+    'E14', // 97th-128th place
+    'E15'  // 129th-256th place
 ];
 
 // Log function
@@ -132,27 +140,45 @@ try {
         exit(0);
     }
     
-    // Calculate payouts with added money
+    // Calculate payouts with added money (limit to top 12 places to fit sheet layout)
     logMessage("Calculating payouts...");
     $calculator = new TournamentPayoutCalculator($entryFee, $playerCount, $addedMoney);
-    $payoutsArray = $calculator->getPayoutsArray();
+    $allPayouts = $calculator->getPayoutsArray();
+    
+    // Only use first 12 places (fits in 7 output cells with ties)
+    $payoutsArray = [];
+    foreach ($allPayouts as $place => $amount) {
+        if ($place <= 12) {
+            $payoutsArray[$place] = $amount;
+        }
+    }
+    
+    logMessage("Using first 12 places from " . count($allPayouts) . " total places");
     
     // Format payouts for output
     $values = [];
     
     // Map place numbers to output cells
     $placeMapping = [
-        1 => 0,  // E1 - 1st place
-        2 => 1,  // E2 - 2nd place
-        3 => 2,  // E3 - 3rd place
-        4 => 3,  // E4 - 4th place
-        5 => 4,  // E5 - 5th-6th place (use 5)
-        7 => 5,  // E6 - 7th-8th place (use 7)
-        9 => 6   // E7 - 9th-12th place (use 9)
+        1 => 0,   // E1 - 1st place
+        2 => 1,   // E2 - 2nd place
+        3 => 2,   // E3 - 3rd place
+        4 => 3,   // E4 - 4th place
+        5 => 4,   // E5 - 5th-6th place (use 5)
+        7 => 5,   // E6 - 7th-8th place (use 7)
+        9 => 6,   // E7 - 9th-12th place (use 9)
+        13 => 7,  // E8 - 13th-16th place (use 13)
+        17 => 8,  // E9 - 17th-24th place (use 17)
+        25 => 9,  // E10 - 25th-32nd place (use 25)
+        33 => 10, // E11 - 33rd-48th place (use 33)
+        49 => 11, // E12 - 49th-64th place (use 49)
+        65 => 12, // E13 - 65th-96th place (use 65)
+        97 => 13, // E14 - 97th-128th place (use 97)
+        129 => 14 // E15 - 129th-256th place (use 129)
     ];
     
     // Initialize all cells as empty
-    for ($i = 0; $i < 7; $i++) {
+    for ($i = 0; $i < 15; $i++) {
         $values[$i] = [''];
     }
     
@@ -168,6 +194,22 @@ try {
                 $values[$index] = ['$' . number_format($amount, 2) . ' (7th-8th)'];
             } elseif ($place == 9) {
                 $values[$index] = ['$' . number_format($amount, 2) . ' (9th-12th)'];
+            } elseif ($place == 13) {
+                $values[$index] = ['$' . number_format($amount, 2) . ' (13th-16th)'];
+            } elseif ($place == 17) {
+                $values[$index] = ['$' . number_format($amount, 2) . ' (17th-24th)'];
+            } elseif ($place == 25) {
+                $values[$index] = ['$' . number_format($amount, 2) . ' (25th-32nd)'];
+            } elseif ($place == 33) {
+                $values[$index] = ['$' . number_format($amount, 2) . ' (33rd-48th)'];
+            } elseif ($place == 49) {
+                $values[$index] = ['$' . number_format($amount, 2) . ' (49th-64th)'];
+            } elseif ($place == 65) {
+                $values[$index] = ['$' . number_format($amount, 2) . ' (65th-96th)'];
+            } elseif ($place == 97) {
+                $values[$index] = ['$' . number_format($amount, 2) . ' (97th-128th)'];
+            } elseif ($place == 129) {
+                $values[$index] = ['$' . number_format($amount, 2) . ' (129th-256th)'];
             } else {
                 $values[$index] = ['$' . number_format($amount, 2)];
             }
