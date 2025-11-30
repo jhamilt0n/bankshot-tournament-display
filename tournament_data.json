@@ -3,13 +3,13 @@
   "tournament_url": "https://digitalpool.com/tournaments/20251129-saturday-night-8-ball-tournament/",
   "venue": "Bankshot Billiards, Hilliard",
   "date": "2025/11/29",
-  "start_time": "7:00 PM",
-  "status": "Upcoming",
-  "player_count": 0,
+  "start_time": "7:16 PM",
+  "status": "In Progress",
+  "player_count": 19,
   "entry_fee": 20,
   "format_type": "Singles",
   "has_digital_pool_payouts": false,
   "digital_pool_payouts": {},
-  "last_updated": "2025-11-29 23:54:56",
+  "last_updated": "2025-11-30 00:22:50",
   "display_tournament": true
 }
