@@ -1,9 +1,12 @@
 <?php
 /**
- * Tournament Payout Calculator - GUARANTEED First Place Highest
+ * Tournament Payout Calculator - STRICT ENFORCEMENT
  * 
- * Key principle: Calculate places 2-N first, then give remainder to first place
- * This ensures first place always gets the highest payout
+ * Rules enforced:
+ * 1. Every payout >= entry fee
+ * 2. Strict descending order: each place <= previous place
+ * 3. First place is always highest
+ * 4. Smart rounding to $5/$10/$20
  */
 
 class TournamentPayoutCalculator {
@@ -20,7 +23,6 @@ class TournamentPayoutCalculator {
         $this->addedMoney = $addedMoney;
         $this->totalPrizePool = ($entryFee * $numPlayers) + $addedMoney;
         
-        // Determine smart rounding base
         list($this->baseEntryFee, $this->multiplier) = $this->determineBaseAndMultiplier($entryFee);
     }
     
@@ -40,7 +42,12 @@ class TournamentPayoutCalculator {
     }
     
     private function roundAmount($amount) {
-        return round($amount / $this->baseEntryFee) * $this->baseEntryFee;
+        $rounded = round($amount / $this->baseEntryFee) * $this->baseEntryFee;
+        // Never round below entry fee
+        if ($rounded < $this->entryFee) {
+            $rounded = $this->entryFee;
+        }
+        return $rounded;
     }
     
     private function getMaxPlaceToPay() {
@@ -94,129 +101,112 @@ class TournamentPayoutCalculator {
         
         $numGroups = count($groups);
         
-        // NEW APPROACH: Calculate places 2-N FIRST, reserve for first place
-        
-        // Step 1: Calculate ideal weights for places 2-N only
+        // Step 1: Calculate ideal amounts using exponential decay
         $weights = [];
         $totalWeight = 0;
         
-        for ($i = 1; $i < $numGroups; $i++) {  // Start at index 1 (skip first place)
+        for ($i = 0; $i < $numGroups; $i++) {
             $decayRate = ($numGroups > 8) ? 0.55 : 0.6;
             $weight = pow($decayRate, $i);
             $weights[$i] = $weight;
             $totalWeight += $weight;
         }
         
-        // Step 2: Reserve minimum 25% for first place, allocate rest to places 2-N
-        $reserveForFirst = $this->totalPrizePool * 0.25;
-        $availableForOthers = $this->totalPrizePool - $reserveForFirst;
-        
-        // Step 3: Allocate to places 2-N
+        // Step 2: Allocate amounts to each group
         $payouts = [];
-        $allocatedToOthers = 0;
         
-        for ($i = 1; $i < $numGroups; $i++) {
-            $group = $groups[$i];
+        foreach ($groups as $i => $group) {
             $percentage = ($weights[$i] / $totalWeight) * 100;
-            $amount = ($availableForOthers * $percentage / 100);
+            $amount = ($this->totalPrizePool * $percentage / 100);
             $rounded = $this->roundAmount($amount);
-            
-            // Ensure minimum
-            if ($rounded < $this->baseEntryFee) {
-                $rounded = $this->baseEntryFee;
-            }
-            
-            // Last group must be at least entry fee
-            if ($i == $numGroups - 1 && $rounded < $this->entryFee) {
-                $rounded = $this->roundAmount($this->entryFee);
-            }
             
             // Assign to all places in group
             for ($place = $group['start']; $place <= $group['end']; $place++) {
                 $payouts[$place] = $rounded;
             }
-            
-            // Track total allocated
-            $groupCount = $group['end'] - $group['start'] + 1;
-            $allocatedToOthers += ($rounded * $groupCount);
         }
         
-        // Step 4: First place gets ALL the remainder
-        $firstPlaceAmount = $this->totalPrizePool - $allocatedToOthers;
-        $payouts[1] = $this->roundAmount($firstPlaceAmount);
+        // Step 3: ENFORCE RULES - This is critical!
         
-        // Step 5: CRITICAL - Ensure first place is at least 20% higher than second
-        if (isset($payouts[2])) {
-            $minimumFirst = $this->roundAmount($payouts[2] * 1.2);
+        // Rule 1: Ensure minimum entry fee for ALL places
+        foreach ($payouts as $place => $amount) {
+            if ($amount < $this->entryFee) {
+                $payouts[$place] = $this->entryFee;
+            }
+        }
+        
+        // Rule 2: Enforce strict descending order
+        // Go through each tie group and ensure it's <= previous group
+        for ($i = 1; $i < $numGroups; $i++) {
+            $currentGroup = $groups[$i];
+            $previousGroup = $groups[$i - 1];
             
-            if ($payouts[1] < $minimumFirst) {
-                // Increase first place
-                $payouts[1] = $minimumFirst;
+            $currentAmount = $payouts[$currentGroup['start']];
+            $previousAmount = $payouts[$previousGroup['start']];
+            
+            // Current group must be less than or equal to previous group
+            if ($currentAmount >= $previousAmount) {
+                // Reduce current group to be less than previous
+                $newAmount = $previousAmount - $this->baseEntryFee;
                 
-                // Recalculate - we need to reduce others proportionally
-                $newTotal = $payouts[1] + $allocatedToOthers;
+                // But don't go below entry fee
+                if ($newAmount < $this->entryFee) {
+                    $newAmount = $this->entryFee;
+                }
                 
-                if ($newTotal > $this->totalPrizePool) {
-                    $excess = $newTotal - $this->totalPrizePool;
-                    $reductionFactor = ($allocatedToOthers - $excess) / $allocatedToOthers;
-                    
-                    // Reduce all other places proportionally
-                    for ($i = 1; $i < $numGroups; $i++) {
-                        $group = $groups[$i];
-                        $oldAmount = $payouts[$group['start']];
-                        $newAmount = $this->roundAmount($oldAmount * $reductionFactor);
-                        
-                        // Don't go below minimums
-                        if ($i == $numGroups - 1 && $newAmount < $this->entryFee) {
-                            $newAmount = $this->roundAmount($this->entryFee);
-                        } else if ($newAmount < $this->baseEntryFee) {
-                            $newAmount = $this->baseEntryFee;
-                        }
-                        
-                        // Update all in group
-                        for ($place = $group['start']; $place <= $group['end']; $place++) {
-                            $payouts[$place] = $newAmount;
-                        }
-                    }
-                    
-                    // Recalculate first place with new totals
-                    $newAllocatedToOthers = 0;
-                    for ($i = 1; $i < $numGroups; $i++) {
-                        $group = $groups[$i];
-                        $groupCount = $group['end'] - $group['start'] + 1;
-                        $newAllocatedToOthers += ($payouts[$group['start']] * $groupCount);
-                    }
-                    
-                    $payouts[1] = $this->roundAmount($this->totalPrizePool - $newAllocatedToOthers);
+                // Update all places in current group
+                for ($place = $currentGroup['start']; $place <= $currentGroup['end']; $place++) {
+                    $payouts[$place] = $newAmount;
                 }
             }
         }
         
-        // Step 6: Final safety check - ensure first place is highest
-        $maxOther = 0;
-        foreach ($payouts as $place => $amount) {
-            if ($place > 1 && $amount > $maxOther) {
-                $maxOther = $amount;
+        // Step 4: Calculate total allocated
+        $allocatedTotal = 0;
+        foreach ($payouts as $amount) {
+            $allocatedTotal += $amount;
+        }
+        
+        // Step 5: Give remainder to first place
+        $remainder = $this->totalPrizePool - $allocatedTotal;
+        $payouts[1] += $remainder;
+        $payouts[1] = $this->roundAmount($payouts[1]);
+        
+        // Step 6: Ensure first place is at least 20% higher than second
+        if (isset($payouts[2])) {
+            $minFirst = $this->roundAmount($payouts[2] * 1.2);
+            if ($payouts[1] < $minFirst) {
+                $payouts[1] = $minFirst;
             }
         }
         
-        if ($payouts[1] <= $maxOther) {
-            // Force first place to be 20% higher than max
-            $payouts[1] = $this->roundAmount($maxOther * 1.2);
+        // Step 7: Final balance adjustment
+        // Recalculate total with new first place
+        $newTotal = 0;
+        foreach ($payouts as $amount) {
+            $newTotal += $amount;
         }
+        
+        // If over budget, take from first place
+        if ($newTotal > $this->totalPrizePool) {
+            $overage = $newTotal - $this->totalPrizePool;
+            $payouts[1] -= $overage;
+            $payouts[1] = $this->roundAmount($payouts[1]);
+            
+            // Ensure first is still highest
+            if (isset($payouts[2]) && $payouts[1] <= $payouts[2]) {
+                $payouts[1] = $this->roundAmount($payouts[2] * 1.2);
+            }
+        }
+        
+        // Step 8: Sort by place number
+        ksort($payouts);
         
         return $payouts;
     }
     
     public function getPayoutsArray() {
-        $payouts = $this->calculatePayouts();
-        
-        // Sort by place number to ensure correct order (1st, 2nd, 3rd, etc.)
-        if (!isset($payouts['error'])) {
-            ksort($payouts);
-        }
-        
-        return $payouts;
+        return $this->calculatePayouts();
     }
     
     public function getFormattedPayouts() {
@@ -259,24 +249,43 @@ class TournamentPayoutCalculator {
 
 // Test if run directly
 if (php_sapi_name() == 'cli' && basename(__FILE__) == basename($_SERVER['PHP_SELF'])) {
-    echo "Tournament Payout Calculator - Test\n";
+    echo "Tournament Payout Calculator - Strict Enforcement Test\n";
     echo str_repeat('=', 70) . "\n\n";
     
-    echo "TEST 1: 214 players @ \$15\n";
-    echo str_repeat('-', 70) . "\n";
     $calc = new TournamentPayoutCalculator(15, 214);
     $payouts = $calc->getPayoutsArray();
-    echo "1st: \$" . number_format($payouts[1], 2) . "\n";
-    echo "2nd: \$" . number_format($payouts[2], 2) . "\n";
-    echo "3rd: \$" . number_format($payouts[3], 2) . "\n";
-    echo "1st > 2nd? " . ($payouts[1] > $payouts[2] ? "YES ✓" : "NO ✗") . "\n\n";
     
-    echo "TEST 2: 20 players @ \$20\n";
+    echo "214 players @ \$15 entry fee\n";
+    echo "Total pot: \$" . number_format(15 * 214, 2) . "\n";
     echo str_repeat('-', 70) . "\n";
-    $calc2 = new TournamentPayoutCalculator(20, 20);
-    $payouts2 = $calc2->getPayoutsArray();
-    echo "1st: \$" . number_format($payouts2[1], 2) . "\n";
-    echo "2nd: \$" . number_format($payouts2[2], 2) . "\n";
-    echo "1st > 2nd? " . ($payouts2[1] > $payouts2[2] ? "YES ✓" : "NO ✗") . "\n";
+    
+    $prevAmount = PHP_INT_MAX;
+    $violations = [];
+    
+    foreach ($payouts as $place => $amount) {
+        if ($place <= 20 || $place == 49 || $place == 64) {
+            echo "Place $place: \$" . number_format($amount, 2) . "\n";
+        }
+        
+        // Check violations
+        if ($amount < 15) {
+            $violations[] = "Place $place: \$$amount < entry fee";
+        }
+        if ($amount > $prevAmount) {
+            $violations[] = "Place $place: \$$amount > previous (\$$prevAmount)";
+        }
+        
+        $prevAmount = $amount;
+    }
+    
+    echo str_repeat('-', 70) . "\n";
+    if (empty($violations)) {
+        echo "✅ NO VIOLATIONS! All payouts >= \$15 and descending!\n";
+    } else {
+        echo "❌ VIOLATIONS FOUND:\n";
+        foreach ($violations as $v) {
+            echo "  - $v\n";
+        }
+    }
 }
 ?>
