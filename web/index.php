@@ -74,7 +74,7 @@
             left: 0;
             width: 20vw;
             background: linear-gradient(180deg, #1e7e34 0%, #0d4d1f 100%);
-            padding: 1.5vh 1vw;
+            padding: 1vh 0.8vw;
             display: flex;
             flex-direction: column;
             justify-content: space-evenly;
@@ -102,105 +102,105 @@
 
         .qr-container {
             text-align: center;
-            margin: 1vh 0;
+            margin: 0.5vh 0;
             background: white;
-            padding: 1.5vh;
-            border-radius: 12px;
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
-            width: 95%;
+            padding: 0.8vh;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            width: 90%;
         }
 
         .qr-container img {
             width: 100%;
-            max-width: 220px;
-            border-radius: 8px;
+            max-width: 140px;
+            border-radius: 6px;
         }
 
         .qr-label {
             font-family: 'Oswald', sans-serif;
-            font-size: 1.6vw;
+            font-size: 1.1vw;
             color: #1e7e34;
-            margin-top: 1vh;
-            font-weight: 700;
+            margin-top: 0.5vh;
+            font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
         }
 
         .player-count {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 4.2vw;
+            font-size: 3.5vw;
             color: #ffffff;
             text-align: center;
-            margin: 1.2vh 0;
+            margin: 0.8vh 0;
             font-weight: bold;
             text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
             background: rgba(255, 255, 255, 0.15);
-            padding: 1.2vh;
+            padding: 0.8vh;
             border-radius: 10px;
             width: 100%;
         }
 
         .entry-fee {
             font-family: 'Oswald', sans-serif;
-            font-size: 2vw;
+            font-size: 1.6vw;
             color: #ffffff;
             text-align: center;
-            margin: 0.8vh 0;
-            font-weight: 600;
+            margin: 0.5vh 0;
+            font-weight: 500;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         }
 
         .payouts-header {
             font-family: 'Oswald', sans-serif;
-            font-size: 2vw;
+            font-size: 1.6vw;
             color: #ffffff;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin: 1vh 0 0.5vh 0;
-            font-weight: 700;
+            margin: 0.8vh 0 0.3vh 0;
+            font-weight: 600;
             text-align: center;
             border-bottom: 3px solid rgba(255, 255, 255, 0.3);
-            padding-bottom: 0.5vh;
+            padding-bottom: 0.3vh;
             width: 100%;
         }
 
         .payouts {
             font-family: 'Roboto', sans-serif;
-            font-size: 1.8vw;
+            font-size: 1.5vw;
             color: #ffffff;
             text-align: center;
-            line-height: 1.2;
+            line-height: 1.1;
             width: 100%;
         }
 
         .payouts div {
-            margin: 0.3vh 0;
-            padding: 0.6vh;
+            margin: 0.2vh 0;
+            padding: 0.4vh;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 5px;
-            font-weight: 600;
+            font-weight: 500;
         }
 
         .payouts .first-place {
             background: rgba(255, 215, 0, 0.3);
             font-weight: 700;
-            font-size: 2.4vw;
+            font-size: 2vw;
             border: 2px solid rgba(255, 215, 0, 0.6);
         }
 
         /* Dynamic scaling for many payouts */
         .payouts.compact {
-            font-size: 1.5vw;
-            line-height: 1.1;
+            font-size: 1.3vw;
+            line-height: 1.0;
         }
 
         .payouts.compact div {
-            margin: 0.2vh 0;
-            padding: 0.4vh;
+            margin: 0.15vh 0;
+            padding: 0.3vh;
         }
 
         .payouts.compact .first-place {
-            font-size: 2vw;
+            font-size: 1.8vw;
         }
 
         iframe {
@@ -270,21 +270,27 @@ function calculatePayouts($player_count, $entry_fee) {
 }
 
 function getPlaceLabel($place) {
-    $labels = [
-        1 => '1st',
-        2 => '2nd', 
-        3 => '3rd',
-        4 => '4th',
-        5 => '5th-6th',
-        6 => '5th-6th',
-        7 => '7th-8th',
-        8 => '7th-8th',
-        9 => '9th-12th',
-        10 => '9th-12th',
-        11 => '9th-12th',
-        12 => '9th-12th'
-    ];
-    return $labels[$place] ?? $place . 'th';
+    // Individual places
+    if ($place == 1) return '1st';
+    if ($place == 2) return '2nd';
+    if ($place == 3) return '3rd';
+    if ($place == 4) return '4th';
+    
+    // Tie groups
+    if ($place == 5 || $place == 6) return '5th-6th';
+    if ($place == 7 || $place == 8) return '7th-8th';
+    if ($place >= 9 && $place <= 12) return '9th-12th';
+    if ($place >= 13 && $place <= 16) return '13th-16th';
+    if ($place >= 17 && $place <= 24) return '17th-24th';
+    if ($place >= 25 && $place <= 32) return '25th-32nd';
+    if ($place >= 33 && $place <= 48) return '33rd-48th';
+    if ($place >= 49 && $place <= 64) return '49th-64th';
+    if ($place >= 65 && $place <= 96) return '65th-96th';
+    if ($place >= 97 && $place <= 128) return '97th-128th';
+    if ($place >= 129 && $place <= 256) return '129th-256th';
+    
+    // Fallback for places beyond 256
+    return $place . 'th';
 }
 
 function formatPayoutsHTML($payouts) {
@@ -345,12 +351,10 @@ if (!$tournament_found) {
 <script>
 
 function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
-    // Check if media has expired based on end date
     if (m.hasEndDate && m.endDate && currentDate > m.endDate) {
         return false;
     }
     
-    // Per-day schedule mode (each day has its own start/end time)
     if (m.usePerDaySchedule && m.daySchedules) {
         var daySchedule = m.daySchedules[currentDay];
         if (!daySchedule || !daySchedule.enabled) {
@@ -363,48 +367,25 @@ function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
             var startTime = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
             var endTime = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
             
-            // Handle midnight crossover (e.g., 22:00 to 02:00)
-            if (endTime < startTime) {
-                // Schedule spans midnight - show if AFTER start OR BEFORE end
-                // Example: 22:00 to 02:00
-                // Show if: currentTime >= 22:00 (1320) OR currentTime <= 02:00 (120)
-                // Hide only if: currentTime is between 02:00 and 22:00
-                if (currentTime < startTime && currentTime > endTime) {
-                    return false;
-                }
-            } else {
-                // Normal schedule - show if BETWEEN start and end
-                if (currentTime < startTime || currentTime > endTime) {
-                    return false;
-                }
+            if (currentTime < startTime || currentTime > endTime) {
+                return false;
             }
         }
         return true;
     }
     
-    // Check if current day is in the selected days list
     if (m.scheduleDays && m.scheduleDays.length > 0 && m.scheduleDays.indexOf(currentDay) === -1) {
         return false;
     }
     
-    // Simple schedule mode (same time range for all selected days)
     if (m.scheduleStartTime && m.scheduleEndTime) {
         var startParts = m.scheduleStartTime.split(':');
         var endParts = m.scheduleEndTime.split(':');
         var startTime = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
         var endTime = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
         
-        // Handle midnight crossover
-        if (endTime < startTime) {
-            // Schedule spans midnight
-            if (currentTime < startTime && currentTime > endTime) {
-                return false;
-            }
-        } else {
-            // Normal schedule
-            if (currentTime < startTime || currentTime > endTime) {
-                return false;
-            }
+        if (currentTime < startTime || currentTime > endTime) {
+            return false;
         }
     }
     
@@ -414,10 +395,6 @@ function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
 var Dash = {
     dashboards: [],
     nextIndex: 0,
-    mediaItems: [],
-    totalCycleDuration: 0,
-    cycleStartTime: null,
-    
     createIframes: function() {
         var frameContainer = document.getElementById('frameContainer');
         
@@ -468,15 +445,6 @@ var Dash = {
                 
                 console.log('After schedule filter: ' + filteredMedia.length + ' items to display');
                 
-                Dash.mediaItems = filteredMedia;
-                
-                // Calculate total cycle duration
-                Dash.totalCycleDuration = 0;
-                for (var i = 0; i < filteredMedia.length; i++) {
-                    Dash.totalCycleDuration += (filteredMedia[i].duration || 20);
-                }
-                console.log('Total media cycle duration: ' + Dash.totalCycleDuration + ' seconds');
-                
                 // Build dashboards
                 for (var i = 0; i < filteredMedia.length; i++) {
                     var mediaItem = filteredMedia[i];
@@ -521,7 +489,6 @@ var Dash = {
         }
         
         if (Dash.dashboards.length > 0) {
-            Dash.cycleStartTime = Date.now();
             Dash.showFrame(0);
             setTimeout(function() {
                 Dash.display();
@@ -572,14 +539,6 @@ var Dash = {
         
         this.nextIndex = (this.nextIndex + 1) % Dash.dashboards.length;
         
-        // Check if we've completed a full cycle
-        if (this.nextIndex === 0) {
-            var cycleEndTime = Date.now();
-            var actualCycleDuration = (cycleEndTime - Dash.cycleStartTime) / 1000;
-            console.log('Completed media cycle: ' + actualCycleDuration + ' seconds');
-            Dash.cycleStartTime = Date.now(); // Reset cycle timer
-        }
-        
         setTimeout(function() {
             Dash.display();
         }, currentDashboard.time * 1000);
@@ -620,12 +579,10 @@ window.onload = function() {
         <?php 
         // Get entry fee label and value
         $fee_label = $tournament_data['entry_fee_label'] ?? 'Entry:';
-        $fee_value = $tournament_data['entry_fee'] ?? 15;
+        $fee_value = $tournament_data['entry_fee'] ?? '$15';
         
-        // ALWAYS ensure dollar sign is present
+        // If entry fee is just a number, add $ sign
         if (is_numeric($fee_value)) {
-            $fee_value = '$' . $fee_value;
-        } elseif (!str_starts_with($fee_value, '$')) {
             $fee_value = '$' . $fee_value;
         }
         
@@ -662,7 +619,8 @@ window.onload = function() {
 
 <script>
 // ============================================================================
-// TOURNAMENT CHANGE DETECTION - Only checks after completing media cycle
+// TOURNAMENT CHANGE DETECTION (without last_updated timestamp)
+// Reloads page on meaningful tournament data changes only
 // ============================================================================
 let lastTournamentState = {
     display: null,
@@ -675,34 +633,11 @@ let lastTournamentState = {
     initialized: false
 };
 
-let lastCheckTime = Date.now();
-let minimumCheckInterval = Dash.totalCycleDuration * 1000; // Convert to milliseconds
-
-// Ensure we wait at least one full media cycle before first check
-setTimeout(function() {
-    console.log('🔍 Starting change detection after initial media cycle');
-    checkForChanges();
-    
-    // Then check every cycle completion
-    setInterval(function() {
-        var now = Date.now();
-        var timeSinceLastCheck = now - lastCheckTime;
-        
-        // Only check if we've waited at least one full cycle
-        if (timeSinceLastCheck >= minimumCheckInterval) {
-            checkForChanges();
-        }
-    }, 10000); // Check every 10 seconds, but respect cycle duration
-    
-}, Dash.totalCycleDuration * 1000);
-
 function checkForChanges() {
     fetch('/get_tournament_data.php?nocache=' + Date.now())
         .then(response => response.json())
         .then(data => {
             if (!data.success) return;
-            
-            lastCheckTime = Date.now();
             
             // Current state (WITHOUT last_updated)
             const current = {
@@ -719,7 +654,7 @@ function checkForChanges() {
             if (!lastTournamentState.initialized) {
                 lastTournamentState = {...current, initialized: true};
                 console.log('🎯 Initial tournament state:', current);
-                updatePlayerData(data);
+                updatePlayerData(data); // Update display
                 return;
             }
             
@@ -801,19 +736,17 @@ function updatePlayerData(data) {
         
         if (document.getElementById('entryFee')) {
             var feeLabel = data.entry_fee_label || 'Entry:';
-            var feeValue = data.entry_fee || 15;
-            
-            // ALWAYS ensure dollar sign
-            if (typeof feeValue === 'number' || !isNaN(feeValue)) {
-                feeValue = '$' + feeValue;
-            } else if (!String(feeValue).startsWith('$')) {
-                feeValue = '$' + feeValue;
-            }
-            
+            var feeValue = data.entry_fee || '$15';
             document.getElementById('entryFee').textContent = feeLabel + ' ' + feeValue;
         }
     }
 }
+
+// Check every 10 seconds for change detection
+setInterval(checkForChanges, 10000);
+
+// Initial check after 2 seconds
+setTimeout(checkForChanges, 2000);
 </script>
 
 <?php else: ?>

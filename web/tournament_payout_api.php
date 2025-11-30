@@ -6,6 +6,26 @@
  * Called by Google Apps Script to populate Google Sheets
  * 
  * Usage: GET /tournament_payout_api.php?entry_fee=20&player_count=16
+ * 
+ * Returns JSON:
+ * {
+ *   "success": true,
+ *   "entry_fee": 20,
+ *   "player_count": 16,
+ *   "total_pot": 320,
+ *   "payouts": {
+ *     "1": 210.00,
+ *     "2": 110.00,
+ *     "3": 50.00,
+ *     "4": 30.00
+ *   },
+ *   "formatted_payouts": {
+ *     "1st": "$210.00",
+ *     "2nd": "$110.00",
+ *     "3rd": "$50.00",
+ *     "4th": "$30.00"
+ *   }
+ * }
  */
 
 header('Content-Type: application/json');
@@ -61,7 +81,7 @@ if ($player_count < 8) {
         'player_count' => $player_count,
         'total_pot' => $entry_fee * $player_count
     ]);
-    http_response_code(200);
+    http_response_code(200); // Still 200 because it's a valid request, just not enough players
     exit;
 }
 
@@ -79,21 +99,14 @@ try {
     // Create calculator instance
     $calculator = new TournamentPayoutCalculator($entry_fee, $player_count);
     
-    // Get payouts as array (with numeric keys)
-    $payoutsArray = $calculator->getPayoutsArray();
+    // Get payouts as array
+    $payouts = $calculator->getPayoutsArray();
     
-    // Convert to Google Sheets friendly format with named keys
-    $payouts = [];
+    // Create formatted payouts with place labels
     $formatted_payouts = [];
-    
-    foreach ($payoutsArray as $place => $amount) {
-        $key = getNamedKey($place);
-        
-        // Only add if we have a named key (skips duplicate tie places)
-        if ($key) {
-            $payouts[$key] = $amount;
-            $formatted_payouts[$key] = '$' . number_format($amount, 2);
-        }
+    foreach ($payouts as $place => $amount) {
+        $place_label = getPlaceLabel($place);
+        $formatted_payouts[$place_label] = '$' . number_format($amount, 2);
     }
     
     // Build response
@@ -102,7 +115,7 @@ try {
         'entry_fee' => $entry_fee,
         'player_count' => $player_count,
         'total_pot' => $entry_fee * $player_count,
-        'places_paid' => count($payouts),
+        'places_paid' => count(array_unique($payouts)), // Count unique amounts (tied places count as one)
         'payouts' => $payouts,
         'formatted_payouts' => $formatted_payouts,
         'timestamp' => date('Y-m-d H:i:s')
@@ -119,25 +132,29 @@ try {
 }
 
 /**
- * Convert numeric place to named key for Google Sheets
- * Returns null for duplicate tie places (6, 8, 10-12)
+ * Get place label (handles ties)
  */
-function getNamedKey($place) {
-    $keys = [
-        1 => 'first',
-        2 => 'second',
-        3 => 'third',
-        4 => 'fourth',
-        5 => 'fifth_sixth',    // 5 and 6 tie
-        6 => null,              // Skip - duplicate of 5
-        7 => 'seventh_eighth',  // 7 and 8 tie
-        8 => null,              // Skip - duplicate of 7
-        9 => 'ninth_twelfth',   // 9-12 tie
-        10 => null,             // Skip - duplicate of 9
-        11 => null,             // Skip - duplicate of 9
-        12 => null              // Skip - duplicate of 9
-    ];
+function getPlaceLabel($place) {
+    // Individual places
+    if ($place == 1) return '1st';
+    if ($place == 2) return '2nd';
+    if ($place == 3) return '3rd';
+    if ($place == 4) return '4th';
     
-    return $keys[$place] ?? null;
+    // Tie groups
+    if ($place == 5 || $place == 6) return '5th-6th';
+    if ($place == 7 || $place == 8) return '7th-8th';
+    if ($place >= 9 && $place <= 12) return '9th-12th';
+    if ($place >= 13 && $place <= 16) return '13th-16th';
+    if ($place >= 17 && $place <= 24) return '17th-24th';
+    if ($place >= 25 && $place <= 32) return '25th-32nd';
+    if ($place >= 33 && $place <= 48) return '33rd-48th';
+    if ($place >= 49 && $place <= 64) return '49th-64th';
+    if ($place >= 65 && $place <= 96) return '65th-96th';
+    if ($place >= 97 && $place <= 128) return '97th-128th';
+    if ($place >= 129 && $place <= 256) return '129th-256th';
+    
+    // Fallback for places beyond 256
+    return $place . 'th';
 }
 ?>
