@@ -3,7 +3,7 @@
 /**
  * Pi Payout Updater
  * Reads entry fee and player count from Google Sheets
- * Calculates payouts and writes them back
+ * Calculates payouts and writes them back (LIMITED TO 12 PLACES)
  * 
  * Run via cron every minute
  */
@@ -20,11 +20,11 @@ $SPREADSHEET_ID = '1MN7r74z3II7pMA_jMK0l03faFTG9KR84wktLNc3a6A0';
 $SHEET_NAME = 'Tournament Players';
 $PAYOUTS_SHEET = 'Payouts';
 
-// Input cells - read from source data, not formatted display
+// Input cells
 $ENTRY_FEE_CELL = 'Q3'; // From Payouts sheet
 $PLAYER_COUNT_RANGE = 'B2:B72'; // Count non-empty cells in Tournament Players
 
-// Output cells (in Tournament Players sheet)
+// Output cells (in Tournament Players sheet) - FIXED to 7 cells
 $OUTPUT_SHEET = 'Tournament Players';
 $OUTPUT_CELLS = [
     'G8',  // 1st place
@@ -33,15 +33,7 @@ $OUTPUT_CELLS = [
     'G11', // 4th place
     'G12', // 5th-6th place
     'G13', // 7th-8th place
-    'G14', // 9th-12th place
-    'G15', // 13th-16th place
-    'G16', // 17th-24th place
-    'G17', // 25th-32nd place
-    'G18', // 33rd-48th place
-    'G19', // 49th-64th place
-    'G20', // 65th-96th place
-    'G21', // 97th-128th place
-    'G22'  // 129th-256th place
+    'G14'  // 9th-12th place
 ];
 
 // Log function
@@ -130,22 +122,14 @@ try {
         exit(0);
     }
     
-    // Calculate payouts (limit to top 12 places to fit sheet layout)
+    // Calculate payouts - FULL calculation
     logMessage("Calculating payouts...");
     $calculator = new TournamentPayoutCalculator($entryFee, $playerCount);
-    $allPayouts = $calculator->getPayoutsArray();
+    $payoutsArray = $calculator->getPayoutsArray();
     
-    // Only use first 12 places (fits in 7 output cells with ties)
-    $payoutsArray = [];
-    foreach ($allPayouts as $place => $amount) {
-        if ($place <= 12) {
-            $payoutsArray[$place] = $amount;
-        }
-    }
+    logMessage("Calculated " . count($payoutsArray) . " places total, displaying first 12 in fixed cells");
     
-    logMessage("Using first 12 places from " . count($allPayouts) . " total places");
-    
-    // Format payouts for output
+    // Format payouts for output (only first 12 places fit in 7 cells with ties)
     $values = [];
     
     // Map place numbers to output cells
@@ -164,9 +148,10 @@ try {
         $values[$i] = [''];
     }
     
-    // Fill in payouts
+    // Fill in payouts - only showing first 12 places from FULL calculation
     foreach ($payoutsArray as $place => $amount) {
-        if (isset($placeMapping[$place])) {
+        // Only process places 1-12
+        if ($place <= 12 && isset($placeMapping[$place])) {
             $index = $placeMapping[$place];
             
             // Add labels for tied places
