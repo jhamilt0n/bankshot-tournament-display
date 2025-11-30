@@ -209,7 +209,14 @@ class TournamentPayoutCalculator {
     }
     
     public function getPayoutsArray() {
-        return $this->calculatePayouts();
+        $payouts = $this->calculatePayouts();
+        
+        // Sort by place number to ensure correct order (1st, 2nd, 3rd, etc.)
+        if (!isset($payouts['error'])) {
+            ksort($payouts);
+        }
+        
+        return $payouts;
     }
     
     public function getFormattedPayouts() {

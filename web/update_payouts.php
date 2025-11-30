@@ -127,6 +127,9 @@ try {
     $calculator = new TournamentPayoutCalculator($entryFee, $playerCount);
     $payoutsArray = $calculator->getPayoutsArray();
     
+    // CRITICAL: Sort by place number to ensure correct order
+    ksort($payoutsArray);
+    
     logMessage("Calculated " . count($payoutsArray) . " places total, displaying first 12 in fixed cells");
     
     // Format payouts for output (only first 12 places fit in 7 cells with ties)

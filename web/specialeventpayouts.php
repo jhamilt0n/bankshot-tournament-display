@@ -137,6 +137,9 @@ try {
     $calculator = new TournamentPayoutCalculator($entryFee, $playerCount, $addedMoney);
     $payoutsArray = $calculator->getPayoutsArray();
     
+    // CRITICAL: Sort by place number to ensure correct order
+    ksort($payoutsArray);
+    
     logMessage("Calculated " . count($payoutsArray) . " places");
     
     // Build output values dynamically
