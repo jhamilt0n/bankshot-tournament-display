@@ -1,21 +1,9 @@
 <?php
 /**
  * Tournament Payout Calculator
- * Based on Digital Pool Players payout structure
  * 
- * Key Rules:
- * - Entry fees are always divisible by $5 (e.g., $15, $20, $25)
- * - Places 5/6 always tie (same amount)
- * - Places 7/8 always tie (same amount)
- * - Places 9-12 always tie (same amount)
- * - Last place paid must be >= entry fee
- * 
- * Smart Rounding (NEW):
- * - Payouts automatically round to the right denomination to avoid making change
- * - Entry fees ending in 5 ($15, $25, $35) → Round to $5 (e.g., $15 uses $5 base)
- * - Entry fees ending in 0 with odd tens ($10, $30, $50) → Round to $10
- * - Entry fees ending in 0 with even tens ($20, $40, $60) → Round to $20
- * - Example: $20 entry → payouts are $20, $40, $60, $80... (no change needed!)
+ * Supports up to 256 players/teams with tournament bracket tie structure
+ * Uses smart rounding based on entry fee to avoid making change
  */
 
 class TournamentPayoutCalculator {
@@ -23,319 +11,158 @@ class TournamentPayoutCalculator {
     private $entryFee;
     private $numPlayers;
     private $totalPrizePool;
-    private $baseEntryFee;     // The base fee to calculate with ($5, $10, or $20)
-    private $multiplier;       // Multiplier to apply to base calculations
+    private $addedMoney;
+    private $baseEntryFee;
     
-    public function __construct($entryFee, $numPlayers) {
+    public function __construct($entryFee, $numPlayers, $addedMoney = 0) {
         $this->entryFee = $entryFee;
         $this->numPlayers = $numPlayers;
-        $this->totalPrizePool = $entryFee * $numPlayers;
+        $this->addedMoney = $addedMoney;
+        $this->totalPrizePool = ($entryFee * $numPlayers) + $addedMoney;
         
-        // Determine base entry fee and multiplier
-        list($this->baseEntryFee, $this->multiplier) = $this->determineBaseAndMultiplier($entryFee);
-    }
-    
-    /**
-     * Determine base entry fee and multiplier for smart rounding
-     * 
-     * Logic:
-     * - Fees ending in 5 ($15, $25, etc.) → Use $5 base
-     * - Fees ending in 0 with odd tens ($10, $30, $50) → Use $10 base
-     * - Fees ending in 0 with even tens ($20, $40, $60) → Use $20 base
-     */
-    private function determineBaseAndMultiplier($entryFee) {
-        // Entry fees ending in 5 (e.g., $15, $25, $35)
+        // Determine base rounding amount
         if ($entryFee % 10 == 5) {
-            return [5, $entryFee / 5];
+            $this->baseEntryFee = 5;
+        } elseif ($entryFee % 10 == 0) {
+            $tens = ($entryFee / 10) % 2;
+            $this->baseEntryFee = ($tens == 1) ? 10 : 20;
+        } else {
+            $this->baseEntryFee = 5;
         }
-        
-        // Entry fees ending in 0
-        if ($entryFee % 10 == 0) {
-            $tens = ($entryFee / 10) % 2;  // Check if tens place is odd or even
-            
-            if ($tens == 1) {
-                // Odd tens place ($10, $30, $50, $70)
-                return [10, $entryFee / 10];
-            } else {
-                // Even tens place ($20, $40, $60, $80)
-                return [20, $entryFee / 20];
-            }
-        }
-        
-        // Fallback: shouldn't happen if entry fees are always divisible by 5
-        return [$entryFee, 1];
     }
     
-    /**
-     * Determine how many places should be paid based on number of players
-     */
-    private function getNumPlacesPaid() {
-        if ($this->numPlayers < 8) return 0;
-        if ($this->numPlayers <= 9) return 2;
-        if ($this->numPlayers <= 11) return 2;
-        if ($this->numPlayers <= 15) return 3;
-        if ($this->numPlayers <= 23) return 4;
-        if ($this->numPlayers <= 26) return 4;
-        if ($this->numPlayers <= 31) return 6;
-        if ($this->numPlayers <= 34) return 6;
-        return 8;
-    }
-    
-    /**
-     * Calculate payouts using percentages derived from the spreadsheet
-     */
-    public function calculatePayouts() {
-        $numPlaces = $this->getNumPlacesPaid();
-        
-        if ($numPlaces == 0) {
-            return ["error" => "Minimum 8 players required for payouts"];
-        }
-        
-        $payouts = [];
-        
-        // Calculate base percentages based on number of places
-        switch ($numPlaces) {
-            case 2:
-                $percentages = $this->calculate2Places();
-                break;
-            case 3:
-                $percentages = $this->calculate3Places();
-                break;
-            case 4:
-                $percentages = $this->calculate4Places();
-                break;
-            case 6:
-                $percentages = $this->calculate6Places();
-                break;
-            case 8:
-                $percentages = $this->calculate8Places();
-                break;
-            default:
-                return ["error" => "Invalid number of places"];
-        }
-        
-        // Convert percentages to dollar amounts
-        foreach ($percentages as $place => $percentage) {
-            $amount = ($this->totalPrizePool * $percentage / 100);
-            $payouts[$place] = $this->roundToNearestFive($amount);
-        }
-        
-        // Adjust to ensure last place >= entry fee
-        $lastPlace = max(array_keys($payouts));
-        if ($payouts[$lastPlace] < $this->entryFee) {
-            $payouts[$lastPlace] = $this->roundToNearestFive($this->entryFee);
-        }
-        
-        // Handle ties for places 5/6, 7/8, and 9-12
-        $payouts = $this->applyTieRules($payouts);
-        
-        // Final adjustment to match total prize pool
-        $payouts = $this->adjustToTotal($payouts);
-        
-        return $payouts;
-    }
-    
-    /**
-     * Calculate percentages for 2 places paid
-     */
-    private function calculate2Places() {
-        // Based on pattern: ~65-70% for 1st, remainder for 2nd
-        $first = 65;
-        $second = 35;
-        
-        // Adjust based on player count to keep last place >= entry fee
-        $secondAmount = ($this->totalPrizePool * $second / 100);
-        if ($secondAmount < $this->entryFee) {
-            $secondMin = $this->roundToNearestFive($this->entryFee);
-            $second = ($secondMin / $this->totalPrizePool) * 100;
-            $first = 100 - $second;
-        }
-        
-        return [1 => $first, 2 => $second];
-    }
-    
-    /**
-     * Calculate percentages for 3 places paid
-     */
-    private function calculate3Places() {
-        // Based on pattern: ~55-60% for 1st, ~30% for 2nd, ~10-15% for 3rd
-        $first = 57;
-        $second = 30;
-        $third = 13;
-        
-        // Ensure 3rd place >= entry fee
-        $thirdAmount = ($this->totalPrizePool * $third / 100);
-        if ($thirdAmount < $this->entryFee) {
-            $thirdMin = $this->roundToNearestFive($this->entryFee);
-            $third = ($thirdMin / $this->totalPrizePool) * 100;
-            $remaining = 100 - $third;
-            $first = $remaining * 0.65;
-            $second = $remaining * 0.35;
-        }
-        
-        return [1 => $first, 2 => $second, 3 => $third];
-    }
-    
-    /**
-     * Calculate percentages for 4 places paid
-     */
-    private function calculate4Places() {
-        // Based on pattern: ~50-55% for 1st, ~27% for 2nd, ~12% for 3rd, ~6% for 4th
-        $first = 52;
-        $second = 28;
-        $third = 13;
-        $fourth = 7;
-        
-        // Ensure 4th place >= entry fee
-        $fourthAmount = ($this->totalPrizePool * $fourth / 100);
-        if ($fourthAmount < $this->entryFee) {
-            $fourthMin = $this->roundToNearestFive($this->entryFee);
-            $fourth = ($fourthMin / $this->totalPrizePool) * 100;
-            $remaining = 100 - $fourth;
-            $first = $remaining * 0.52;
-            $second = $remaining * 0.28;
-            $third = $remaining * 0.20;
-        }
-        
-        return [1 => $first, 2 => $second, 3 => $third, 4 => $fourth];
-    }
-    
-    /**
-     * Calculate percentages for 6 places paid (5th and 6th tie)
-     */
-    private function calculate6Places() {
-        // Based on pattern: ~47% for 1st, ~28% for 2nd, ~11% for 3rd, ~7% for 4th, ~3.5% each for 5/6
-        $first = 47;
-        $second = 28;
-        $third = 11;
-        $fourth = 7;
-        $fifthSixth = 3.5;
-        
-        // Ensure 5/6 place >= entry fee
-        $fifthSixthAmount = ($this->totalPrizePool * $fifthSixth / 100);
-        if ($fifthSixthAmount < $this->entryFee) {
-            $fifthSixthMin = $this->roundToNearestFive($this->entryFee);
-            $fifthSixth = ($fifthSixthMin / $this->totalPrizePool) * 100;
-            $remaining = 100 - ($fifthSixth * 2);
-            $first = $remaining * 0.50;
-            $second = $remaining * 0.28;
-            $third = $remaining * 0.12;
-            $fourth = $remaining * 0.10;
-        }
-        
-        return [1 => $first, 2 => $second, 3 => $third, 4 => $fourth, 5 => $fifthSixth, 6 => $fifthSixth];
-    }
-    
-    /**
-     * Calculate percentages for 8 places paid (5/6 tie, 7/8 tie)
-     */
-    private function calculate8Places() {
-        // Based on pattern: ~46% for 1st, ~20% for 2nd, ~12% for 3rd, ~7% for 4th, ~5% each for 5/6, ~2.5% each for 7/8
-        $first = 46;
-        $second = 20;
-        $third = 12;
-        $fourth = 7;
-        $fifthSixth = 5;
-        $seventhEighth = 2.5;
-        
-        // Ensure 7/8 place >= entry fee
-        $seventhEighthAmount = ($this->totalPrizePool * $seventhEighth / 100);
-        if ($seventhEighthAmount < $this->entryFee) {
-            $seventhEighthMin = $this->roundToNearestFive($this->entryFee);
-            $seventhEighth = ($seventhEighthMin / $this->totalPrizePool) * 100;
-            $remaining = 100 - ($seventhEighth * 2);
-            $first = $remaining * 0.48;
-            $second = $remaining * 0.21;
-            $third = $remaining * 0.13;
-            $fourth = $remaining * 0.08;
-            $fifthSixth = $remaining * 0.05;
-        }
-        
-        return [
-            1 => $first,
-            2 => $second,
-            3 => $third,
-            4 => $fourth,
-            5 => $fifthSixth,
-            6 => $fifthSixth,
-            7 => $seventhEighth,
-            8 => $seventhEighth
-        ];
-    }
-    
-    /**
-     * Apply tie rules: 5/6 same, 7/8 same, 9-12 same
-     */
-    private function applyTieRules($payouts) {
-        // Handle 5/6 tie
-        if (isset($payouts[5]) && isset($payouts[6])) {
-            $average = ($payouts[5] + $payouts[6]) / 2;
-            $average = $this->roundToNearestFive($average);
-            $payouts[5] = $average;
-            $payouts[6] = $average;
-        }
-        
-        // Handle 7/8 tie
-        if (isset($payouts[7]) && isset($payouts[8])) {
-            $average = ($payouts[7] + $payouts[8]) / 2;
-            $average = $this->roundToNearestFive($average);
-            $payouts[7] = $average;
-            $payouts[8] = $average;
-        }
-        
-        // Handle 9-12 tie (if we ever extend to 12 places)
-        if (isset($payouts[9]) && isset($payouts[12])) {
-            $average = ($payouts[9] + $payouts[10] + $payouts[11] + $payouts[12]) / 4;
-            $average = $this->roundToNearestFive($average);
-            $payouts[9] = $average;
-            $payouts[10] = $average;
-            $payouts[11] = $average;
-            $payouts[12] = $average;
-        }
-        
-        return $payouts;
-    }
-    
-    /**
-     * Round amount to nearest 5
-     */
-    private function roundToNearestFive($amount) {
-        // Round to base entry fee to avoid making change
-        // Examples:
-        // - $15 entry uses $5 base → rounds to $5, $10, $15, $20...
-        // - $30 entry uses $10 base → rounds to $10, $20, $30, $40...
-        // - $40 entry uses $20 base → rounds to $20, $40, $60, $80...
+    private function roundAmount($amount) {
         return round($amount / $this->baseEntryFee) * $this->baseEntryFee;
     }
     
     /**
-     * Adjust payouts to match total prize pool exactly
+     * Get tie groups structure
+     * Returns array of [start, end, count]
      */
-    private function adjustToTotal($payouts) {
-        $currentTotal = array_sum($payouts);
-        $difference = $this->totalPrizePool - $currentTotal;
+    private function getTieGroups() {
+        $groups = [];
+        $maxPlace = $this->getMaxPlaceToPay();
         
-        if ($difference != 0) {
-            // Adjust first place to make up the difference
-            // Make sure it stays divisible by 5
-            $adjustment = $this->roundToNearestFive($difference);
-            $payouts[1] += $adjustment;
+        if ($maxPlace >= 1) $groups[] = ['start' => 1, 'end' => 1];
+        if ($maxPlace >= 2) $groups[] = ['start' => 2, 'end' => 2];
+        if ($maxPlace >= 3) $groups[] = ['start' => 3, 'end' => 3];
+        if ($maxPlace >= 4) $groups[] = ['start' => 4, 'end' => 4];
+        if ($maxPlace >= 6) $groups[] = ['start' => 5, 'end' => 6];
+        if ($maxPlace >= 8) $groups[] = ['start' => 7, 'end' => 8];
+        if ($maxPlace >= 12) $groups[] = ['start' => 9, 'end' => 12];
+        if ($maxPlace >= 16) $groups[] = ['start' => 13, 'end' => 16];
+        if ($maxPlace >= 24) $groups[] = ['start' => 17, 'end' => 24];
+        if ($maxPlace >= 32) $groups[] = ['start' => 25, 'end' => 32];
+        if ($maxPlace >= 48) $groups[] = ['start' => 33, 'end' => 48];
+        if ($maxPlace >= 64) $groups[] = ['start' => 49, 'end' => 64];
+        if ($maxPlace >= 96) $groups[] = ['start' => 65, 'end' => 96];
+        if ($maxPlace >= 128) $groups[] = ['start' => 97, 'end' => 128];
+        if ($maxPlace >= 256) $groups[] = ['start' => 129, 'end' => 256];
+        
+        return $groups;
+    }
+    
+    /**
+     * Determine maximum place to pay (approximately 25% of field)
+     * Uses bracket tie points: 3, 4, 6, 8, 12, 16, 24, 32, 48, 64, 96, 128, 256
+     */
+    private function getMaxPlaceToPay() {
+        if ($this->numPlayers < 8) return 0;
+        
+        // Target: Pay ~25% of field using bracket tie points
+        // These brackets give clean payouts at tournament tie points
+        
+        if ($this->numPlayers <= 15) return 3;   // 8-15 players → pay 3 (20-37%)
+        if ($this->numPlayers <= 19) return 4;   // 16-19 players → pay 4 (21-25%)
+        if ($this->numPlayers <= 27) return 6;   // 20-27 players → pay 6 (22-30%)
+        if ($this->numPlayers <= 35) return 8;   // 28-35 players → pay 8 (23-29%)
+        if ($this->numPlayers <= 51) return 12;  // 36-51 players → pay 12 (24-33%)
+        if ($this->numPlayers <= 67) return 16;  // 52-67 players → pay 16 (24-31%)
+        if ($this->numPlayers <= 99) return 24;  // 68-99 players → pay 24 (24-35%)
+        if ($this->numPlayers <= 131) return 32; // 100-131 players → pay 32 (24-32%)
+        if ($this->numPlayers <= 195) return 48; // 132-195 players → pay 48 (25-36%)
+        if ($this->numPlayers <= 259) return 64; // 196-259 players → pay 64 (25-33%)
+        
+        // For very large fields (rare)
+        if ($this->numPlayers <= 387) return 96;   // 260-387 players → pay 96 (25-37%)
+        if ($this->numPlayers <= 515) return 128;  // 388-515 players → pay 128 (25-33%)
+        return 256;  // 516+ players → pay 256 (pay top bracket)
+    }
+    
+    public function calculatePayouts() {
+        $groups = $this->getTieGroups();
+        
+        if (empty($groups)) {
+            return ["error" => "Minimum 8 players required"];
+        }
+        
+        $numGroups = count($groups);
+        
+        // Calculate ideal percentages using exponential decay
+        $weights = [];
+        $totalWeight = 0;
+        for ($i = 0; $i < $numGroups; $i++) {
+            $weight = pow(0.6, $i);
+            $weights[$i] = $weight;
+            $totalWeight += $weight;
+        }
+        
+        // Convert to amounts, round, and assign to groups
+        // But track ACTUAL total that will be paid out
+        $payouts = [];
+        $runningTotal = 0;
+        
+        foreach ($groups as $i => $group) {
+            $percentage = ($weights[$i] / $totalWeight) * 100;
+            $amount = ($this->totalPrizePool * $percentage / 100);
+            $rounded = $this->roundAmount($amount);
             
-            // If we still have a small difference, distribute among top places
-            $currentTotal = array_sum($payouts);
-            $difference = $this->totalPrizePool - $currentTotal;
+            // Ensure minimum payout
+            if ($rounded < $this->baseEntryFee) {
+                $rounded = $this->baseEntryFee;
+            }
             
-            if ($difference != 0) {
-                $payouts[1] += $difference;
+            // Last group must be at least entry fee
+            if ($i == $numGroups - 1 && $rounded < $this->entryFee) {
+                $rounded = $this->roundAmount($this->entryFee);
+            }
+            
+            // Calculate how much this group will cost (amount × number of tied places)
+            $groupCount = $group['end'] - $group['start'] + 1;
+            $groupCost = $rounded * $groupCount;
+            
+            // Assign to all places in group
+            for ($place = $group['start']; $place <= $group['end']; $place++) {
+                $payouts[$place] = $rounded;
+            }
+            
+            $runningTotal += $groupCost;
+        }
+        
+        // Now adjust first place to match total EXACTLY
+        // The difference is what we need to add/subtract from first place
+        $diff = $this->totalPrizePool - $runningTotal;
+        
+        if ($diff != 0 && isset($payouts[1])) {
+            // Add the ACTUAL difference (not rounded)
+            $payouts[1] += $diff;
+            
+            // Then round the result
+            $payouts[1] = $this->roundAmount($payouts[1]);
+            
+            // Ensure first place is still reasonable
+            if ($payouts[1] < $this->entryFee) {
+                $payouts[1] = $this->roundAmount($this->entryFee * 2);
             }
         }
         
         return $payouts;
     }
     
-    /**
-     * Display payouts in a formatted way
-     */
+    public function getPayoutsArray() {
+        return $this->calculatePayouts();
+    }
+    
     public function displayPayouts() {
         $payouts = $this->calculatePayouts();
         
@@ -343,93 +170,83 @@ class TournamentPayoutCalculator {
             return $payouts['error'];
         }
         
+        $groups = $this->getTieGroups();
+        
         $output = "Tournament Payout Structure\n";
         $output .= str_repeat("=", 50) . "\n";
         $output .= "Players: {$this->numPlayers}\n";
         $output .= "Entry Fee: $" . number_format($this->entryFee, 2) . "\n";
+        
+        if ($this->addedMoney > 0) {
+            $output .= "Entry Pool: $" . number_format($this->entryFee * $this->numPlayers, 2) . "\n";
+            $output .= "Added Money: $" . number_format($this->addedMoney, 2) . "\n";
+        }
+        
         $output .= "Total Prize Pool: $" . number_format($this->totalPrizePool, 2) . "\n";
         $output .= str_repeat("-", 50) . "\n\n";
         
-        $totalPaid = 0;
-        foreach ($payouts as $place => $amount) {
-            $percentage = ($amount / $this->totalPrizePool) * 100;
-            $output .= sprintf("%-15s $%-10s (%5.2f%%)\n", 
-                $this->getPlaceLabel($place), 
+        $total = 0;
+        foreach ($groups as $group) {
+            $amount = $payouts[$group['start']];
+            $count = $group['end'] - $group['start'] + 1;
+            $percentage = ($amount * $count / $this->totalPrizePool) * 100;
+            
+            if ($group['start'] == $group['end']) {
+                $label = $this->formatPlace($group['start']);
+            } else {
+                $label = $this->formatPlace($group['start']) . "-" . $this->formatPlace($group['end']) . " (tie)";
+            }
+            
+            $output .= sprintf("%-25s \$%-11s (%5.2f%%)\n", 
+                $label, 
                 number_format($amount, 2), 
                 $percentage
             );
-            $totalPaid += $amount;
+            
+            $total += $amount * $count;
         }
         
         $output .= str_repeat("-", 50) . "\n";
-        $output .= sprintf("%-15s $%-10s\n", "TOTAL:", number_format($totalPaid, 2));
-        $output .= sprintf("%-15s $%-10s\n", "Expected:", number_format($this->totalPrizePool, 2));
-        $output .= sprintf("%-15s $%-10s\n", "Difference:", number_format($totalPaid - $this->totalPrizePool, 2));
+        $output .= sprintf("%-25s \$%-11s\n", "TOTAL:", number_format($total, 2));
+        $output .= sprintf("%-25s \$%-11s\n", "Expected:", number_format($this->totalPrizePool, 2));
+        $output .= sprintf("%-25s \$%-11s\n", "Difference:", number_format($this->totalPrizePool - $total, 2));
         
         return $output;
     }
     
-    /**
-     * Get place label (handles ties)
-     */
-    private function getPlaceLabel($place) {
-        $labels = [
-            1 => "1st Place",
-            2 => "2nd Place",
-            3 => "3rd Place",
-            4 => "4th Place",
-            5 => "5th-6th (tie)",
-            6 => "5th-6th (tie)",
-            7 => "7th-8th (tie)",
-            8 => "7th-8th (tie)",
-            9 => "9th-12th (tie)",
-            10 => "9th-12th (tie)",
-            11 => "9th-12th (tie)",
-            12 => "9th-12th (tie)"
-        ];
-        
-        return $labels[$place] ?? "{$place}th Place";
-    }
-    
-    /**
-     * Get payouts as array
-     */
-    public function getPayoutsArray() {
-        return $this->calculatePayouts();
+    private function formatPlace($place) {
+        $suffix = 'th';
+        if ($place % 100 < 11 || $place % 100 > 13) {
+            switch ($place % 10) {
+                case 1: $suffix = 'st'; break;
+                case 2: $suffix = 'nd'; break;
+                case 3: $suffix = 'rd'; break;
+            }
+        }
+        return $place . $suffix . " Place";
     }
 }
 
-// ============================================================================
-// USAGE EXAMPLES
-// ============================================================================
-
-// Example 1: 12 players at $20 entry fee (matching spreadsheet)
-echo "EXAMPLE 1: 12 players @ $20 entry fee\n";
-echo str_repeat("=", 70) . "\n";
-$calc1 = new TournamentPayoutCalculator(20, 12);
-echo $calc1->displayPayouts();
-echo "\n\n";
-
-// Example 2: 20 players at $25 entry fee
-echo "EXAMPLE 2: 20 players @ $25 entry fee\n";
-echo str_repeat("=", 70) . "\n";
-$calc2 = new TournamentPayoutCalculator(25, 20);
-echo $calc2->displayPayouts();
-echo "\n\n";
-
-// Example 3: 32 players at $50 entry fee
-echo "EXAMPLE 3: 32 players @ $50 entry fee\n";
-echo str_repeat("=", 70) . "\n";
-$calc3 = new TournamentPayoutCalculator(50, 32);
-echo $calc3->displayPayouts();
-echo "\n\n";
-
-// Example 4: Get payouts as array for programmatic use
-echo "EXAMPLE 4: Getting payouts as array (48 players @ $30 entry fee)\n";
-echo str_repeat("=", 70) . "\n";
-$calc4 = new TournamentPayoutCalculator(30, 48);
-$payouts = $calc4->getPayoutsArray();
-echo "Array format:\n";
-print_r($payouts);
-
+// Testing
+if (php_sapi_name() === 'cli') {
+    echo "Tournament Payout Calculator - Test Examples\n";
+    echo str_repeat("=", 70) . "\n\n";
+    
+    $tests = [
+        [20, 12, 0, "12 players @ \$20"],
+        [20, 17, 0, "17 players @ \$20 (Friday night scenario)"],
+        [25, 32, 100, "32 players @ \$25 + \$100 added"],
+        [30, 64, 0, "64 players @ \$30"],
+        [20, 128, 0, "128 players @ \$20"],
+        [15, 256, 0, "256 players @ \$15"]
+    ];
+    
+    foreach ($tests as $i => $test) {
+        list($entry, $players, $added, $desc) = $test;
+        echo "EXAMPLE " . ($i + 1) . ": $desc\n";
+        echo str_repeat("=", 70) . "\n";
+        $calc = new TournamentPayoutCalculator($entry, $players, $added);
+        echo $calc->displayPayouts() . "\n\n";
+    }
+}
 ?>
