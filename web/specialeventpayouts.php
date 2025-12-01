@@ -79,19 +79,8 @@ try {
     logMessage("Read values - Entry Fee: \$$entryFee, Player Count: $playerCount, Added Money: \$$addedMoney");
     logMessage("Prize pool - Entries: \$$entryPool + Added: \$$addedMoney = Total: \$$totalPrizePool");
     
-    // Clear column E thoroughly (E1:E30 to handle any leftover data)
-    $clearRange = "{$OUTPUT_SHEET}!E1:E30";
-    $clearBody = new Google\Service\Sheets\ValueRange([
-        'values' => array_fill(0, 30, [''])
-    ]);
-    $service->spreadsheets_values->update(
-        $SPREADSHEET_ID,
-        $clearRange,
-        $clearBody,
-        ['valueInputOption' => 'RAW']
-    );
-    
-    logMessage("Cleared column E (E1:E30)");
+    // NOTE: We don't clear column E separately to avoid flicker
+    // Instead, we'll write blank rows at the end of our output to clear old data
     
     // Validate inputs
     if (!$entryFee || !$playerCount) {
@@ -179,7 +168,16 @@ try {
         }
     }
     
-    // Write all values to column E starting at E1
+    // Add blank rows to clear any old data (up to row 30)
+    // This ensures we clear old data in the same atomic write operation
+    $currentRows = count($outputValues);
+    $maxRows = 30;
+    
+    for ($i = $currentRows; $i < $maxRows; $i++) {
+        $outputValues[] = [''];
+    }
+    
+    // Write all values to column E starting at E1 (ATOMIC UPDATE - no flicker)
     if (!empty($outputValues)) {
         $outputRange = "{$OUTPUT_SHEET}!E1:E" . count($outputValues);
         $outputBody = new Google\Service\Sheets\ValueRange([
@@ -192,7 +190,7 @@ try {
             ['valueInputOption' => 'RAW']
         );
         
-        logMessage("Successfully updated " . count($outputValues) . " payout rows");
+        logMessage("Successfully updated " . $currentRows . " payout rows (cleared " . ($maxRows - $currentRows) . " old rows atomically)");
     }
     
 } catch (Exception $e) {
