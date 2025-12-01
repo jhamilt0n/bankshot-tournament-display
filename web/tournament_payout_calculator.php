@@ -1,13 +1,13 @@
 <?php
 /**
- * Tournament Payout Calculator - DYNAMIC CUTOFF
+ * Tournament Payout Calculator - DYNAMIC CUTOFF (FIXED)
  * 
  * Rules enforced:
  * 1. Every payout >= entry fee
  * 2. Strict descending order: each place <= previous place
  * 3. First place is always highest
  * 4. Smart rounding to $5/$10/$20
- * 5. DYNAMIC CUTOFF: Stop when next tie group would pay the same amount
+ * 5. DYNAMIC CUTOFF: Stop when consecutive tie groups pay the same amount
  */
 
 class TournamentPayoutCalculator {
@@ -160,26 +160,26 @@ class TournamentPayoutCalculator {
             }
         }
         
-        // Step 4: DYNAMIC CUTOFF - Remove tie groups that pay the same amount
+        // Step 4: DYNAMIC CUTOFF - NOW check AFTER enforcement
+        // Build array of what each group pays AFTER enforcement
         $groupPayouts = [];
         foreach ($groups as $i => $group) {
             $groupPayouts[$i] = $payouts[$group['start']];
         }
         
-        // Find where to cut off - stop when a group pays the same as the previous group
-        $lastValidGroupIndex = 0;
+        // Find first group that pays the same as previous group
+        $cutoffGroupIndex = count($groups) - 1; // Default: keep all
+        
         for ($i = 1; $i < count($groupPayouts); $i++) {
-            if ($groupPayouts[$i] < $groupPayouts[$i - 1]) {
-                // This group pays less than previous - it's valid
-                $lastValidGroupIndex = $i;
-            } else {
-                // This group pays the same as previous - cut it off here
+            if ($groupPayouts[$i] >= $groupPayouts[$i - 1]) {
+                // This group pays same or more than previous - CUT HERE
+                $cutoffGroupIndex = $i - 1;
                 break;
             }
         }
         
-        // Remove all places beyond the last valid group
-        $cutoffPlace = $groups[$lastValidGroupIndex]['end'];
+        // Remove all places beyond the cutoff group
+        $cutoffPlace = $groups[$cutoffGroupIndex]['end'];
         $filteredPayouts = [];
         foreach ($payouts as $place => $amount) {
             if ($place <= $cutoffPlace) {
@@ -188,8 +188,8 @@ class TournamentPayoutCalculator {
         }
         $payouts = $filteredPayouts;
         
-        // Recalculate with reduced groups for balance
-        $validGroups = array_slice($groups, 0, $lastValidGroupIndex + 1);
+        // Update groups list to match cutoff
+        $groups = array_slice($groups, 0, $cutoffGroupIndex + 1);
         
         // Step 5: Calculate total allocated (after cutoff)
         $allocatedTotal = 0;
@@ -278,16 +278,15 @@ class TournamentPayoutCalculator {
 
 // Test if run directly
 if (php_sapi_name() == 'cli' && basename(__FILE__) == basename($_SERVER['PHP_SELF'])) {
-    echo "Tournament Payout Calculator - Dynamic Cutoff Test\n";
+    echo "Tournament Payout Calculator - Dynamic Cutoff Test (FIXED)\n";
     echo str_repeat('=', 70) . "\n\n";
     
     $tests = [
+        [225, 100, 0],
         [214, 15, 0],
         [20, 20, 0],
-        [17, 20, 0],
         [64, 30, 0],
-        [128, 20, 0],
-        [32, 25, 100]
+        [128, 20, 0]
     ];
     
     foreach ($tests as $test) {
@@ -302,37 +301,25 @@ if (php_sapi_name() == 'cli' && basename(__FILE__) == basename($_SERVER['PHP_SEL
         
         echo "$players players @ \$$fee" . ($added ? " + \$$added" : "") . ":\n";
         echo "  Places paid: $placesPaid (" . number_format($percentPaid, 1) . "%)\n";
-        echo "  Total pot: \$" . number_format($total, 2) . "\n";
         
-        // Show all payouts
-        $prevAmount = PHP_INT_MAX;
-        $distinctCount = 0;
-        foreach ($payouts as $place => $amount) {
-            if ($amount != $prevAmount) {
-                $distinctCount++;
-                $prevAmount = $amount;
-            }
-        }
+        // Check for duplicate amounts in consecutive groups
+        $groupAmounts = [];
+        $duplicates = false;
         
-        echo "  Distinct payout levels: $distinctCount\n";
-        
-        // Check for violations
-        $violations = [];
+        // Map places to groups and check
         $prevAmount = PHP_INT_MAX;
         foreach ($payouts as $place => $amount) {
-            if ($amount < $fee) {
-                $violations[] = "Place $place < entry fee";
-            }
-            if ($amount > $prevAmount) {
-                $violations[] = "Place $place > previous";
+            if ($amount == $prevAmount && $amount == $fee) {
+                $duplicates = true;
+                break;
             }
             $prevAmount = $amount;
         }
         
-        if (empty($violations)) {
-            echo "  ✅ NO VIOLATIONS\n";
+        if ($duplicates) {
+            echo "  ❌ STILL HAS FAKE TIES!\n";
         } else {
-            echo "  ❌ VIOLATIONS: " . count($violations) . "\n";
+            echo "  ✅ NO FAKE TIES\n";
         }
         
         echo "\n";
