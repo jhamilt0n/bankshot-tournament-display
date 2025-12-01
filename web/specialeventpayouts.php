@@ -79,10 +79,10 @@ try {
     logMessage("Read values - Entry Fee: \$$entryFee, Player Count: $playerCount, Added Money: \$$addedMoney");
     logMessage("Prize pool - Entries: \$$entryPool + Added: \$$addedMoney = Total: \$$totalPrizePool");
     
-    // Clear column E first (E1:E20)
-    $clearRange = "{$OUTPUT_SHEET}!E1:E20";
+    // Clear column E thoroughly (E1:E30 to handle any leftover data)
+    $clearRange = "{$OUTPUT_SHEET}!E1:E30";
     $clearBody = new Google\Service\Sheets\ValueRange([
-        'values' => array_fill(0, 20, [''])
+        'values' => array_fill(0, 30, [''])
     ]);
     $service->spreadsheets_values->update(
         $SPREADSHEET_ID,
@@ -90,6 +90,8 @@ try {
         $clearBody,
         ['valueInputOption' => 'RAW']
     );
+    
+    logMessage("Cleared column E (E1:E30)");
     
     // Validate inputs
     if (!$entryFee || !$playerCount) {

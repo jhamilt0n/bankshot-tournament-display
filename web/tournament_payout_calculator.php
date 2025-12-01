@@ -210,25 +210,99 @@ class TournamentPayoutCalculator {
             }
         }
         
-        // Step 8: Final balance adjustment
+        // Step 8: Final balance adjustment - CRITICAL FIX
         $newTotal = 0;
         foreach ($payouts as $amount) {
             $newTotal += $amount;
         }
         
-        // If over budget, take from first place
+        // If over budget, reduce proportionally from places 2-N, protect first place
         if ($newTotal > $this->totalPrizePool) {
             $overage = $newTotal - $this->totalPrizePool;
-            $payouts[1] -= $overage;
-            $payouts[1] = $this->roundAmount($payouts[1]);
             
-            // Ensure first is still highest
-            if (isset($payouts[2]) && $payouts[1] <= $payouts[2]) {
-                $payouts[1] = $this->roundAmount($payouts[2] * 1.2);
+            // Try taking from first place first
+            $availableFromFirst = $payouts[1] - (isset($payouts[2]) ? $this->roundAmount($payouts[2] * 1.2) : $this->entryFee);
+            
+            if ($availableFromFirst >= $overage) {
+                // Can take it all from first
+                $payouts[1] -= $overage;
+                $payouts[1] = $this->roundAmount($payouts[1]);
+            } else {
+                // Need to reduce other places too
+                $payouts[1] -= $availableFromFirst;
+                $payouts[1] = $this->roundAmount($payouts[1]);
+                $remainingOverage = $overage - $availableFromFirst;
+                
+                // Reduce other places proportionally
+                $otherTotal = 0;
+                foreach ($payouts as $place => $amount) {
+                    if ($place > 1) {
+                        $otherTotal += $amount;
+                    }
+                }
+                
+                if ($otherTotal > 0) {
+                    $reductionFactor = ($otherTotal - $remainingOverage) / $otherTotal;
+                    
+                    foreach ($payouts as $place => $amount) {
+                        if ($place > 1) {
+                            $newAmount = $this->roundAmount($amount * $reductionFactor);
+                            if ($newAmount < $this->entryFee) {
+                                $newAmount = $this->entryFee;
+                            }
+                            $payouts[$place] = $newAmount;
+                        }
+                    }
+                }
+            }
+            
+            // Final check - if still over, take the difference from first
+            $finalTotal = array_sum($payouts);
+            if ($finalTotal > $this->totalPrizePool) {
+                $payouts[1] -= ($finalTotal - $this->totalPrizePool);
+                $payouts[1] = $this->roundAmount($payouts[1]);
             }
         }
         
-        // Step 9: Sort by place number
+        // Step 9: Final balance - EXACT match (no rounding on final adjustment)
+        $finalTotal = 0;
+        foreach ($payouts as $amount) {
+            $finalTotal += $amount;
+        }
+        
+        $finalDiff = $this->totalPrizePool - $finalTotal;
+        
+        if (abs($finalDiff) > 0.01) {
+            // Adjust first place to match EXACTLY (don't round this adjustment)
+            $payouts[1] += $finalDiff;
+            
+            // But if first place drops below minimum threshold, redistribute
+            if (isset($payouts[2])) {
+                $minFirst = $payouts[2] * 1.15; // At least 15% more than 2nd
+                if ($payouts[1] < $minFirst) {
+                    // Need to reduce other places
+                    $needed = $minFirst - $payouts[1];
+                    $payouts[1] = $minFirst;
+                    
+                    // Take from other places proportionally
+                    $otherTotal = 0;
+                    foreach ($payouts as $place => $amount) {
+                        if ($place > 1) $otherTotal += $amount;
+                    }
+                    
+                    if ($otherTotal > $needed) {
+                        foreach ($payouts as $place => $amount) {
+                            if ($place > 1) {
+                                $reduction = ($amount / $otherTotal) * $needed;
+                                $payouts[$place] -= $reduction;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Step 10: Sort by place number
         ksort($payouts);
         
         return $payouts;
