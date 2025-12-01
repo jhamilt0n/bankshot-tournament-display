@@ -349,6 +349,23 @@ if (!$tournament_found) {
 <!-- GLOBAL SCRIPT - Available to all sections -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+// Google Apps Script URL - same as calcutta.html uses
+const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkK__Ny64Ho4I7cq8zKN3KmzxLEtenMbhps3D_ouiVZjBguv4P-AB3LtxzUfwV9VV8oQ/exec';
+
+// Duration for Calcutta/SidePot display (in seconds)
+const CALCUTTA_SIDEPOT_DURATION = 40;
+
+// Current tournament player count (from PHP)
+const TOURNAMENT_PLAYER_COUNT = <?php echo $player_count; ?>;
+const TOURNAMENT_FOUND = <?php echo $tournament_found ? 'true' : 'false'; ?>;
+
+// ============================================================================
+// HELPER FUNCTIONS
+// ============================================================================
 
 function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
     if (m.hasEndDate && m.endDate && currentDate > m.endDate) {
@@ -392,9 +409,35 @@ function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
     return true;
 }
 
+/**
+ * Fetch display type setting from Google Sheets
+ * Returns: 'none', 'calcutta', 'sidepot', or 'both'
+ */
+async function getDisplayTypeSetting() {
+    try {
+        const response = await fetch(GOOGLE_APPS_SCRIPT_URL + '?action=displayType');
+        if (!response.ok) {
+            console.error('Failed to fetch display type setting');
+            return 'none';
+        }
+        const data = await response.json();
+        console.log('Display type from Google Sheets:', data.displayType);
+        return data.displayType || 'none';
+    } catch (error) {
+        console.error('Error fetching display type:', error);
+        return 'none';
+    }
+}
+
+// ============================================================================
+// DASHBOARD MANAGER
+// ============================================================================
+
 var Dash = {
     dashboards: [],
     nextIndex: 0,
+    displayType: 'none', // Will be set from Google Sheets
+    
     createIframes: function() {
         var frameContainer = document.getElementById('frameContainer');
         
@@ -408,72 +451,119 @@ var Dash = {
         }
     },
     
-    initializeDashboards: function() {
+    initializeDashboards: async function() {
         console.log('Loading media rotation...');
+        console.log('Tournament found:', TOURNAMENT_FOUND);
+        console.log('Player count:', TOURNAMENT_PLAYER_COUNT);
         
-        fetch('/load_media.php')
-            .then(function(response) {
-                return response.json();
-            })
-            .then(function(data) {
-                <?php if ($tournament_found): ?>
-                // Tournament active - show 'tournament' media
-                var allMediaItems = data.filter(function(m) { 
-                    return m.active === true && m.displayOnTournaments === true;
-                });
-                console.log('Tournament mode: ' + allMediaItems.length + ' tournament media items');
-                <?php else: ?>
-                // No tournament - show 'ad' media
-                var allMediaItems = data.filter(function(m) { 
-                    return m.active === true && m.displayOnAds === true;
-                });
-                console.log('Ad mode: ' + allMediaItems.length + ' ad media items');
-                <?php endif; ?>
-                
-                // Sort by order
-                allMediaItems.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
-                
-                // Apply schedule filtering
-                var now = new Date();
-                var currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
-                var currentTime = now.getHours() * 60 + now.getMinutes();
-                var currentDate = now.toISOString().split('T')[0];
-                
-                var filteredMedia = allMediaItems.filter(function(m) {
-                    return shouldDisplayMedia(m, now, currentDay, currentTime, currentDate);
-                });
-                
-                console.log('After schedule filter: ' + filteredMedia.length + ' items to display');
-                
-                // Build dashboards
-                for (var i = 0; i < filteredMedia.length; i++) {
-                    var mediaItem = filteredMedia[i];
-                    
-                    if (mediaItem.type === 'url') {
-                        Dash.dashboards.push({
-                            url: mediaItem.url,
-                            time: mediaItem.duration || 20,
-                            refresh: true
-                        });
-                    } else {
-                        Dash.dashboards.push({
-                            url: 'data:text/html;charset=utf-8,' + encodeURIComponent(Dash.createMediaHTML(mediaItem)),
-                            time: mediaItem.duration || 20,
-                            refresh: false
-                        });
-                    }
-                }
-                
-                if (Dash.dashboards.length === 0) {
-                    console.warn('No media items to display!');
-                }
-                
-                Dash.continueStartup();
-            })
-            .catch(function(err) {
-                console.error('Error loading media:', err);
-                Dash.continueStartup();
+        // First, get the display type setting from Google Sheets
+        // Only fetch if tournament is active and has players
+        if (TOURNAMENT_FOUND && TOURNAMENT_PLAYER_COUNT > 0) {
+            Dash.displayType = await getDisplayTypeSetting();
+            console.log('Display type setting:', Dash.displayType);
+        } else {
+            Dash.displayType = 'none';
+            console.log('No active tournament with players - display type set to none');
+        }
+        
+        // Load regular media items
+        try {
+            const response = await fetch('/load_media.php');
+            const data = await response.json();
+            
+            <?php if ($tournament_found): ?>
+            // Tournament active - show 'tournament' media
+            var allMediaItems = data.filter(function(m) { 
+                return m.active === true && m.displayOnTournaments === true;
             });
+            console.log('Tournament mode: ' + allMediaItems.length + ' tournament media items');
+            <?php else: ?>
+            // No tournament - show 'ad' media
+            var allMediaItems = data.filter(function(m) { 
+                return m.active === true && m.displayOnAds === true;
+            });
+            console.log('Ad mode: ' + allMediaItems.length + ' ad media items');
+            <?php endif; ?>
+            
+            // Sort by order
+            allMediaItems.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
+            
+            // Apply schedule filtering
+            var now = new Date();
+            var currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
+            var currentTime = now.getHours() * 60 + now.getMinutes();
+            var currentDate = now.toISOString().split('T')[0];
+            
+            var filteredMedia = allMediaItems.filter(function(m) {
+                return shouldDisplayMedia(m, now, currentDay, currentTime, currentDate);
+            });
+            
+            console.log('After schedule filter: ' + filteredMedia.length + ' items to display');
+            
+            // Build dashboards from regular media
+            for (var i = 0; i < filteredMedia.length; i++) {
+                var mediaItem = filteredMedia[i];
+                
+                if (mediaItem.type === 'url') {
+                    Dash.dashboards.push({
+                        url: mediaItem.url,
+                        time: mediaItem.duration || 20,
+                        refresh: true,
+                        name: mediaItem.name || 'URL'
+                    });
+                } else {
+                    Dash.dashboards.push({
+                        url: 'data:text/html;charset=utf-8,' + encodeURIComponent(Dash.createMediaHTML(mediaItem)),
+                        time: mediaItem.duration || 20,
+                        refresh: false,
+                        name: mediaItem.name || 'Media'
+                    });
+                }
+            }
+            
+            // ================================================================
+            // ADD CALCUTTA/SIDEPOT TO ROTATION IF ENABLED AND PLAYERS > 0
+            // ================================================================
+            if (TOURNAMENT_FOUND && TOURNAMENT_PLAYER_COUNT > 0) {
+                if (Dash.displayType === 'calcutta' || Dash.displayType === 'both') {
+                    console.log('Adding Calcutta to rotation (40s duration)');
+                    Dash.dashboards.push({
+                        url: '/calcutta.html',
+                        time: CALCUTTA_SIDEPOT_DURATION,
+                        refresh: true,  // Refresh to get latest data
+                        name: 'Calcutta Display'
+                    });
+                }
+                
+                if (Dash.displayType === 'sidepot' || Dash.displayType === 'both') {
+                    console.log('Adding Side Pot to rotation (40s duration)');
+                    Dash.dashboards.push({
+                        url: '/sidepot.html',
+                        time: CALCUTTA_SIDEPOT_DURATION,
+                        refresh: true,  // Refresh to get latest data
+                        name: 'Side Pot Display'
+                    });
+                }
+            } else {
+                console.log('Calcutta/SidePot not added - no players or no tournament');
+            }
+            
+            // Log final dashboard lineup
+            console.log('Final dashboard lineup:');
+            Dash.dashboards.forEach(function(d, i) {
+                console.log('  ' + i + ': ' + d.name + ' (' + d.time + 's)');
+            });
+            
+            if (Dash.dashboards.length === 0) {
+                console.warn('No media items to display!');
+            }
+            
+            Dash.continueStartup();
+            
+        } catch (err) {
+            console.error('Error loading media:', err);
+            Dash.continueStartup();
+        }
     },
     
     continueStartup: function() {
@@ -536,6 +626,8 @@ var Dash = {
         }
         
         Dash.showFrame(this.nextIndex);
+        
+        console.log('Displaying: ' + currentDashboard.name + ' for ' + currentDashboard.time + 's');
         
         this.nextIndex = (this.nextIndex + 1) % Dash.dashboards.length;
         
@@ -747,6 +839,29 @@ setInterval(checkForChanges, 10000);
 
 // Initial check after 2 seconds
 setTimeout(checkForChanges, 2000);
+
+// ============================================================================
+// ALSO CHECK FOR DISPLAY TYPE CHANGES FROM GOOGLE SHEETS
+// This allows live switching between Calcutta/SidePot without page reload
+// ============================================================================
+let lastDisplayType = Dash.displayType;
+
+async function checkDisplayTypeChange() {
+    if (!TOURNAMENT_FOUND || TOURNAMENT_PLAYER_COUNT <= 0) return;
+    
+    try {
+        const newDisplayType = await getDisplayTypeSetting();
+        if (newDisplayType !== lastDisplayType) {
+            console.log('📋 Display type changed from', lastDisplayType, 'to', newDisplayType, '- reloading');
+            location.reload();
+        }
+    } catch (err) {
+        console.error('Error checking display type:', err);
+    }
+}
+
+// Check display type every 30 seconds
+setInterval(checkDisplayTypeChange, 30000);
 </script>
 
 <?php else: ?>
