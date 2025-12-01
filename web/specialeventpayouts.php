@@ -93,11 +93,11 @@ try {
         exit(0);
     }
     
-    if ($playerCount < 8) {
-        logMessage("Less than 8 players - showing error");
+    if ($playerCount < 4) {
+        logMessage("Less than 4 players - showing error");
         $errorRange = "{$OUTPUT_SHEET}!E1";
         $errorBody = new Google\Service\Sheets\ValueRange([
-            'values' => [['Need 8+ players']]
+            'values' => [['Need 4+ players']]
         ]);
         $service->spreadsheets_values->update(
             $SPREADSHEET_ID,

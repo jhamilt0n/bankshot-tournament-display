@@ -1,13 +1,24 @@
 <?php
 /**
- * Tournament Payout Calculator - DYNAMIC CUTOFF (FIXED)
+ * Tournament Payout Calculator - EXACT RULES
  * 
- * Rules enforced:
- * 1. Every payout >= entry fee
- * 2. Strict descending order: each place <= previous place
- * 3. First place is always highest
- * 4. Smart rounding to $5/$10/$20
- * 5. DYNAMIC CUTOFF: Stop when consecutive tie groups pay the same amount
+ * Player count to places paid:
+ * < 4: not enough
+ * 4-7: pay 1
+ * 8-11: pay 2
+ * 12-15: pay 3
+ * 16-23: pay 4
+ * 24-31: pay 6
+ * 32-47: pay 8
+ * 48-63: pay 12
+ * 64-95: pay 16
+ * 96-127: pay 24
+ * 128-191: pay 32
+ * 192-255: pay 48
+ * 256: pay 64
+ * 
+ * Tie structure: 1-4 individual, 5-6 tie, 7-8 tie, 9-12 tie, 13-16 tie,
+ *                17-24 tie, 25-32 tie, 33-48 tie, 49-64 tie
  */
 
 class TournamentPayoutCalculator {
@@ -28,14 +39,18 @@ class TournamentPayoutCalculator {
     }
     
     private function determineBaseAndMultiplier($entryFee) {
+        // Entry fee with 5 in ones place: divisible by 5
         if ($entryFee % 10 == 5) {
             return [5, $entryFee / 5];
         }
+        // Entry fee with 0 in ones place
         if ($entryFee % 10 == 0) {
             $tens = ($entryFee / 10) % 2;
+            // Odd tens digit: divisible by 10
             if ($tens == 1) {
                 return [10, $entryFee / 10];
             } else {
+                // Even tens digit: divisible by 20
                 return [20, $entryFee / 20];
             }
         }
@@ -52,20 +67,20 @@ class TournamentPayoutCalculator {
     }
     
     private function getMaxPlaceToPay() {
-        if ($this->numPlayers < 8) return 0;
-        if ($this->numPlayers <= 15) return 3;
-        if ($this->numPlayers <= 19) return 4;
-        if ($this->numPlayers <= 27) return 6;
-        if ($this->numPlayers <= 35) return 8;
-        if ($this->numPlayers <= 51) return 12;
-        if ($this->numPlayers <= 67) return 16;
-        if ($this->numPlayers <= 99) return 24;
-        if ($this->numPlayers <= 131) return 32;
-        if ($this->numPlayers <= 195) return 48;
-        if ($this->numPlayers <= 259) return 64;
-        if ($this->numPlayers <= 387) return 96;
-        if ($this->numPlayers <= 515) return 128;
-        return 256;
+        if ($this->numPlayers < 4) return 0;
+        if ($this->numPlayers >= 4 && $this->numPlayers < 8) return 1;
+        if ($this->numPlayers >= 8 && $this->numPlayers < 12) return 2;
+        if ($this->numPlayers >= 12 && $this->numPlayers < 16) return 3;
+        if ($this->numPlayers >= 16 && $this->numPlayers < 24) return 4;
+        if ($this->numPlayers >= 24 && $this->numPlayers < 32) return 6;
+        if ($this->numPlayers >= 32 && $this->numPlayers < 48) return 8;
+        if ($this->numPlayers >= 48 && $this->numPlayers < 64) return 12;
+        if ($this->numPlayers >= 64 && $this->numPlayers < 96) return 16;
+        if ($this->numPlayers >= 96 && $this->numPlayers < 128) return 24;
+        if ($this->numPlayers >= 128 && $this->numPlayers < 192) return 32;
+        if ($this->numPlayers >= 192 && $this->numPlayers < 256) return 48;
+        if ($this->numPlayers == 256) return 64;
+        return 0;
     }
     
     private function getTieGroups() {
@@ -73,8 +88,9 @@ class TournamentPayoutCalculator {
         if ($maxPlace == 0) return [];
         
         $groups = [];
-        $groups[] = ['start' => 1, 'end' => 1];
         
+        // Always include places up to maxPlace following tie structure
+        if ($maxPlace >= 1) $groups[] = ['start' => 1, 'end' => 1];
         if ($maxPlace >= 2) $groups[] = ['start' => 2, 'end' => 2];
         if ($maxPlace >= 3) $groups[] = ['start' => 3, 'end' => 3];
         if ($maxPlace >= 4) $groups[] = ['start' => 4, 'end' => 4];
@@ -86,9 +102,6 @@ class TournamentPayoutCalculator {
         if ($maxPlace >= 32) $groups[] = ['start' => 25, 'end' => 32];
         if ($maxPlace >= 48) $groups[] = ['start' => 33, 'end' => 48];
         if ($maxPlace >= 64) $groups[] = ['start' => 49, 'end' => 64];
-        if ($maxPlace >= 96) $groups[] = ['start' => 65, 'end' => 96];
-        if ($maxPlace >= 128) $groups[] = ['start' => 97, 'end' => 128];
-        if ($maxPlace >= 256) $groups[] = ['start' => 129, 'end' => 256];
         
         return $groups;
     }
@@ -97,7 +110,7 @@ class TournamentPayoutCalculator {
         $groups = $this->getTieGroups();
         
         if (empty($groups)) {
-            return ["error" => "Minimum 8 players required"];
+            return ["error" => "Minimum 4 players required"];
         }
         
         $numGroups = count($groups);
@@ -136,7 +149,7 @@ class TournamentPayoutCalculator {
             }
         }
         
-        // Rule 2: Enforce strict descending order
+        // Rule 2: Enforce strict descending order within groups
         for ($i = 1; $i < $numGroups; $i++) {
             $currentGroup = $groups[$i];
             $previousGroup = $groups[$i - 1];
@@ -160,7 +173,7 @@ class TournamentPayoutCalculator {
             }
         }
         
-        // Step 4: DYNAMIC CUTOFF - NOW check AFTER enforcement
+        // Step 4: DYNAMIC CUTOFF - Check if multiple groups pay the same
         // Build array of what each group pays AFTER enforcement
         $groupPayouts = [];
         foreach ($groups as $i => $group) {
@@ -188,9 +201,6 @@ class TournamentPayoutCalculator {
         }
         $payouts = $filteredPayouts;
         
-        // Update groups list to match cutoff
-        $groups = array_slice($groups, 0, $cutoffGroupIndex + 1);
-        
         // Step 5: Calculate total allocated (after cutoff)
         $allocatedTotal = 0;
         foreach ($payouts as $amount) {
@@ -210,61 +220,7 @@ class TournamentPayoutCalculator {
             }
         }
         
-        // Step 8: Final balance adjustment - CRITICAL FIX
-        $newTotal = 0;
-        foreach ($payouts as $amount) {
-            $newTotal += $amount;
-        }
-        
-        // If over budget, reduce proportionally from places 2-N, protect first place
-        if ($newTotal > $this->totalPrizePool) {
-            $overage = $newTotal - $this->totalPrizePool;
-            
-            // Try taking from first place first
-            $availableFromFirst = $payouts[1] - (isset($payouts[2]) ? $this->roundAmount($payouts[2] * 1.2) : $this->entryFee);
-            
-            if ($availableFromFirst >= $overage) {
-                // Can take it all from first
-                $payouts[1] -= $overage;
-                $payouts[1] = $this->roundAmount($payouts[1]);
-            } else {
-                // Need to reduce other places too
-                $payouts[1] -= $availableFromFirst;
-                $payouts[1] = $this->roundAmount($payouts[1]);
-                $remainingOverage = $overage - $availableFromFirst;
-                
-                // Reduce other places proportionally
-                $otherTotal = 0;
-                foreach ($payouts as $place => $amount) {
-                    if ($place > 1) {
-                        $otherTotal += $amount;
-                    }
-                }
-                
-                if ($otherTotal > 0) {
-                    $reductionFactor = ($otherTotal - $remainingOverage) / $otherTotal;
-                    
-                    foreach ($payouts as $place => $amount) {
-                        if ($place > 1) {
-                            $newAmount = $this->roundAmount($amount * $reductionFactor);
-                            if ($newAmount < $this->entryFee) {
-                                $newAmount = $this->entryFee;
-                            }
-                            $payouts[$place] = $newAmount;
-                        }
-                    }
-                }
-            }
-            
-            // Final check - if still over, take the difference from first
-            $finalTotal = array_sum($payouts);
-            if ($finalTotal > $this->totalPrizePool) {
-                $payouts[1] -= ($finalTotal - $this->totalPrizePool);
-                $payouts[1] = $this->roundAmount($payouts[1]);
-            }
-        }
-        
-        // Step 9: Final balance - EXACT match (no rounding on final adjustment)
+        // Step 8: Final balance - EXACT match (no rounding on final adjustment)
         $finalTotal = 0;
         foreach ($payouts as $amount) {
             $finalTotal += $amount;
@@ -273,14 +229,13 @@ class TournamentPayoutCalculator {
         $finalDiff = $this->totalPrizePool - $finalTotal;
         
         if (abs($finalDiff) > 0.01) {
-            // Adjust first place to match EXACTLY (don't round this adjustment)
+            // Adjust first place to match EXACTLY
             $payouts[1] += $finalDiff;
             
-            // But if first place drops below minimum threshold, redistribute
+            // Ensure first place doesn't drop too low
             if (isset($payouts[2])) {
-                $minFirst = $payouts[2] * 1.15; // At least 15% more than 2nd
+                $minFirst = $payouts[2] * 1.15;
                 if ($payouts[1] < $minFirst) {
-                    // Need to reduce other places
                     $needed = $minFirst - $payouts[1];
                     $payouts[1] = $minFirst;
                     
@@ -302,7 +257,7 @@ class TournamentPayoutCalculator {
             }
         }
         
-        // Step 10: Sort by place number
+        // Step 9: Sort by place number
         ksort($payouts);
         
         return $payouts;
@@ -343,24 +298,27 @@ class TournamentPayoutCalculator {
         if ($place >= 25 && $place <= 32) return '25th-32nd';
         if ($place >= 33 && $place <= 48) return '33rd-48th';
         if ($place >= 49 && $place <= 64) return '49th-64th';
-        if ($place >= 65 && $place <= 96) return '65th-96th';
-        if ($place >= 97 && $place <= 128) return '97th-128th';
-        if ($place >= 129 && $place <= 256) return '129th-256th';
         return $place . 'th';
     }
 }
 
 // Test if run directly
 if (php_sapi_name() == 'cli' && basename(__FILE__) == basename($_SERVER['PHP_SELF'])) {
-    echo "Tournament Payout Calculator - Dynamic Cutoff Test (FIXED)\n";
+    echo "Tournament Payout Calculator - Exact Rules Test\n";
     echo str_repeat('=', 70) . "\n\n";
     
     $tests = [
-        [225, 100, 0],
-        [214, 15, 0],
+        [6, 20, 0],
+        [10, 25, 0],
+        [14, 30, 0],
         [20, 20, 0],
-        [64, 30, 0],
-        [128, 20, 0]
+        [28, 25, 0],
+        [40, 30, 0],
+        [60, 20, 100],
+        [80, 30, 0],
+        [120, 25, 0],
+        [200, 20, 0],
+        [256, 25, 0]
     ];
     
     foreach ($tests as $test) {
@@ -369,31 +327,22 @@ if (php_sapi_name() == 'cli' && basename(__FILE__) == basename($_SERVER['PHP_SEL
         $calc = new TournamentPayoutCalculator($fee, $players, $added);
         $payouts = $calc->getPayoutsArray();
         
-        $total = ($fee * $players) + $added;
-        $placesPaid = count($payouts);
-        $percentPaid = ($placesPaid / $players) * 100;
-        
-        echo "$players players @ \$$fee" . ($added ? " + \$$added" : "") . ":\n";
-        echo "  Places paid: $placesPaid (" . number_format($percentPaid, 1) . "%)\n";
-        
-        // Check for duplicate amounts in consecutive groups
-        $groupAmounts = [];
-        $duplicates = false;
-        
-        // Map places to groups and check
-        $prevAmount = PHP_INT_MAX;
-        foreach ($payouts as $place => $amount) {
-            if ($amount == $prevAmount && $amount == $fee) {
-                $duplicates = true;
-                break;
-            }
-            $prevAmount = $amount;
+        if (isset($payouts['error'])) {
+            echo "$players @ \$$fee: " . $payouts['error'] . "\n";
+            continue;
         }
         
-        if ($duplicates) {
-            echo "  ❌ STILL HAS FAKE TIES!\n";
+        $total = ($fee * $players) + $added;
+        $payoutSum = array_sum($payouts);
+        
+        echo "$players @ \$$fee" . ($added ? " + \$$added" : "") . ":\n";
+        echo "  Places paid: " . count($payouts) . "\n";
+        echo "  Total: \$" . number_format($payoutSum, 2) . " / \$" . number_format($total, 2);
+        
+        if (abs($total - $payoutSum) < 0.01) {
+            echo " ✅\n";
         } else {
-            echo "  ✅ NO FAKE TIES\n";
+            echo " ❌ (off by \$" . number_format(abs($total - $payoutSum), 2) . ")\n";
         }
         
         echo "\n";
