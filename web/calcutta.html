@@ -221,6 +221,17 @@
         <div class="total-amount" id="totalAmount">$0.00</div>
     </div>
     
+    <div id="tournamentIndicator" style="
+        text-align: center;
+        margin-bottom: 10px;
+        font-family: 'Oswald', sans-serif;
+        font-size: 1.2rem;
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    ">
+        Loading...
+    </div>
+    
     <div class="marquee-container">
         <div class="table-header" id="tableHeader">
             <!-- Fixed header will be added here -->
@@ -233,8 +244,16 @@
     </div>
     
     <script>
-        // ORIGINAL GOOGLE SHEETS URL - DO NOT CHANGE
-        const webAppUrl = 'https://script.googleusercontent.com/macros/echo?user_content_key=https://script.google.com/macros/s/AKfycbym2eQFb46FiDlV_GflS_dukMFsQqeuz18w9-Gnh4Fd6cS5AO6mPXN-13QpkAPWCSEn2Q/exec';
+        // ORIGINAL GOOGLE SHEETS URL - REPLACE WITH YOUR NEW WEB APP URL
+        const webAppUrl = 'https://script.google.com/macros/s/AKfycbxkK__Ny64Ho4I7cq8zKN3KmzxLEtenMbhps3D_ouiVZjBguv4P-AB3LtxzUfwV9VV8oQ/exec';
+        
+        // Define which columns to display - ONLY Name, Payer, Amount
+        const COLUMNS_TO_SHOW = ['Name', 'Payer', 'Amount'];
+        
+        // Auto-refresh settings
+        const CHECK_INTERVAL = 5000; // Check every 5 seconds
+        let currentTournament = null;
+        let checkIntervalId = null;
         
         function formatCurrency(value) {
             // Remove any non-numeric characters except decimal point and minus
@@ -274,6 +293,28 @@
             }
         }
         
+        function updateTournamentIndicator(tournamentName) {
+            const indicator = document.getElementById('tournamentIndicator');
+            if (indicator) {
+                indicator.textContent = tournamentName || 'Unknown Tournament';
+            }
+        }
+        
+        function filterHeaders(allHeaders) {
+            // Find the headers that exist in both the data and our desired columns
+            // Case-insensitive matching
+            return COLUMNS_TO_SHOW.filter(desiredCol => {
+                return allHeaders.some(dataCol => 
+                    dataCol.toLowerCase() === desiredCol.toLowerCase()
+                );
+            }).map(desiredCol => {
+                // Return the actual header name from the data (preserves original casing)
+                return allHeaders.find(dataCol => 
+                    dataCol.toLowerCase() === desiredCol.toLowerCase()
+                );
+            });
+        }
+        
         function createHeaderTable(headersArray) {
             const table = document.createElement('table');
             const thead = document.createElement('thead');
@@ -287,7 +328,7 @@
                 const headerLower = header.toLowerCase();
                 if (headerLower === 'amount') {
                     th.style.textAlign = 'right';
-                } else if (headerLower === 'name' || headerLower === 'buyer') {
+                } else if (headerLower === 'name' || headerLower === 'payer') {
                     th.style.textAlign = 'left';
                 }
                 
@@ -319,8 +360,8 @@
                         td.style.textAlign = 'right';
                     } else {
                         td.textContent = value;
-                        // Explicitly set left alignment for Name and Buyer
-                        if (headerLower === 'name' || headerLower === 'buyer') {
+                        // Explicitly set left alignment for Name and Payer
+                        if (headerLower === 'name' || headerLower === 'payer') {
                             td.style.textAlign = 'left';
                         }
                     }
@@ -363,52 +404,110 @@
             });
         }
         
-        fetch(webAppUrl)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(data => {
-                const marqueeContent = document.getElementById('marqueeContent');
-                const tableHeader = document.getElementById('tableHeader');
-                
-                if (!data || data.length === 0) {
-                    marqueeContent.innerHTML = '<div class="error">No data available</div>';
-                    return;
-                }
-                
-                // Calculate and update total
-                const total = calculateTotal(data);
-                updateTotalDisplay(total);
-                
-                // Get headers from first row
-                const headers = Object.keys(data[0]);
-                
-                // Create fixed header
-                const headerTable = createHeaderTable(headers);
-                tableHeader.appendChild(headerTable);
-                
-                // Clear loading message
-                marqueeContent.innerHTML = '';
-                
-                // Create first table (body only)
-                const table1 = createBodyTable(data, headers);
-                marqueeContent.appendChild(table1);
-                
-                // Create duplicate table for seamless scrolling (body only)
-                const table2 = createBodyTable(data, headers);
-                marqueeContent.appendChild(table2);
-                
-                // Start the marquee animation
-                startMarquee();
-            })
-            .catch(error => {
-                console.error('Error fetching data:', error);
-                const marqueeContent = document.getElementById('marqueeContent');
-                marqueeContent.innerHTML = '<div class="error">Error loading data. Please try again later.</div>';
-            });
+        function loadCalcuttaData() {
+            fetch(webAppUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(responseData => {
+                    const marqueeContent = document.getElementById('marqueeContent');
+                    const tableHeader = document.getElementById('tableHeader');
+                    
+                    // Handle both old format (array) and new format (object with tournamentName and data)
+                    let data, tournamentName;
+                    if (Array.isArray(responseData)) {
+                        // Old format - just data array
+                        data = responseData;
+                        tournamentName = 'Tournament';
+                    } else {
+                        // New format - object with tournamentName and data
+                        tournamentName = responseData.tournamentName;
+                        data = responseData.data;
+                    }
+                    
+                    // Check if tournament changed
+                    if (currentTournament && currentTournament !== tournamentName) {
+                        console.log(`Tournament changed from "${currentTournament}" to "${tournamentName}" - reloading...`);
+                    }
+                    
+                    // Update current tournament
+                    currentTournament = tournamentName;
+                    updateTournamentIndicator(tournamentName);
+                    
+                    if (!data || data.length === 0) {
+                        marqueeContent.innerHTML = '<div class="error">No data available</div>';
+                        updateTotalDisplay(0);
+                        return;
+                    }
+                    
+                    // Calculate and update total
+                    const total = calculateTotal(data);
+                    updateTotalDisplay(total);
+                    
+                    // Get all headers from first row
+                    const allHeaders = Object.keys(data[0]);
+                    
+                    // Filter to only show Name, Payer, Amount
+                    const headersToShow = filterHeaders(allHeaders);
+                    
+                    // Clear and recreate header
+                    tableHeader.innerHTML = '';
+                    const headerTable = createHeaderTable(headersToShow);
+                    tableHeader.appendChild(headerTable);
+                    
+                    // Clear and recreate content
+                    marqueeContent.innerHTML = '';
+                    marqueeContent.classList.remove('scrolling');
+                    
+                    // Create first table (body only) with filtered columns
+                    const table1 = createBodyTable(data, headersToShow);
+                    marqueeContent.appendChild(table1);
+                    
+                    // Create duplicate table for seamless scrolling (body only) with filtered columns
+                    const table2 = createBodyTable(data, headersToShow);
+                    marqueeContent.appendChild(table2);
+                    
+                    // Start the marquee animation
+                    startMarquee();
+                })
+                .catch(error => {
+                    console.error('Error fetching data:', error);
+                    const marqueeContent = document.getElementById('marqueeContent');
+                    marqueeContent.innerHTML = '<div class="error">Error loading data. Please try again later.</div>';
+                });
+        }
+        
+        function checkForTournamentChange() {
+            fetch(webAppUrl)
+                .then(response => response.json())
+                .then(responseData => {
+                    // Handle both formats
+                    let tournamentName;
+                    if (Array.isArray(responseData)) {
+                        tournamentName = 'Tournament';
+                    } else {
+                        tournamentName = responseData.tournamentName;
+                    }
+                    
+                    // If tournament changed, reload all data
+                    if (currentTournament && currentTournament !== tournamentName) {
+                        console.log(`Tournament changed! Refreshing display...`);
+                        loadCalcuttaData();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error checking tournament:', error);
+                });
+        }
+        
+        // Initial load
+        loadCalcuttaData();
+        
+        // Start checking for tournament changes every 5 seconds
+        checkIntervalId = setInterval(checkForTournamentChange, CHECK_INTERVAL);
         
         // Recalculate animation on window resize
         let resizeTimer;
