@@ -1,12 +1,13 @@
 <?php
 /**
- * Tournament Payout Calculator - STRICT ENFORCEMENT
+ * Tournament Payout Calculator - DYNAMIC CUTOFF
  * 
  * Rules enforced:
  * 1. Every payout >= entry fee
  * 2. Strict descending order: each place <= previous place
  * 3. First place is always highest
  * 4. Smart rounding to $5/$10/$20
+ * 5. DYNAMIC CUTOFF: Stop when next tie group would pay the same amount
  */
 
 class TournamentPayoutCalculator {
@@ -126,7 +127,7 @@ class TournamentPayoutCalculator {
             }
         }
         
-        // Step 3: ENFORCE RULES - This is critical!
+        // Step 3: ENFORCE RULES
         
         // Rule 1: Ensure minimum entry fee for ALL places
         foreach ($payouts as $place => $amount) {
@@ -136,7 +137,6 @@ class TournamentPayoutCalculator {
         }
         
         // Rule 2: Enforce strict descending order
-        // Go through each tie group and ensure it's <= previous group
         for ($i = 1; $i < $numGroups; $i++) {
             $currentGroup = $groups[$i];
             $previousGroup = $groups[$i - 1];
@@ -144,9 +144,8 @@ class TournamentPayoutCalculator {
             $currentAmount = $payouts[$currentGroup['start']];
             $previousAmount = $payouts[$previousGroup['start']];
             
-            // Current group must be less than or equal to previous group
+            // Current group must be less than previous group
             if ($currentAmount >= $previousAmount) {
-                // Reduce current group to be less than previous
                 $newAmount = $previousAmount - $this->baseEntryFee;
                 
                 // But don't go below entry fee
@@ -161,18 +160,49 @@ class TournamentPayoutCalculator {
             }
         }
         
-        // Step 4: Calculate total allocated
+        // Step 4: DYNAMIC CUTOFF - Remove tie groups that pay the same amount
+        $groupPayouts = [];
+        foreach ($groups as $i => $group) {
+            $groupPayouts[$i] = $payouts[$group['start']];
+        }
+        
+        // Find where to cut off - stop when a group pays the same as the previous group
+        $lastValidGroupIndex = 0;
+        for ($i = 1; $i < count($groupPayouts); $i++) {
+            if ($groupPayouts[$i] < $groupPayouts[$i - 1]) {
+                // This group pays less than previous - it's valid
+                $lastValidGroupIndex = $i;
+            } else {
+                // This group pays the same as previous - cut it off here
+                break;
+            }
+        }
+        
+        // Remove all places beyond the last valid group
+        $cutoffPlace = $groups[$lastValidGroupIndex]['end'];
+        $filteredPayouts = [];
+        foreach ($payouts as $place => $amount) {
+            if ($place <= $cutoffPlace) {
+                $filteredPayouts[$place] = $amount;
+            }
+        }
+        $payouts = $filteredPayouts;
+        
+        // Recalculate with reduced groups for balance
+        $validGroups = array_slice($groups, 0, $lastValidGroupIndex + 1);
+        
+        // Step 5: Calculate total allocated (after cutoff)
         $allocatedTotal = 0;
         foreach ($payouts as $amount) {
             $allocatedTotal += $amount;
         }
         
-        // Step 5: Give remainder to first place
+        // Step 6: Give remainder to first place
         $remainder = $this->totalPrizePool - $allocatedTotal;
         $payouts[1] += $remainder;
         $payouts[1] = $this->roundAmount($payouts[1]);
         
-        // Step 6: Ensure first place is at least 20% higher than second
+        // Step 7: Ensure first place is at least 20% higher than second
         if (isset($payouts[2])) {
             $minFirst = $this->roundAmount($payouts[2] * 1.2);
             if ($payouts[1] < $minFirst) {
@@ -180,8 +210,7 @@ class TournamentPayoutCalculator {
             }
         }
         
-        // Step 7: Final balance adjustment
-        // Recalculate total with new first place
+        // Step 8: Final balance adjustment
         $newTotal = 0;
         foreach ($payouts as $amount) {
             $newTotal += $amount;
@@ -199,7 +228,7 @@ class TournamentPayoutCalculator {
             }
         }
         
-        // Step 8: Sort by place number
+        // Step 9: Sort by place number
         ksort($payouts);
         
         return $payouts;
@@ -249,43 +278,64 @@ class TournamentPayoutCalculator {
 
 // Test if run directly
 if (php_sapi_name() == 'cli' && basename(__FILE__) == basename($_SERVER['PHP_SELF'])) {
-    echo "Tournament Payout Calculator - Strict Enforcement Test\n";
+    echo "Tournament Payout Calculator - Dynamic Cutoff Test\n";
     echo str_repeat('=', 70) . "\n\n";
     
-    $calc = new TournamentPayoutCalculator(15, 214);
-    $payouts = $calc->getPayoutsArray();
+    $tests = [
+        [214, 15, 0],
+        [20, 20, 0],
+        [17, 20, 0],
+        [64, 30, 0],
+        [128, 20, 0],
+        [32, 25, 100]
+    ];
     
-    echo "214 players @ \$15 entry fee\n";
-    echo "Total pot: \$" . number_format(15 * 214, 2) . "\n";
-    echo str_repeat('-', 70) . "\n";
-    
-    $prevAmount = PHP_INT_MAX;
-    $violations = [];
-    
-    foreach ($payouts as $place => $amount) {
-        if ($place <= 20 || $place == 49 || $place == 64) {
-            echo "Place $place: \$" . number_format($amount, 2) . "\n";
+    foreach ($tests as $test) {
+        list($players, $fee, $added) = $test;
+        
+        $calc = new TournamentPayoutCalculator($fee, $players, $added);
+        $payouts = $calc->getPayoutsArray();
+        
+        $total = ($fee * $players) + $added;
+        $placesPaid = count($payouts);
+        $percentPaid = ($placesPaid / $players) * 100;
+        
+        echo "$players players @ \$$fee" . ($added ? " + \$$added" : "") . ":\n";
+        echo "  Places paid: $placesPaid (" . number_format($percentPaid, 1) . "%)\n";
+        echo "  Total pot: \$" . number_format($total, 2) . "\n";
+        
+        // Show all payouts
+        $prevAmount = PHP_INT_MAX;
+        $distinctCount = 0;
+        foreach ($payouts as $place => $amount) {
+            if ($amount != $prevAmount) {
+                $distinctCount++;
+                $prevAmount = $amount;
+            }
         }
         
-        // Check violations
-        if ($amount < 15) {
-            $violations[] = "Place $place: \$$amount < entry fee";
-        }
-        if ($amount > $prevAmount) {
-            $violations[] = "Place $place: \$$amount > previous (\$$prevAmount)";
+        echo "  Distinct payout levels: $distinctCount\n";
+        
+        // Check for violations
+        $violations = [];
+        $prevAmount = PHP_INT_MAX;
+        foreach ($payouts as $place => $amount) {
+            if ($amount < $fee) {
+                $violations[] = "Place $place < entry fee";
+            }
+            if ($amount > $prevAmount) {
+                $violations[] = "Place $place > previous";
+            }
+            $prevAmount = $amount;
         }
         
-        $prevAmount = $amount;
-    }
-    
-    echo str_repeat('-', 70) . "\n";
-    if (empty($violations)) {
-        echo "✅ NO VIOLATIONS! All payouts >= \$15 and descending!\n";
-    } else {
-        echo "❌ VIOLATIONS FOUND:\n";
-        foreach ($violations as $v) {
-            echo "  - $v\n";
+        if (empty($violations)) {
+            echo "  ✅ NO VIOLATIONS\n";
+        } else {
+            echo "  ❌ VIOLATIONS: " . count($violations) . "\n";
         }
+        
+        echo "\n";
     }
 }
 ?>
