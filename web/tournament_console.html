@@ -343,12 +343,36 @@
             top: 0;
         }
         
+        .calcutta-table tr.unpaid {
+            background: #fff3cd;
+        }
+        
+        .calcutta-table tr.pool-row {
+            background: #e0f2fe;
+            opacity: 0.7;
+        }
+        
+        .calcutta-table tr.pool-summary-row {
+            background: #fef3c7 !important;
+        }
+        
         .calcutta-table input[type="text"],
         .calcutta-table input[type="number"] {
             width: 100%;
             padding: 6px 8px;
             border: 1px solid var(--border);
             border-radius: 4px;
+        }
+        
+        .calcutta-table .skill-input {
+            width: 60px !important;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .calcutta-table .skill-input.no-skill {
+            border-color: #f59e0b;
+            background: #fffbeb;
         }
         
         .calcutta-table input[type="text"]:focus,
@@ -1068,7 +1092,7 @@
                     <input type="number" id="sidepotInput" value="5" min="1" step="1" onchange="updateTournamentSettings()">
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="showAddNewPlayerModal()">+ New Player to DB</button>
+            <button class="btn btn-primary" onclick="showAddNewPlayerModal()">+ Add Brand New Player</button>
         </div>
         
         <!-- Summary Cards -->
@@ -1230,6 +1254,23 @@
     
     <!-- Settings Tab -->
     <div class="tab-content" id="tab-settings">
+        <div class="card" id="apiNotConfiguredCard" style="background:#fff3cd; border-color:#f59e0b;">
+            <div class="card-header" style="background:#fef3c7;">
+                <span>⚠️ API Not Configured</span>
+            </div>
+            <div class="card-body">
+                <p style="margin-bottom:10px;">To load players from Google Sheets and sync data, you need to:</p>
+                <ol style="margin-left:20px; line-height:1.8;">
+                    <li>Copy <strong>TournamentConsoleAPI.gs</strong> to Google Apps Script</li>
+                    <li>Deploy as Web App (Anyone can access)</li>
+                    <li>Copy the deployment URL</li>
+                    <li>Edit <code>tournament_console.html</code> line ~1767</li>
+                    <li>Replace <code>YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE</code> with your URL</li>
+                </ol>
+                <p style="margin-top:10px; color:var(--text-light);">Until configured, the app uses sample data and works offline.</p>
+            </div>
+        </div>
+        
         <div class="card">
             <div class="card-header">
                 <span>Display Settings</span>
@@ -1254,14 +1295,14 @@
                     <input type="text" class="form-control" id="masterDbUrl" 
                            value="1UVH0Yv-I8usR-1OIA0uEdgeAAjiG8rGE5c0N45o2AOo"
                            placeholder="Google Sheet ID">
-                    <small style="color:var(--text-light);">Sheet with all player names and phone numbers</small>
+                    <small style="color:var(--text-light);">Sheet with all player names, phones, and Fargo IDs</small>
                 </div>
                 <div class="form-group">
                     <label>Main Tournament Workbook</label>
                     <input type="text" class="form-control" id="mainWorkbookUrl" 
                            value="1MN7r74z3II7pMA_jMK0l03faFTG9KR84wktLNc3a6A0"
                            placeholder="Google Sheet ID">
-                    <small style="color:var(--text-light);">Weekly tournament data destination</small>
+                    <small style="color:var(--text-light);">Where tournament data gets exported</small>
                 </div>
                 <button class="btn btn-primary" onclick="saveDataSources()" style="margin-top:10px;">
                     Save Data Sources
@@ -1274,12 +1315,22 @@
                 <span>Actions</span>
             </div>
             <div class="card-body">
-                <button class="btn btn-warning" onclick="exportToSheet()" style="width:100%; margin-bottom:10px;">
-                    📤 Export to Google Sheet
-                </button>
-                <button class="btn btn-danger" onclick="clearAllData()" style="width:100%;">
-                    🗑️ Clear All Data (New Tournament)
-                </button>
+                <div style="margin-bottom:15px;">
+                    <button class="btn btn-warning" onclick="exportToSheet()" style="width:100%;">
+                        📤 Export to Google Sheet
+                    </button>
+                    <small style="display:block; margin-top:5px; color:var(--text-light);">
+                        Writes all check-ins, side pots, and Calcutta data to your Tournament Workbook
+                    </small>
+                </div>
+                <div>
+                    <button class="btn btn-danger" onclick="clearAllData()" style="width:100%;">
+                        🗑️ Clear All Data (New Tournament)
+                    </button>
+                    <small style="display:block; margin-top:5px; color:var(--text-light);">
+                        Clears checked-in players to start fresh (doesn't affect master database)
+                    </small>
+                </div>
             </div>
         </div>
     </div>
@@ -1762,6 +1813,12 @@
             const dayName = days[dayOfWeek];
             const fee = getDefaultEntryFee();
             dayIndicator.textContent = `(${dayName} = $${fee})`;
+        }
+        
+        // Hide API notice if configured
+        const apiNotice = document.getElementById('apiNotConfiguredCard');
+        if (apiNotice && APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+            apiNotice.style.display = 'none';
         }
         
         loadFromLocalStorage();
@@ -2615,7 +2672,16 @@
         const player = state.checkedInPlayers.find(p => p.id === playerId);
         if (player) {
             player.calcuttaBuyer = buyer;
+            
+            // If buyer is "pool", set bid to 0 and paid to false
+            if (isPoolBuyer(buyer)) {
+                player.calcuttaBid = 0;
+                player.calcuttaPaid = false;
+            }
+            
             saveToLocalStorage();
+            renderCalcuttaTable(); // Re-render to move pool players to end
+            updateCalcuttaSummary();
             updateBuyersSummary();
         }
     }
@@ -2799,9 +2865,17 @@
                             ${carrierSelect}
                         </select>
                     </td>
-                    <td class="fargo-display">
-                        ${player.skill || '-'}
-                        ${!player.skill ? `<button class="btn btn-small" onclick="linkToFargo(${player.id})" title="Find on FargoRate" style="font-size:0.8rem;padding:2px 5px;">🔍</button>` : ''}
+                    <td>
+                        <div style="display:flex; align-items:center; gap:4px;">
+                            <input type="number" 
+                                   class="skill-edit-input"
+                                   value="${player.skill || ''}" 
+                                   placeholder="-"
+                                   min="0" max="900"
+                                   onchange="updatePlayerSkill(${player.id}, this.value)"
+                                   style="width:55px; text-align:center; padding:4px; border:1px solid ${player.skill ? 'transparent' : '#f59e0b'}; border-radius:4px; background:${player.skill ? 'transparent' : '#fffbeb'};">
+                            ${!player.fargoId ? `<button class="btn btn-small" onclick="linkToFargo(${player.id})" title="Find on FargoRate" style="font-size:0.7rem;padding:2px 4px;">🔍</button>` : ''}
+                        </div>
                     </td>
                     <td style="text-align:center;">
                         <input type="checkbox" ${player.hasPaid ? 'checked' : ''} 
@@ -3171,14 +3245,30 @@
             return;
         }
         
-        tbody.innerHTML = players.map((player, index) => `
-            <tr class="${player.calcuttaPaid ? '' : (player.calcuttaBid > 0 ? 'unpaid' : '')}">
+        // Separate pool players (to show at end)
+        const regularPlayers = players.filter(p => !isPoolBuyer(p.calcuttaBuyer));
+        const poolPlayers = players.filter(p => isPoolBuyer(p.calcuttaBuyer));
+        const allPlayers = [...regularPlayers, ...poolPlayers];
+        
+        let html = allPlayers.map((player, index) => {
+            const isPool = isPoolBuyer(player.calcuttaBuyer);
+            const rowClass = isPool ? 'pool-row' : (player.calcuttaPaid ? '' : (player.calcuttaBid > 0 ? 'unpaid' : ''));
+            
+            return `
+            <tr class="${rowClass}">
                 <td>
                     <div class="player-name">${player.name}</div>
-                    ${player.fargoId ? `<small style="color:var(--text-light);">Fargo ID: ${player.fargoId}</small>` : ''}
                 </td>
                 <td>
-                    ${showSkill ? (player.skill ? `<span class="player-skill">${player.skill}</span>` : '-') : '-'}
+                    ${showSkill ? `
+                        <input type="number" 
+                               class="skill-input ${player.skill ? '' : 'no-skill'}"
+                               value="${player.skill || ''}" 
+                               placeholder="-"
+                               min="0" max="900" step="1"
+                               onchange="updatePlayerSkill(${player.id}, this.value)"
+                               style="width:60px; text-align:center;">
+                    ` : '-'}
                 </td>
                 <td>
                     <div class="buyer-autocomplete-wrapper">
@@ -3194,19 +3284,56 @@
                     </div>
                 </td>
                 <td>
-                    <input type="number" value="${player.calcuttaBid || ''}" 
+                    <input type="number" value="${isPool ? '0' : (player.calcuttaBid || '')}" 
                            placeholder="$0"
                            min="0" step="5"
+                           ${isPool ? 'disabled' : ''}
                            onchange="updateCalcuttaBid(${player.id}, this.value)">
                 </td>
                 <td style="text-align:center;">
                     <input type="checkbox" class="player-checkbox"
                            ${player.calcuttaPaid ? 'checked' : ''}
-                           ${player.calcuttaBid > 0 ? '' : 'disabled'}
+                           ${isPool || player.calcuttaBid <= 0 ? 'disabled' : ''}
                            onchange="toggleCalcuttaPaid(${player.id})">
                 </td>
             </tr>
-        `).join('');
+        `}).join('');
+        
+        // Add Pool row at end if there are pooled players
+        if (poolPlayers.length > 0) {
+            html += `
+                <tr class="pool-summary-row">
+                    <td colspan="5" style="background:#fff3cd; padding:10px; text-align:center; font-weight:600;">
+                        🎱 Pool (${poolPlayers.length} player${poolPlayers.length > 1 ? 's' : ''} to auction as group)
+                    </td>
+                </tr>
+            `;
+        }
+        
+        tbody.innerHTML = html;
+    }
+    
+    // Check if buyer is "Pool" (case insensitive)
+    function isPoolBuyer(buyer) {
+        return buyer && buyer.toLowerCase().trim() === 'pool';
+    }
+    
+    // Update player's skill rating manually
+    function updatePlayerSkill(playerId, skill) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (player) {
+            player.skill = skill ? parseInt(skill) : null;
+            
+            // Also update in master list
+            const masterPlayer = state.masterPlayers.find(p => 
+                p.name.toLowerCase() === player.name.toLowerCase() || p.id === player.originalId
+            );
+            if (masterPlayer) {
+                masterPlayer.skill = player.skill;
+            }
+            
+            saveToLocalStorage();
+        }
     }
     
     // ============================================================================
