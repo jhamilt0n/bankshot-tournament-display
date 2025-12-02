@@ -844,13 +844,21 @@ setTimeout(checkForChanges, 2000);
 // ALSO CHECK FOR DISPLAY TYPE CHANGES FROM GOOGLE SHEETS
 // This allows live switching between Calcutta/SidePot without page reload
 // ============================================================================
-let lastDisplayType = Dash.displayType;
+let lastDisplayType = null; // Will be set after initial load completes
 
 async function checkDisplayTypeChange() {
     if (!TOURNAMENT_FOUND || TOURNAMENT_PLAYER_COUNT <= 0) return;
     
     try {
         const newDisplayType = await getDisplayTypeSetting();
+        
+        // Initialize lastDisplayType on first check (skip reload on first run)
+        if (lastDisplayType === null) {
+            lastDisplayType = newDisplayType;
+            console.log('📋 Display type initialized to:', lastDisplayType);
+            return;
+        }
+        
         if (newDisplayType !== lastDisplayType) {
             console.log('📋 Display type changed from', lastDisplayType, 'to', newDisplayType, '- reloading');
             location.reload();
@@ -860,7 +868,7 @@ async function checkDisplayTypeChange() {
     }
 }
 
-// Check display type every 30 seconds
+// Check display type every 30 seconds (first check initializes the value)
 setInterval(checkDisplayTypeChange, 30000);
 </script>
 

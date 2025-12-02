@@ -1,0 +1,3522 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bankshot Tournament Director Console</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #1e7e34;
+            --primary-dark: #0d5c26;
+            --secondary: #0ea5e9;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .header h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8rem;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+        
+        .header-info {
+            font-size: 0.85rem;
+            opacity: 0.9;
+        }
+        
+        .event-selector {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .event-selector select, .event-selector input {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            background: rgba(255,255,255,0.95);
+        }
+        
+        .event-selector select {
+            min-width: 180px;
+        }
+        
+        .event-selector input {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--secondary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0284c7;
+        }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        
+        .btn-warning {
+            background: var(--warning);
+            color: white;
+        }
+        
+        .btn-small {
+            padding: 4px 10px;
+            font-size: 0.8rem;
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            background: white;
+            border-bottom: 2px solid var(--border);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .tab {
+            padding: 15px 20px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-light);
+            border: none;
+            background: none;
+            cursor: pointer;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        
+        .tab:hover {
+            color: var(--primary);
+        }
+        
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        
+        .tab-badge {
+            background: var(--danger);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            margin-left: 5px;
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 12px 15px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.1rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-body {
+            padding: 15px;
+        }
+        
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: var(--text);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            font-size: 1rem;
+            transition: border-color 0.2s;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        /* Autocomplete */
+        .autocomplete-wrapper {
+            position: relative;
+        }
+        
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid var(--primary);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 50;
+            display: none;
+        }
+        
+        .autocomplete-list.show {
+            display: block;
+        }
+        
+        .autocomplete-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .autocomplete-item:hover, .autocomplete-item.selected {
+            background: #e8f5e9;
+        }
+        
+        .autocomplete-item .name {
+            font-weight: 500;
+        }
+        
+        .autocomplete-item .phone {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+        
+        /* Player List */
+        .player-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .player-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--border);
+            gap: 10px;
+        }
+        
+        .player-row:last-child {
+            border-bottom: none;
+        }
+        
+        .player-row.checked-in {
+            background: #d1fae5;
+        }
+        
+        .player-row.not-paid {
+            background: #fef3c7;
+        }
+        
+        .player-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+        }
+        
+        .player-info {
+            flex: 1;
+        }
+        
+        .player-name {
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        
+        .player-phone {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+        
+        .player-skill {
+            background: var(--secondary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .player-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        /* Calcutta Table */
+        .calcutta-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .calcutta-table th, .calcutta-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .calcutta-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+        }
+        
+        .calcutta-table input[type="text"],
+        .calcutta-table input[type="number"] {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+        }
+        
+        .calcutta-table input[type="text"]:focus,
+        .calcutta-table input[type="number"]:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        /* Summary Cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .summary-card {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .summary-card.secondary {
+            background: linear-gradient(135deg, var(--secondary) 0%, #0284c7 100%);
+        }
+        
+        .summary-card.warning {
+            background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);
+        }
+        
+        .summary-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.5rem;
+            line-height: 1;
+        }
+        
+        .summary-label {
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin-top: 5px;
+        }
+        
+        /* Buyer Summary */
+        .buyer-summary {
+            margin-top: 20px;
+        }
+        
+        .buyer-row {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border);
+            gap: 10px;
+        }
+        
+        .buyer-row.paid {
+            background: #d1fae5;
+        }
+        
+        .buyer-row.unpaid {
+            background: #fef3c7;
+        }
+        
+        .buyer-name {
+            flex: 1;
+            font-weight: 500;
+        }
+        
+        .buyer-amount {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            padding: 20px;
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 15px 20px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            line-height: 1;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        /* Settings */
+        .setting-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .setting-row:last-child {
+            border-bottom: none;
+        }
+        
+        .setting-label {
+            font-weight: 500;
+        }
+        
+        .setting-value input {
+            width: 80px;
+            padding: 6px 10px;
+            border: 2px solid var(--border);
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 300;
+        }
+        
+        .toast {
+            background: var(--text);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-top: 10px;
+            animation: slideIn 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .toast.success {
+            background: var(--success);
+        }
+        
+        .toast.error {
+            background: var(--danger);
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Loading */
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Responsive */
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.4rem;
+            }
+            
+            .tab {
+                padding: 12px 15px;
+                font-size: 0.9rem;
+            }
+            
+            .summary-value {
+                font-size: 2rem;
+            }
+            
+            .player-row {
+                flex-wrap: wrap;
+            }
+            
+            .calcutta-table {
+                font-size: 0.85rem;
+            }
+            
+            .calcutta-table th, .calcutta-table td {
+                padding: 8px 5px;
+            }
+        }
+        
+        /* Sort buttons */
+        .sort-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .sort-btn {
+            padding: 6px 12px;
+            border: 2px solid var(--border);
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+        
+        .sort-btn.active {
+            border-color: var(--primary);
+            background: #e8f5e9;
+        }
+        
+        /* Inline edit */
+        .inline-edit {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .inline-edit input {
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            width: 120px;
+        }
+        
+        /* FargoRate Results */
+        .fargo-results {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 15px;
+        }
+        
+        .fargo-result-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 15px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .fargo-result-item:hover {
+            border-color: var(--primary);
+            background: #e8f5e9;
+        }
+        
+        .fargo-info {
+            flex: 1;
+        }
+        
+        .fargo-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+        
+        .fargo-location {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+        
+        .fargo-rating {
+            background: linear-gradient(135deg, var(--secondary) 0%, #0284c7 100%);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 8px;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.5rem;
+        }
+        
+        .no-results {
+            text-align: center;
+            padding: 20px;
+            color: var(--text-light);
+        }
+        
+        /* Settings Bar */
+        .settings-bar {
+            display: flex;
+            gap: 20px;
+            align-items: flex-end;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .setting-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .setting-item label {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-light);
+        }
+        
+        .input-group {
+            display: flex;
+            align-items: center;
+            background: var(--bg);
+            border: 2px solid var(--border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .input-prefix {
+            padding: 8px 10px;
+            background: var(--border);
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .input-group input {
+            border: none;
+            padding: 8px 10px;
+            width: 80px;
+            font-size: 1rem;
+            background: transparent;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+        }
+        
+        /* Summary Grid 4 columns */
+        .summary-grid-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        @media (max-width: 600px) {
+            .summary-grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        /* Spreadsheet */
+        .spreadsheet-container {
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .spreadsheet {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+        
+        .spreadsheet th {
+            background: #f1f5f9;
+            padding: 10px 8px;
+            text-align: left;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .spreadsheet td {
+            padding: 4px 6px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        
+        .spreadsheet tr:hover {
+            background: #f8fafc;
+        }
+        
+        .spreadsheet tr.paid-row {
+            background: #d1fae5;
+        }
+        
+        .spreadsheet tr.unpaid-row {
+            background: #fef3c7;
+        }
+        
+        .spreadsheet input[type="text"],
+        .spreadsheet input[type="tel"] {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            background: transparent;
+        }
+        
+        .spreadsheet input[type="text"]:focus,
+        .spreadsheet input[type="tel"]:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+        }
+        
+        .spreadsheet input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        
+        .spreadsheet .row-number {
+            color: var(--text-light);
+            font-weight: 500;
+            text-align: center;
+        }
+        
+        .spreadsheet .fargo-display {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.1rem;
+            color: var(--secondary);
+        }
+        
+        .spreadsheet .delete-btn {
+            background: none;
+            border: none;
+            color: var(--danger);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 1.2rem;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        
+        .spreadsheet .delete-btn:hover {
+            opacity: 1;
+        }
+        
+        .spreadsheet .carrier-select {
+            width: 100%;
+            padding: 6px 4px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            background: transparent;
+            cursor: pointer;
+        }
+        
+        .spreadsheet .carrier-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: white;
+        }
+        
+        .spreadsheet .carrier-select:disabled {
+            cursor: default;
+            opacity: 0.5;
+        }
+        
+        .spreadsheet .empty-row input {
+            color: var(--text-light);
+        }
+        
+        /* Inline autocomplete for spreadsheet */
+        .inline-autocomplete {
+            position: relative;
+        }
+        
+        .inline-autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .inline-autocomplete-list.show {
+            display: block;
+        }
+        
+        .inline-autocomplete-item {
+            padding: 10px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .inline-autocomplete-item:hover {
+            background: #e8f5e9;
+        }
+        
+        .inline-autocomplete-item .player-name {
+            font-weight: 500;
+        }
+        
+        .inline-autocomplete-item .player-details {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+        
+        .inline-autocomplete-item .fargo-badge {
+            background: var(--secondary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.85rem;
+        }
+        
+        /* Payouts Grid */
+        .payouts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            padding: 15px;
+        }
+        
+        .payout-item {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+        }
+        
+        .payout-item.first-place {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-color: #f59e0b;
+        }
+        
+        .payout-item.second-place {
+            background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+            border-color: #9ca3af;
+        }
+        
+        .payout-item.third-place {
+            background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+            border-color: #f97316;
+        }
+        
+        .payout-place {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 4px;
+        }
+        
+        .payout-amount {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.6rem;
+            color: var(--primary-dark);
+        }
+        
+        .payout-placeholder {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 30px;
+            color: var(--text-light);
+            font-style: italic;
+        }
+        
+        /* Buyer autocomplete in table */
+        .buyer-autocomplete-wrapper {
+            position: relative;
+        }
+        
+        .buyer-autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid var(--primary);
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+        }
+        
+        .buyer-autocomplete-list.show {
+            display: block;
+        }
+        
+        .buyer-option {
+            padding: 8px 10px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.9rem;
+        }
+        
+        .buyer-option:hover {
+            background: #e8f5e9;
+        }
+        
+        .buyer-option.free-entry {
+            color: var(--text-light);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>🎱 Tournament Director Console</h1>
+        <div class="header-info" id="headerInfo">Select event type to begin</div>
+        <div class="event-selector">
+            <select id="eventType" onchange="handleEventTypeChange()">
+                <option value="">-- Select Event Type --</option>
+                <option value="weekly">Weekly Tournament</option>
+                <option value="special">Special Event</option>
+            </select>
+            <input type="text" id="specialEventUrl" placeholder="Paste Special Event Google Sheet URL" style="display:none;" onchange="loadSpecialEventData()">
+            <button class="btn btn-primary" onclick="refreshData()" id="refreshBtn" style="display:none;">🔄 Refresh</button>
+        </div>
+    </header>
+    
+    <!-- Tabs -->
+    <nav class="tabs">
+        <button class="tab active" data-tab="checkin" onclick="switchTab('checkin')">
+            Check-In <span class="tab-badge" id="checkinCount">0</span>
+        </button>
+        <button class="tab" data-tab="sidepot" onclick="switchTab('sidepot')">
+            Side Pot <span class="tab-badge" id="sidepotCount">0</span>
+        </button>
+        <button class="tab" data-tab="calcutta" onclick="switchTab('calcutta')">
+            Calcutta
+        </button>
+        <button class="tab" data-tab="buyers" onclick="switchTab('buyers')">
+            Buyers <span class="tab-badge" id="unpaidCount">0</span>
+        </button>
+        <button class="tab" data-tab="settings" onclick="switchTab('settings')">
+            ⚙️ Settings
+        </button>
+    </nav>
+    
+    <!-- Check-In Tab -->
+    <div class="tab-content active" id="tab-checkin">
+        <!-- Tournament Settings Bar -->
+        <div class="settings-bar">
+            <div class="setting-item">
+                <label>Entry Fee <span id="dayIndicator" style="font-size:0.75rem;color:var(--text-light);"></span></label>
+                <div class="input-group">
+                    <span class="input-prefix">$</span>
+                    <input type="number" id="entryFeeInput" min="5" step="5" onchange="updateTournamentSettings()">
+                </div>
+            </div>
+            <div class="setting-item">
+                <label>Side Pot</label>
+                <div class="input-group">
+                    <span class="input-prefix">$</span>
+                    <input type="number" id="sidepotInput" value="5" min="1" step="1" onchange="updateTournamentSettings()">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="showAddNewPlayerModal()">+ New Player to DB</button>
+        </div>
+        
+        <!-- Summary Cards -->
+        <div class="summary-grid-4">
+            <div class="summary-card">
+                <div class="summary-value" id="totalPlayers">0</div>
+                <div class="summary-label">Players</div>
+            </div>
+            <div class="summary-card secondary">
+                <div class="summary-value" id="totalCollected">$0</div>
+                <div class="summary-label">Entry Collected</div>
+            </div>
+            <div class="summary-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                <div class="summary-value" id="sidepotCollected">$0</div>
+                <div class="summary-label">Side Pot</div>
+            </div>
+            <div class="summary-card warning">
+                <div class="summary-value" id="unpaidEntries">0</div>
+                <div class="summary-label">Unpaid</div>
+            </div>
+        </div>
+        
+        <!-- Player Entry Spreadsheet -->
+        <div class="card">
+            <div class="card-header">
+                <span>Player Check-In</span>
+                <span id="playerCountDisplay">0 players</span>
+            </div>
+            <div class="spreadsheet-container">
+                <table class="spreadsheet" id="playerSpreadsheet">
+                    <thead>
+                        <tr>
+                            <th style="width:4%">#</th>
+                            <th style="width:22%">Player Name</th>
+                            <th style="width:15%">Phone</th>
+                            <th style="width:14%">Carrier</th>
+                            <th style="width:10%">Fargo</th>
+                            <th style="width:8%">Paid</th>
+                            <th style="width:10%">Side Pot</th>
+                            <th style="width:7%"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="playerTableBody">
+                        <!-- Rows added dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Payouts Display -->
+        <div class="card">
+            <div class="card-header">
+                <span>💰 Tournament Payouts</span>
+                <span id="payoutTotal">$0 Prize Pool</span>
+            </div>
+            <div class="payouts-grid" id="payoutsDisplay">
+                <div class="payout-placeholder">Add 4+ paid players to see payouts</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Side Pot Tab -->
+    <div class="tab-content" id="tab-sidepot">
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-value" id="sidepotPlayers">0</div>
+                <div class="summary-label">Players In</div>
+            </div>
+            <div class="summary-card secondary">
+                <div class="summary-value" id="sidepotTotal">$0</div>
+                <div class="summary-label">Side Pot Total</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <span>Side Pot Entry</span>
+                <span>$<span id="sidepotAmountDisplay">5</span> per player</span>
+            </div>
+            <div class="player-list" id="sidepotPlayerList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading players...
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Calcutta Tab -->
+    <div class="tab-content" id="tab-calcutta">
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-value" id="calcuttaTotal">$0</div>
+                <div class="summary-label">Total Bids</div>
+            </div>
+            <div class="summary-card warning">
+                <div class="summary-value" id="calcuttaUnpaid">$0</div>
+                <div class="summary-label">Unpaid</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <span>Calcutta Auction</span>
+            </div>
+            <div class="card-body">
+                <div class="sort-controls">
+                    <span style="align-self: center; margin-right: 10px;">Sort by:</span>
+                    <button class="sort-btn active" onclick="sortCalcutta('order')" id="sortOrder">Check-in Order</button>
+                    <button class="sort-btn" onclick="sortCalcutta('name')" id="sortName">Name</button>
+                    <button class="sort-btn" onclick="sortCalcutta('skill')" id="sortSkill">Skill Level ↓</button>
+                    <button class="sort-btn" onclick="sortCalcutta('bid')" id="sortBid">Bid Amount ↓</button>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table class="calcutta-table" id="calcuttaTable">
+                        <thead>
+                            <tr>
+                                <th style="width:30%">Player</th>
+                                <th style="width:15%">Skill</th>
+                                <th style="width:25%">Buyer</th>
+                                <th style="width:15%">Bid</th>
+                                <th style="width:15%">Paid</th>
+                            </tr>
+                        </thead>
+                        <tbody id="calcuttaBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Buyers Tab -->
+    <div class="tab-content" id="tab-buyers">
+        <div class="summary-grid">
+            <div class="summary-card">
+                <div class="summary-value" id="totalBuyers">0</div>
+                <div class="summary-label">Total Buyers</div>
+            </div>
+            <div class="summary-card secondary">
+                <div class="summary-value" id="totalOwed">$0</div>
+                <div class="summary-label">Total Owed</div>
+            </div>
+            <div class="summary-card warning">
+                <div class="summary-value" id="unpaidBuyers">0</div>
+                <div class="summary-label">Unpaid</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <span>Buyer Summary</span>
+                <button class="btn btn-small btn-success" onclick="markAllPaid()">Mark All Paid</button>
+            </div>
+            <div class="buyer-summary" id="buyerSummaryList">
+            </div>
+        </div>
+    </div>
+    
+    <!-- Settings Tab -->
+    <div class="tab-content" id="tab-settings">
+        <div class="card">
+            <div class="card-header">
+                <span>Display Settings</span>
+            </div>
+            <div class="card-body">
+                <div class="setting-row">
+                    <div class="setting-label">Show Fargo Rating Column</div>
+                    <div class="setting-value">
+                        <input type="checkbox" id="showSkillLevel" checked onchange="updateSettings()" style="width:22px;height:22px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <span>Data Sources</span>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label>Master Player Database</label>
+                    <input type="text" class="form-control" id="masterDbUrl" 
+                           value="1UVH0Yv-I8usR-1OIA0uEdgeAAjiG8rGE5c0N45o2AOo"
+                           placeholder="Google Sheet ID">
+                    <small style="color:var(--text-light);">Sheet with all player names and phone numbers</small>
+                </div>
+                <div class="form-group">
+                    <label>Main Tournament Workbook</label>
+                    <input type="text" class="form-control" id="mainWorkbookUrl" 
+                           value="1MN7r74z3II7pMA_jMK0l03faFTG9KR84wktLNc3a6A0"
+                           placeholder="Google Sheet ID">
+                    <small style="color:var(--text-light);">Weekly tournament data destination</small>
+                </div>
+                <button class="btn btn-primary" onclick="saveDataSources()" style="margin-top:10px;">
+                    Save Data Sources
+                </button>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <span>Actions</span>
+            </div>
+            <div class="card-body">
+                <button class="btn btn-warning" onclick="exportToSheet()" style="width:100%; margin-bottom:10px;">
+                    📤 Export to Google Sheet
+                </button>
+                <button class="btn btn-danger" onclick="clearAllData()" style="width:100%;">
+                    🗑️ Clear All Data (New Tournament)
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add New Player Modal -->
+    <div class="modal-overlay" id="addPlayerModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Add New Player to Database</span>
+                <button class="modal-close" onclick="closeModal('addPlayerModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" class="form-control" id="newPlayerName" placeholder="Enter full name">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" class="form-control" id="newPlayerPhone" placeholder="(xxx) xxx-xxxx">
+                </div>
+                <div class="form-group">
+                    <label>Mobile Carrier</label>
+                    <select class="form-control" id="newPlayerCarrier">
+                        <option value="">-- Select Carrier --</option>
+                        <option value="verizon">Verizon</option>
+                        <option value="att">AT&T</option>
+                        <option value="tmobile">T-Mobile</option>
+                        <option value="sprint">Sprint</option>
+                        <option value="uscellular">US Cellular</option>
+                        <option value="cricket">Cricket</option>
+                        <option value="metropcs">Metro PCS</option>
+                        <option value="boost">Boost Mobile</option>
+                        <option value="virgin">Virgin Mobile</option>
+                        <option value="googlefi">Google Fi</option>
+                        <option value="xfinity">Xfinity Mobile</option>
+                        <option value="spectrum">Spectrum Mobile</option>
+                        <option value="consumer_cellular">Consumer Cellular</option>
+                        <option value="mint">Mint Mobile</option>
+                        <option value="visible">Visible</option>
+                        <option value="straight_talk">Straight Talk</option>
+                        <option value="other">Other / Unknown</option>
+                    </select>
+                    <small style="color:var(--text-light);">Used for MMS messaging</small>
+                </div>
+                <p style="color:var(--text-light);font-size:0.9rem;margin-top:10px;">
+                    📊 After adding, you'll be able to link to FargoRate for skill rating
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('addPlayerModal')">Cancel</button>
+                <button class="btn btn-success" onclick="saveNewPlayer()">Next: Find on FargoRate</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- FargoRate Selection Modal -->
+    <div class="modal-overlay" id="fargoModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Select Player from FargoRate</span>
+                <button class="modal-close" onclick="closeModal('fargoModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Search FargoRate</label>
+                    <div style="display:flex;gap:10px;">
+                        <input type="text" class="form-control" id="fargoSearchInput" 
+                               placeholder="Enter name to search...">
+                        <button class="btn btn-primary" onclick="searchFargo()">Search</button>
+                    </div>
+                    <small style="color:var(--text-light);">Tip: Try first initial + last name (e.g., "M Chambers")</small>
+                </div>
+                <div id="fargoResults" class="fargo-results">
+                    <div class="loading" style="display:none;" id="fargoLoading">
+                        <div class="spinner"></div>
+                        Searching FargoRate...
+                    </div>
+                    <div id="fargoResultsList"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="skipFargoSelection()">Skip (No FargoRate)</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Edit Phone Modal -->
+    <div class="modal-overlay" id="editPhoneModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Edit Phone Number</span>
+                <button class="modal-close" onclick="closeModal('editPhoneModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Player</label>
+                    <input type="text" class="form-control" id="editPhonePlayerName" readonly>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" class="form-control" id="editPhoneNumber" placeholder="(xxx) xxx-xxxx">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('editPhoneModal')">Cancel</button>
+                <button class="btn btn-success" onclick="savePhoneUpdate()">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <script>
+    // ============================================================================
+    // STATE MANAGEMENT
+    // ============================================================================
+    
+    // Determine default entry fee based on day of week
+    function getDefaultEntryFee() {
+        const dayOfWeek = new Date().getDay(); // 0=Sun, 1=Mon, 2=Tue, 3=Wed, 4=Thu, 5=Fri, 6=Sat
+        // Friday (5) and Saturday (6) = $20, Monday (1) and Wednesday (3) = $15
+        if (dayOfWeek === 5 || dayOfWeek === 6) {
+            return 20;
+        }
+        return 15; // Default for Mon, Wed, and other days
+    }
+    
+    const state = {
+        eventType: '', // 'weekly' or 'special'
+        specialEventUrl: '',
+        masterPlayers: [], // All players from master database
+        preregisteredPlayers: [], // For special events
+        checkedInPlayers: [], // Currently checked in
+        settings: {
+            entryFee: getDefaultEntryFee(),
+            sidepotAmount: 5,
+            showSkillLevel: true
+        },
+        calcuttaSort: 'order',
+        editingPlayerId: null,
+        pendingNewPlayer: null, // For FargoRate selection flow
+        activeAutocompleteRow: null // Track which row has autocomplete open
+    };
+    
+    // ============================================================================
+    // PAYOUT CALCULATOR (Exact port from tournament_payout_calculator.php)
+    // ============================================================================
+    
+    class TournamentPayoutCalculator {
+        constructor(entryFee, numPlayers, addedMoney = 0) {
+            this.entryFee = entryFee;
+            this.numPlayers = numPlayers;
+            this.addedMoney = addedMoney;
+            this.totalPrizePool = (entryFee * numPlayers) + addedMoney;
+            
+            [this.baseEntryFee, this.multiplier] = this.determineBaseAndMultiplier(entryFee);
+        }
+        
+        determineBaseAndMultiplier(entryFee) {
+            if (entryFee % 10 === 5) {
+                return [5, entryFee / 5];
+            }
+            if (entryFee % 10 === 0) {
+                const tens = (entryFee / 10) % 2;
+                if (tens === 1) {
+                    return [10, entryFee / 10];
+                } else {
+                    return [20, entryFee / 20];
+                }
+            }
+            return [entryFee, 1];
+        }
+        
+        roundAmount(amount) {
+            let rounded = Math.round(amount / this.baseEntryFee) * this.baseEntryFee;
+            if (rounded < this.entryFee) {
+                rounded = this.entryFee;
+            }
+            return rounded;
+        }
+        
+        getMaxPlaceToPay() {
+            const n = this.numPlayers;
+            if (n < 4) return 0;
+            if (n >= 4 && n < 8) return 1;      // 4-7 players: 1st only
+            if (n >= 8 && n < 12) return 2;     // 8-11 players: 1st-2nd
+            if (n >= 12 && n < 16) return 3;    // 12-15 players: 1st-3rd
+            if (n >= 16 && n < 24) return 4;    // 16-23 players: 1st-4th
+            if (n >= 24 && n < 32) return 6;    // 24-31 players: 1st-6th
+            if (n >= 32 && n < 48) return 8;    // 32-47 players: 1st-8th
+            if (n >= 48 && n < 64) return 12;   // 48-63 players: 1st-12th
+            if (n >= 64 && n < 96) return 16;   // 64-95 players: 1st-16th
+            if (n >= 96 && n < 128) return 24;  // 96-127 players: 1st-24th
+            if (n >= 128 && n < 192) return 32; // 128-191 players: 1st-32nd
+            if (n >= 192 && n < 256) return 48; // 192-255 players: 1st-48th
+            if (n >= 256) return 64;            // 256+ players: 1st-64th
+            return 0;
+        }
+        
+        getTieGroups() {
+            const maxPlace = this.getMaxPlaceToPay();
+            if (maxPlace === 0) return [];
+            
+            const groups = [];
+            
+            // Standard tie structure for all tournaments
+            if (maxPlace >= 1) groups.push({start: 1, end: 1});
+            if (maxPlace >= 2) groups.push({start: 2, end: 2});
+            if (maxPlace >= 3) groups.push({start: 3, end: 3});
+            if (maxPlace >= 4) groups.push({start: 4, end: 4});
+            if (maxPlace >= 6) groups.push({start: 5, end: 6});
+            if (maxPlace >= 8) groups.push({start: 7, end: 8});
+            if (maxPlace >= 12) groups.push({start: 9, end: 12});
+            if (maxPlace >= 16) groups.push({start: 13, end: 16});
+            if (maxPlace >= 24) groups.push({start: 17, end: 24});
+            if (maxPlace >= 32) groups.push({start: 25, end: 32});
+            if (maxPlace >= 48) groups.push({start: 33, end: 48});
+            if (maxPlace >= 64) groups.push({start: 49, end: 64});
+            
+            return groups;
+        }
+        
+        calculatePayouts() {
+            const groups = this.getTieGroups();
+            
+            if (groups.length === 0) {
+                return {error: "Minimum 4 players required"};
+            }
+            
+            const maxPlace = groups[groups.length - 1].end;
+            const numGroups = groups.length;
+            
+            // Special case: Only 1st place (4-7 players)
+            if (maxPlace === 1) {
+                return { 1: this.totalPrizePool };
+            }
+            
+            // Special case: 1st and 2nd place (8-11 players)
+            if (maxPlace === 2) {
+                const payouts = {};
+                payouts[1] = this.roundAmount(this.totalPrizePool * 0.65);
+                payouts[2] = this.totalPrizePool - payouts[1];
+                return payouts;
+            }
+            
+            // Special case: 1st, 2nd, 3rd (12-15 players)
+            if (maxPlace === 3) {
+                const payouts = {};
+                payouts[1] = this.roundAmount(this.totalPrizePool * 0.50);
+                payouts[2] = this.roundAmount(this.totalPrizePool * 0.30);
+                payouts[3] = this.totalPrizePool - payouts[1] - payouts[2];
+                return payouts;
+            }
+            
+            // Special case: 4 places (16-23 players) gets direct percentages
+            if (maxPlace === 4) {
+                // Reference: 55%, 25%, 15%, 5% for 1st, 2nd, 3rd, 4th
+                const payouts = {};
+                payouts[1] = this.roundAmount(this.totalPrizePool * 0.55);
+                payouts[2] = this.roundAmount(this.totalPrizePool * 0.25);
+                payouts[3] = this.roundAmount(this.totalPrizePool * 0.15);
+                payouts[4] = this.entryFee; // Last place = entry fee exactly
+                
+                // Balance adjustment
+                const total = Object.values(payouts).reduce((a, b) => a + b, 0);
+                payouts[1] += (this.totalPrizePool - total);
+                
+                return payouts;
+            }
+            
+            // For all other cases, use baseline + bonus model
+            const baselinePot = this.entryFee * maxPlace;
+            const bonusPot = this.totalPrizePool - baselinePot;
+            
+            // Calculate bonus weights with VERY AGGRESSIVE decay (0.45-0.5)
+            const weights = [];
+            let totalWeight = 0;
+            const decayRate = (numGroups > 6) ? 0.45 : 0.5;
+            
+            for (let i = 0; i < numGroups; i++) {
+                const weight = Math.pow(decayRate, i);
+                weights[i] = weight;
+                totalWeight += weight;
+            }
+            
+            // Distribute bonuses
+            let payouts = {};
+            
+            groups.forEach((group, i) => {
+                const groupSize = group.end - group.start + 1;
+                const bonusShare = (weights[i] / totalWeight) * bonusPot;
+                const bonusPerPlace = bonusShare / groupSize;
+                
+                const totalPayout = this.entryFee + bonusPerPlace;
+                const rounded = this.roundAmount(totalPayout);
+                
+                for (let place = group.start; place <= group.end; place++) {
+                    payouts[place] = rounded;
+                }
+            });
+            
+            // Enforce descending order
+            for (let i = 1; i < numGroups; i++) {
+                const currentGroup = groups[i];
+                const previousGroup = groups[i - 1];
+                
+                const currentAmount = payouts[currentGroup.start];
+                const previousAmount = payouts[previousGroup.start];
+                
+                if (currentAmount >= previousAmount) {
+                    let newAmount = previousAmount - this.baseEntryFee;
+                    if (newAmount < this.entryFee) {
+                        newAmount = this.entryFee;
+                    }
+                    
+                    for (let place = currentGroup.start; place <= currentGroup.end; place++) {
+                        payouts[place] = newAmount;
+                    }
+                }
+            }
+            
+            // Dynamic cutoff - remove places that don't have distinct payouts
+            const groupPayouts = [];
+            groups.forEach((group, i) => {
+                groupPayouts[i] = payouts[group.start];
+            });
+            
+            let cutoffGroupIndex = groups.length - 1;
+            
+            for (let i = 1; i < groupPayouts.length; i++) {
+                if (groupPayouts[i] >= groupPayouts[i - 1]) {
+                    cutoffGroupIndex = i - 1;
+                    break;
+                }
+            }
+            
+            const cutoffPlace = groups[cutoffGroupIndex].end;
+            const filteredPayouts = {};
+            Object.keys(payouts).forEach(place => {
+                if (parseInt(place) <= cutoffPlace) {
+                    filteredPayouts[place] = payouts[place];
+                }
+            });
+            payouts = filteredPayouts;
+            
+            // AGGRESSIVE STRATEGY: Try to make last place = entry fee exactly
+            const lastPlace = Math.max(...Object.keys(payouts).map(Number));
+            if (payouts[lastPlace] > this.entryFee) {
+                // Calculate how much we can reclaim from last place
+                const reclaimable = payouts[lastPlace] - this.entryFee;
+                payouts[lastPlace] = this.entryFee;
+                
+                // Redistribute to earlier places, weighted toward first
+                const recipientPlaces = [];
+                const recipientWeights = {};
+                let totalRecipientWeight = 0;
+                
+                Object.keys(payouts).forEach(place => {
+                    const p = parseInt(place);
+                    if (p < lastPlace) {
+                        const weight = Math.pow(0.6, p - 1); // Earlier places get more
+                        recipientPlaces.push(p);
+                        recipientWeights[p] = weight;
+                        totalRecipientWeight += weight;
+                    }
+                });
+                
+                // Distribute the reclaimed money
+                recipientPlaces.forEach(place => {
+                    const share = (recipientWeights[place] / totalRecipientWeight) * reclaimable;
+                    payouts[place] += share;
+                });
+            }
+            
+            // Final balance adjustment
+            let allocatedTotal = Object.values(payouts).reduce((a, b) => a + b, 0);
+            let difference = this.totalPrizePool - allocatedTotal;
+            payouts[1] += difference;
+            
+            // Ensure first place is at least 15% more than second
+            if (payouts[2]) {
+                const minFirst = payouts[2] * 1.15;
+                if (payouts[1] < minFirst) {
+                    const needed = minFirst - payouts[1];
+                    payouts[1] = minFirst;
+                    
+                    let otherTotal = 0;
+                    Object.keys(payouts).forEach(place => {
+                        if (parseInt(place) > 1) otherTotal += payouts[place];
+                    });
+                    
+                    if (otherTotal > needed) {
+                        Object.keys(payouts).forEach(place => {
+                            if (parseInt(place) > 1) {
+                                payouts[place] -= (payouts[place] / otherTotal) * needed;
+                            }
+                        });
+                    }
+                }
+            }
+            
+            // FINAL: Round all payouts to smart denominations
+            Object.keys(payouts).forEach(place => {
+                payouts[place] = this.roundAmount(payouts[place]);
+            });
+            
+            // One more balance check after rounding
+            const finalTotal = Object.values(payouts).reduce((a, b) => a + b, 0);
+            if (Math.abs(finalTotal - this.totalPrizePool) > 0.01) {
+                payouts[1] += (this.totalPrizePool - finalTotal);
+            }
+            
+            // Sort by place number
+            const sortedPayouts = {};
+            Object.keys(payouts).map(Number).sort((a, b) => a - b).forEach(place => {
+                sortedPayouts[place] = payouts[place];
+            });
+            
+            return sortedPayouts;
+        }
+        
+        getFormattedPayouts() {
+            const payouts = this.calculatePayouts();
+            if (payouts.error) return payouts;
+            
+            const formatted = {};
+            const labels = {
+                1: '1st', 2: '2nd', 3: '3rd', 4: '4th',
+                5: '5th-6th', 6: '5th-6th',
+                7: '7th-8th', 8: '7th-8th',
+                9: '9th-12th', 10: '9th-12th', 11: '9th-12th', 12: '9th-12th',
+                13: '13th-16th', 14: '13th-16th', 15: '13th-16th', 16: '13th-16th',
+                17: '17th-24th', 18: '17th-24th', 19: '17th-24th', 20: '17th-24th',
+                21: '17th-24th', 22: '17th-24th', 23: '17th-24th', 24: '17th-24th',
+                25: '25th-32nd', 26: '25th-32nd', 27: '25th-32nd', 28: '25th-32nd',
+                29: '25th-32nd', 30: '25th-32nd', 31: '25th-32nd', 32: '25th-32nd'
+            };
+            
+            Object.keys(payouts).forEach(place => {
+                const label = labels[place] || `${place}th`;
+                if (!formatted[label]) {
+                    formatted[label] = payouts[place];
+                }
+            });
+            
+            return formatted;
+        }
+    }
+    
+    // ============================================================================
+    // FARGORATE API
+    // ============================================================================
+    
+    const FARGO_API_URL = 'https://dashboard.fargorate.com/api/indexsearch';
+    
+    // ============================================================================
+    // GOOGLE APPS SCRIPT URL - UPDATE THIS AFTER DEPLOYMENT
+    // ============================================================================
+    
+    const APPS_SCRIPT_URL = 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE';
+    
+    // ============================================================================
+    // INITIALIZATION
+    // ============================================================================
+    
+    document.addEventListener('DOMContentLoaded', () => {
+        // Set initial entry fee based on day of week
+        const entryFeeInput = document.getElementById('entryFeeInput');
+        const dayIndicator = document.getElementById('dayIndicator');
+        
+        if (entryFeeInput) {
+            entryFeeInput.value = getDefaultEntryFee();
+        }
+        
+        // Show day indicator
+        if (dayIndicator) {
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            const dayOfWeek = new Date().getDay();
+            const dayName = days[dayOfWeek];
+            const fee = getDefaultEntryFee();
+            dayIndicator.textContent = `(${dayName} = $${fee})`;
+        }
+        
+        loadFromLocalStorage();
+        updateAllDisplays();
+    });
+    
+    function loadFromLocalStorage() {
+        const saved = localStorage.getItem('tournamentConsoleState');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            Object.assign(state, parsed);
+            
+            // Restore UI state
+            document.getElementById('eventType').value = state.eventType;
+            
+            // Restore settings inputs
+            const entryFeeInput = document.getElementById('entryFeeInput');
+            const sidepotInput = document.getElementById('sidepotInput');
+            const showSkillLevel = document.getElementById('showSkillLevel');
+            
+            if (entryFeeInput) entryFeeInput.value = state.settings.entryFee;
+            if (sidepotInput) sidepotInput.value = state.settings.sidepotAmount;
+            if (showSkillLevel) showSkillLevel.checked = state.settings.showSkillLevel;
+            
+            // Also update legacy settings inputs if they exist
+            const legacyEntryFee = document.getElementById('entryFee');
+            const legacySidepot = document.getElementById('sidepotAmount');
+            if (legacyEntryFee) legacyEntryFee.value = state.settings.entryFee;
+            if (legacySidepot) legacySidepot.value = state.settings.sidepotAmount;
+            
+            if (state.eventType) {
+                handleEventTypeChange();
+            }
+        }
+        
+        // Initialize displays
+        updateAllDisplays();
+    }
+    
+    function saveToLocalStorage() {
+        localStorage.setItem('tournamentConsoleState', JSON.stringify(state));
+    }
+    
+    // ============================================================================
+    // EVENT TYPE HANDLING
+    // ============================================================================
+    
+    function handleEventTypeChange() {
+        const eventType = document.getElementById('eventType').value;
+        state.eventType = eventType;
+        
+        const specialUrlInput = document.getElementById('specialEventUrl');
+        const refreshBtn = document.getElementById('refreshBtn');
+        
+        if (eventType === 'special') {
+            specialUrlInput.style.display = 'block';
+            refreshBtn.style.display = 'inline-block';
+            document.getElementById('headerInfo').textContent = 'Special Event Mode - Paste sheet URL';
+        } else if (eventType === 'weekly') {
+            specialUrlInput.style.display = 'none';
+            refreshBtn.style.display = 'inline-block';
+            document.getElementById('headerInfo').textContent = 'Weekly Tournament Mode';
+            loadMasterPlayers();
+        } else {
+            specialUrlInput.style.display = 'none';
+            refreshBtn.style.display = 'none';
+            document.getElementById('headerInfo').textContent = 'Select event type to begin';
+        }
+        
+        saveToLocalStorage();
+    }
+    
+    // ============================================================================
+    // DATA LOADING
+    // ============================================================================
+    
+    async function loadMasterPlayers() {
+        showLoading('checkinPlayerList');
+        
+        try {
+            // Try to load from Google Apps Script API
+            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+                const response = await fetch(APPS_SCRIPT_URL + '?action=getMasterPlayers');
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                state.masterPlayers = data.players || [];
+                showToast(`Loaded ${state.masterPlayers.length} players from database`, 'success');
+            } else {
+                // Fallback to sample data for demo/offline mode
+                state.masterPlayers = getSampleMasterPlayers();
+                showToast('Using sample data (configure API URL for live data)', 'info');
+            }
+            
+            updateAllDisplays();
+        } catch (error) {
+            console.error('Error loading master players:', error);
+            // Fallback to sample data
+            state.masterPlayers = getSampleMasterPlayers();
+            showToast('Using offline mode: ' + error.message, 'error');
+            updateAllDisplays();
+        }
+    }
+    
+    async function loadSpecialEventData() {
+        const url = document.getElementById('specialEventUrl').value;
+        if (!url) return;
+        
+        state.specialEventUrl = url;
+        showLoading('checkinPlayerList');
+        
+        try {
+            // Extract sheet ID from URL
+            const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+            if (!match) {
+                throw new Error('Invalid Google Sheet URL');
+            }
+            
+            const sheetId = match[1];
+            document.getElementById('headerInfo').textContent = 'Special Event: ' + sheetId.substring(0, 10) + '...';
+            
+            // Try to load from Google Apps Script API
+            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+                const response = await fetch(APPS_SCRIPT_URL + '?action=getPreregistration&sheetId=' + sheetId);
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                state.preregisteredPlayers = data.players || [];
+                state.masterPlayers = state.preregisteredPlayers;
+                showToast(`Loaded ${state.preregisteredPlayers.length} preregistered players`, 'success');
+            } else {
+                // Fallback to sample data
+                state.preregisteredPlayers = getSamplePreregistrationData();
+                state.masterPlayers = state.preregisteredPlayers;
+                showToast('Using sample data (configure API URL for live data)', 'info');
+            }
+            
+            updateAllDisplays();
+        } catch (error) {
+            console.error('Error loading special event data:', error);
+            // Fallback to sample data
+            state.preregisteredPlayers = getSamplePreregistrationData();
+            state.masterPlayers = state.preregisteredPlayers;
+            showToast('Using offline mode: ' + error.message, 'error');
+            updateAllDisplays();
+        }
+        
+        saveToLocalStorage();
+    }
+    
+    function refreshData() {
+        if (state.eventType === 'weekly') {
+            loadMasterPlayers();
+        } else if (state.eventType === 'special') {
+            loadSpecialEventData();
+        }
+    }
+    
+    // ============================================================================
+    // SAMPLE DATA (Replace with actual API calls)
+    // ============================================================================
+    
+    function getSampleMasterPlayers() {
+        return [
+            { id: 1, name: 'John Smith', phone: '614-555-0101', skill: 523, fargoId: 'ABC12345' },
+            { id: 2, name: 'Mike Johnson', phone: '614-555-0102', skill: 612, fargoId: 'DEF67890' },
+            { id: 3, name: 'Sarah Williams', phone: '614-555-0103', skill: 445, fargoId: 'GHI11111' },
+            { id: 4, name: 'David Brown', phone: '614-555-0104', skill: 701, fargoId: 'JKL22222' },
+            { id: 5, name: 'Emily Davis', phone: '614-555-0105', skill: 389, fargoId: null },
+            { id: 6, name: 'Chris Miller', phone: '614-555-0106', skill: 756, fargoId: 'MNO33333' },
+            { id: 7, name: 'Jessica Wilson', phone: '614-555-0107', skill: 534, fargoId: 'PQR44444' },
+            { id: 8, name: 'Robert Taylor', phone: '614-555-0108', skill: 628, fargoId: 'STU55555' },
+            { id: 9, name: 'Amanda Martinez', phone: '614-555-0109', skill: 412, fargoId: null },
+            { id: 10, name: 'Kevin Anderson', phone: '614-555-0110', skill: 825, fargoId: 'VWX66666' },
+        ];
+    }
+    
+    function getSamplePreregistrationData() {
+        return [
+            { id: 1, name: 'Tournament Player 1', phone: '614-555-0201', skill: 678, fargoId: 'PRE11111', preregistered: true },
+            { id: 2, name: 'Tournament Player 2', phone: '614-555-0202', skill: 542, fargoId: 'PRE22222', preregistered: true },
+            { id: 3, name: 'Tournament Player 3', phone: '614-555-0203', skill: 789, fargoId: 'PRE33333', preregistered: true },
+            { id: 4, name: 'Tournament Player 4', phone: '614-555-0204', skill: 623, fargoId: null, preregistered: true },
+            { id: 5, name: 'Tournament Player 5', phone: '614-555-0205', skill: 445, fargoId: 'PRE44444', preregistered: true },
+        ];
+    }
+    
+    // ============================================================================
+    // AUTOCOMPLETE
+    // ============================================================================
+    
+    let autocompleteIndex = -1;
+    
+    function handlePlayerSearch(query) {
+        const list = document.getElementById('autocompleteList');
+        
+        if (query.length < 2) {
+            list.classList.remove('show');
+            return;
+        }
+        
+        const matches = state.masterPlayers.filter(p => 
+            p.name.toLowerCase().includes(query.toLowerCase()) &&
+            !state.checkedInPlayers.find(cp => cp.id === p.id)
+        ).slice(0, 10);
+        
+        if (matches.length === 0) {
+            list.classList.remove('show');
+            return;
+        }
+        
+        list.innerHTML = matches.map((p, i) => `
+            <div class="autocomplete-item ${i === autocompleteIndex ? 'selected' : ''}" 
+                 onclick="selectPlayer(${p.id})">
+                <div class="name">${highlightMatch(p.name, query)}</div>
+                <div class="phone">${p.phone || 'No phone'}</div>
+            </div>
+        `).join('');
+        
+        list.classList.add('show');
+        autocompleteIndex = -1;
+    }
+    
+    function highlightMatch(text, query) {
+        const regex = new RegExp(`(${query})`, 'gi');
+        return text.replace(regex, '<strong>$1</strong>');
+    }
+    
+    function handleAutocompleteKeydown(event) {
+        const list = document.getElementById('autocompleteList');
+        const items = list.querySelectorAll('.autocomplete-item');
+        
+        if (event.key === 'ArrowDown') {
+            event.preventDefault();
+            autocompleteIndex = Math.min(autocompleteIndex + 1, items.length - 1);
+            updateAutocompleteSelection(items);
+        } else if (event.key === 'ArrowUp') {
+            event.preventDefault();
+            autocompleteIndex = Math.max(autocompleteIndex - 1, 0);
+            updateAutocompleteSelection(items);
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            if (autocompleteIndex >= 0 && items[autocompleteIndex]) {
+                items[autocompleteIndex].click();
+            } else {
+                addPlayer();
+            }
+        } else if (event.key === 'Escape') {
+            list.classList.remove('show');
+        }
+    }
+    
+    function updateAutocompleteSelection(items) {
+        items.forEach((item, i) => {
+            item.classList.toggle('selected', i === autocompleteIndex);
+        });
+    }
+    
+    function selectPlayer(playerId) {
+        const player = state.masterPlayers.find(p => p.id === playerId);
+        if (player) {
+            document.getElementById('playerNameInput').value = player.name;
+            document.getElementById('playerPhoneInput').value = player.phone || '';
+            document.getElementById('autocompleteList').classList.remove('show');
+        }
+    }
+    
+    // ============================================================================
+    // PLAYER MANAGEMENT
+    // ============================================================================
+    
+    function addPlayer() {
+        const nameInput = document.getElementById('playerNameInput');
+        const phoneInput = document.getElementById('playerPhoneInput');
+        
+        const name = nameInput.value.trim();
+        const phone = phoneInput.value.trim();
+        
+        if (!name) {
+            showToast('Please enter a player name', 'error');
+            return;
+        }
+        
+        // Check if already checked in
+        if (state.checkedInPlayers.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+            showToast('Player already checked in', 'error');
+            return;
+        }
+        
+        // Find in master list or create new
+        let player = state.masterPlayers.find(p => p.name.toLowerCase() === name.toLowerCase());
+        
+        if (player) {
+            // Update phone if provided and different
+            if (phone && phone !== player.phone) {
+                player.phone = phone;
+            }
+        } else {
+            // New player
+            player = {
+                id: Date.now(),
+                name: name,
+                phone: phone,
+                skill: null,
+                isNew: true
+            };
+            state.masterPlayers.push(player);
+        }
+        
+        // Add to checked in
+        state.checkedInPlayers.push({
+            ...player,
+            checkedInAt: new Date().toISOString(),
+            inSidePot: false,
+            calcuttaBuyer: '',
+            calcuttaBid: 0,
+            calcuttaPaid: false
+        });
+        
+        // Clear inputs
+        nameInput.value = '';
+        phoneInput.value = '';
+        document.getElementById('autocompleteList').classList.remove('show');
+        
+        showToast(`${name} checked in`, 'success');
+        saveToLocalStorage();
+        updateAllDisplays();
+    }
+    
+    function removePlayer(playerId) {
+        if (confirm('Remove this player from check-in?')) {
+            state.checkedInPlayers = state.checkedInPlayers.filter(p => p.id !== playerId);
+            saveToLocalStorage();
+            updateAllDisplays();
+            showToast('Player removed', 'success');
+        }
+    }
+    
+    function showAddNewPlayerModal() {
+        document.getElementById('newPlayerName').value = '';
+        document.getElementById('newPlayerPhone').value = '';
+        document.getElementById('newPlayerSkill').value = '';
+        document.getElementById('addPlayerModal').classList.add('show');
+    }
+    
+    async function saveNewPlayer() {
+        const name = document.getElementById('newPlayerName').value.trim();
+        const phone = document.getElementById('newPlayerPhone').value.trim();
+        const carrier = document.getElementById('newPlayerCarrier').value;
+        
+        if (!name) {
+            showToast('Please enter a name', 'error');
+            return;
+        }
+        
+        // Store pending player info for FargoRate flow
+        state.pendingNewPlayer = {
+            name: name,
+            phone: phone,
+            carrier: carrier,
+            hasPaid: false, // Default to unpaid
+            inSidePot: false
+        };
+        
+        closeModal('addPlayerModal');
+        
+        // Pre-populate search with name
+        document.getElementById('fargoSearchInput').value = name;
+        document.getElementById('fargoResultsList').innerHTML = '';
+        document.getElementById('fargoModal').classList.add('show');
+        
+        // Auto-search with the name
+        searchFargo();
+    }
+    
+    // Old addPlayer function for backwards compatibility
+    function addPlayer() {
+        const nameInput = document.getElementById('playerNameInput');
+        const phoneInput = document.getElementById('playerPhoneInput');
+        
+        if (!nameInput || !phoneInput) return;
+        
+        const name = nameInput.value.trim();
+        const phone = phoneInput.value.trim();
+        
+        if (!name) {
+            showToast('Please enter a player name', 'error');
+            return;
+        }
+        
+        // Check if already checked in
+        if (state.checkedInPlayers.find(p => p.name.toLowerCase() === name.toLowerCase())) {
+            showToast('Player already checked in', 'error');
+            return;
+        }
+        
+        // Find in master list or trigger FargoRate lookup
+        let player = state.masterPlayers.find(p => p.name.toLowerCase() === name.toLowerCase());
+        
+        if (player) {
+            // Update phone if provided and different
+            if (phone && phone !== player.phone) {
+                player.phone = phone;
+            }
+            
+            // Add to checked in
+            state.checkedInPlayers.push({
+                ...player,
+                id: Date.now(),
+                originalId: player.id,
+                checkedInAt: new Date().toISOString(),
+                hasPaid: false, // Default to unpaid
+                inSidePot: false,
+                calcuttaBuyer: '',
+                calcuttaBid: 0,
+                calcuttaPaid: false
+            });
+            
+            nameInput.value = '';
+            phoneInput.value = '';
+            
+            showToast(`${name} checked in`, 'success');
+            saveToLocalStorage();
+            updateAllDisplays();
+        } else {
+            // New player - trigger FargoRate lookup
+            addNewPlayerQuick(name);
+        }
+    }
+    
+    // ============================================================================
+    // FARGORATE INTEGRATION
+    // ============================================================================
+    
+    async function searchFargo() {
+        const query = document.getElementById('fargoSearchInput').value.trim();
+        if (!query) {
+            showToast('Enter a name to search', 'error');
+            return;
+        }
+        
+        const loading = document.getElementById('fargoLoading');
+        const resultsList = document.getElementById('fargoResultsList');
+        
+        loading.style.display = 'block';
+        resultsList.innerHTML = '';
+        
+        try {
+            const response = await fetch(FARGO_API_URL + '?q=' + encodeURIComponent(query));
+            const data = await response.json();
+            
+            loading.style.display = 'none';
+            
+            if (!data.value || data.value.length === 0) {
+                resultsList.innerHTML = `
+                    <div class="no-results">
+                        <p>No players found for "${query}"</p>
+                        <p style="font-size:0.9rem;">Try using first initial + last name (e.g., "M Chambers")</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Display results
+            resultsList.innerHTML = data.value.slice(0, 10).map(player => {
+                const fargoIdPrefix = player.id ? player.id.split('-')[0] : '';
+                const location = [player.city, player.state, player.country]
+                    .filter(x => x)
+                    .join(', ');
+                
+                return `
+                    <div class="fargo-result-item" onclick="selectFargoPlayer('${fargoIdPrefix}', '${escapeHtml(player.name)}', ${player.rating || 0})">
+                        <div class="fargo-info">
+                            <div class="fargo-name">${escapeHtml(player.name)}</div>
+                            <div class="fargo-location">${location || 'Location unknown'}</div>
+                        </div>
+                        <div class="fargo-rating">${player.rating || '?'}</div>
+                    </div>
+                `;
+            }).join('');
+            
+        } catch (error) {
+            loading.style.display = 'none';
+            console.error('FargoRate search error:', error);
+            resultsList.innerHTML = `
+                <div class="no-results">
+                    <p>Error searching FargoRate</p>
+                    <p style="font-size:0.9rem;">${error.message}</p>
+                </div>
+            `;
+        }
+    }
+    
+    function selectFargoPlayer(fargoIdPrefix, fargoName, fargoRating) {
+        if (!state.pendingNewPlayer) {
+            showToast('Error: No pending player', 'error');
+            closeModal('fargoModal');
+            return;
+        }
+        
+        // Check if this is linking an existing player or adding a new one
+        if (state.pendingNewPlayer.existingPlayerId) {
+            // Update existing player
+            const playerId = state.pendingNewPlayer.existingPlayerId;
+            
+            const checkedInPlayer = state.checkedInPlayers.find(p => p.id === playerId);
+            if (checkedInPlayer) {
+                checkedInPlayer.fargoId = fargoIdPrefix;
+                checkedInPlayer.fargoName = fargoName;
+                checkedInPlayer.skill = fargoRating;
+            }
+            
+            const masterPlayer = state.masterPlayers.find(p => p.id === playerId);
+            if (masterPlayer) {
+                masterPlayer.fargoId = fargoIdPrefix;
+                masterPlayer.fargoName = fargoName;
+                masterPlayer.skill = fargoRating;
+            }
+            
+            // Sync to API
+            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+                fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'updateFargo',
+                        name: state.pendingNewPlayer.name,
+                        fargoId: fargoIdPrefix,
+                        skill: fargoRating
+                    })
+                }).catch(err => console.warn('Could not sync Fargo update:', err));
+            }
+            
+            state.pendingNewPlayer = null;
+            closeModal('fargoModal');
+            saveToLocalStorage();
+            updateAllDisplays();
+            showToast(`${checkedInPlayer.name} linked to Fargo ${fargoRating}`, 'success');
+        } else {
+            // New player
+            const player = {
+                id: Date.now(),
+                name: state.pendingNewPlayer.name,
+                phone: state.pendingNewPlayer.phone,
+                fargoId: fargoIdPrefix,
+                fargoName: fargoName,
+                skill: fargoRating,
+                isNew: true
+            };
+            
+            completeAddPlayer(player);
+        }
+    }
+    
+    function skipFargoSelection() {
+        if (!state.pendingNewPlayer) {
+            closeModal('fargoModal');
+            return;
+        }
+        
+        // Check if this was linking an existing player
+        if (state.pendingNewPlayer.existingPlayerId) {
+            state.pendingNewPlayer = null;
+            closeModal('fargoModal');
+            showToast('FargoRate lookup skipped', 'info');
+            return;
+        }
+        
+        // Get pending info
+        const hasPaid = state.pendingNewPlayer.hasPaid ?? false;
+        const inSidePot = state.pendingNewPlayer.inSidePot ?? false;
+        const carrier = state.pendingNewPlayer.carrier || '';
+        
+        const player = {
+            id: Date.now(),
+            name: state.pendingNewPlayer.name,
+            phone: state.pendingNewPlayer.phone || '',
+            fargoId: null,
+            skill: null,
+            carrier: carrier,
+            isNew: true
+        };
+        
+        // Add to master players
+        state.masterPlayers.push(player);
+        
+        // Add to checked-in players
+        state.checkedInPlayers.push({
+            ...player,
+            checkedInAt: new Date().toISOString(),
+            hasPaid: hasPaid,
+            inSidePot: inSidePot,
+            calcuttaBuyer: '',
+            calcuttaBid: 0,
+            calcuttaPaid: false
+        });
+        
+        state.pendingNewPlayer = null;
+        closeModal('fargoModal');
+        saveToLocalStorage();
+        updateAllDisplays();
+        
+        // Focus back on input
+        setTimeout(() => {
+            const input = document.getElementById('newPlayerInput');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+        }, 50);
+        
+        showToast(`${player.name} added (no Fargo rating)`, 'success');
+    }
+    
+    // Update player phone from spreadsheet
+    async function updatePlayerPhone(playerId, phone) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (player) {
+            player.phone = phone;
+            
+            // Also update in master list if exists
+            const masterPlayer = state.masterPlayers.find(p => 
+                p.name.toLowerCase() === player.name.toLowerCase() || p.id === player.originalId
+            );
+            if (masterPlayer) {
+                masterPlayer.phone = phone;
+            }
+            
+            saveToLocalStorage();
+            
+            // Sync to API in background
+            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+                try {
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'updatePhone',
+                            name: player.name,
+                            phone: phone
+                        })
+                    });
+                    console.log('Phone synced to database');
+                } catch (error) {
+                    console.warn('Could not sync phone to database:', error);
+                }
+            }
+        }
+    }
+    
+    async function completeAddPlayer(player) {
+        // Include carrier from pending player if available
+        const carrier = state.pendingNewPlayer?.carrier || '';
+        player.carrier = carrier;
+        
+        // Try to add to master database via API
+        if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'addPlayer',
+                        name: player.name,
+                        phone: player.phone,
+                        skill: player.skill,
+                        fargoId: player.fargoId,
+                        carrier: carrier
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.error) {
+                    console.warn('API add player warning:', result.error);
+                }
+            } catch (error) {
+                console.warn('Could not sync to database:', error);
+            }
+        }
+        
+        state.masterPlayers.push(player);
+        
+        // Check if we have pending payment/sidepot info from quick add
+        const hasPaid = state.pendingNewPlayer?.hasPaid ?? false;
+        const inSidePot = state.pendingNewPlayer?.inSidePot ?? false;
+        
+        // Add to checked-in players
+        state.checkedInPlayers.push({
+            ...player,
+            checkedInAt: new Date().toISOString(),
+            hasPaid: hasPaid,
+            inSidePot: inSidePot,
+            carrier: carrier,
+            calcuttaBuyer: '',
+            calcuttaBid: 0,
+            calcuttaPaid: false
+        });
+        
+        // Clear pending
+        state.pendingNewPlayer = null;
+        
+        closeModal('fargoModal');
+        saveToLocalStorage();
+        updateAllDisplays();
+        
+        // Focus back on new player input
+        setTimeout(() => {
+            const input = document.getElementById('newPlayerInput');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+        }, 50);
+        
+        const ratingMsg = player.skill ? ` (Fargo ${player.skill})` : '';
+        showToast(`${player.name} added and checked in${ratingMsg}`, 'success');
+    }
+    
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
+    // Refresh Fargo rating for a player
+    async function refreshFargoRating(playerId) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (!player || !player.fargoId) {
+            showToast('No FargoRate ID for this player', 'error');
+            return;
+        }
+        
+        try {
+            // Search by fargoId prefix to find current rating
+            const response = await fetch(FARGO_API_URL + '?q=' + encodeURIComponent(player.fargoId));
+            const data = await response.json();
+            
+            if (data.value && data.value.length > 0) {
+                // Find matching player by ID prefix
+                const match = data.value.find(p => p.id && p.id.startsWith(player.fargoId));
+                if (match && match.rating) {
+                    player.skill = match.rating;
+                    
+                    // Update in master list too
+                    const masterPlayer = state.masterPlayers.find(p => p.id === playerId);
+                    if (masterPlayer) {
+                        masterPlayer.skill = match.rating;
+                    }
+                    
+                    saveToLocalStorage();
+                    updateAllDisplays();
+                    showToast(`${player.name} updated to Fargo ${match.rating}`, 'success');
+                    return;
+                }
+            }
+            
+            showToast('Could not find updated rating', 'error');
+        } catch (error) {
+            showToast('Error refreshing rating: ' + error.message, 'error');
+        }
+    }
+    
+    function showEditPhoneModal(playerId) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (!player) return;
+        
+        state.editingPlayerId = playerId;
+        document.getElementById('editPhonePlayerName').value = player.name;
+        document.getElementById('editPhoneNumber').value = player.phone || '';
+        document.getElementById('editPhoneModal').classList.add('show');
+    }
+    
+    async function savePhoneUpdate() {
+        const phone = document.getElementById('editPhoneNumber').value.trim();
+        
+        // Get player name for API call
+        const checkedInPlayer = state.checkedInPlayers.find(p => p.id === state.editingPlayerId);
+        const playerName = checkedInPlayer ? checkedInPlayer.name : null;
+        
+        // Update in checked in list
+        if (checkedInPlayer) {
+            checkedInPlayer.phone = phone;
+        }
+        
+        // Update in master list
+        const masterPlayer = state.masterPlayers.find(p => p.id === state.editingPlayerId);
+        if (masterPlayer) {
+            masterPlayer.phone = phone;
+        }
+        
+        // Try to update in database via API
+        if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE' && playerName) {
+            try {
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'updatePhone',
+                        name: playerName,
+                        phone: phone
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.error) {
+                    console.warn('API update phone warning:', result.error);
+                }
+            } catch (error) {
+                console.warn('Could not sync phone update to database:', error);
+            }
+        }
+        
+        closeModal('editPhoneModal');
+        saveToLocalStorage();
+        updateAllDisplays();
+        showToast('Phone number updated', 'success');
+    }
+    
+    // ============================================================================
+    // SIDE POT
+    // ============================================================================
+    
+    function toggleSidePot(playerId) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (player) {
+            player.inSidePot = !player.inSidePot;
+            saveToLocalStorage();
+            updateAllDisplays();
+        }
+    }
+    
+    // ============================================================================
+    // CALCUTTA
+    // ============================================================================
+    
+    function updateCalcuttaBuyer(playerId, buyer) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (player) {
+            player.calcuttaBuyer = buyer;
+            saveToLocalStorage();
+            updateBuyersSummary();
+        }
+    }
+    
+    function updateCalcuttaBid(playerId, bid) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (player) {
+            player.calcuttaBid = parseFloat(bid) || 0;
+            saveToLocalStorage();
+            updateCalcuttaSummary();
+            updateBuyersSummary();
+        }
+    }
+    
+    function toggleCalcuttaPaid(playerId) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (player) {
+            player.calcuttaPaid = !player.calcuttaPaid;
+            saveToLocalStorage();
+            updateCalcuttaSummary();
+            updateBuyersSummary();
+        }
+    }
+    
+    function sortCalcutta(sortBy) {
+        state.calcuttaSort = sortBy;
+        
+        // Update button states
+        document.querySelectorAll('.sort-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById('sort' + sortBy.charAt(0).toUpperCase() + sortBy.slice(1)).classList.add('active');
+        
+        renderCalcuttaTable();
+    }
+    
+    function getSortedCalcuttaPlayers() {
+        const players = [...state.checkedInPlayers];
+        
+        switch (state.calcuttaSort) {
+            case 'name':
+                return players.sort((a, b) => a.name.localeCompare(b.name));
+            case 'skill':
+                return players.sort((a, b) => (b.skill || 0) - (a.skill || 0));
+            case 'bid':
+                return players.sort((a, b) => (b.calcuttaBid || 0) - (a.calcuttaBid || 0));
+            case 'order':
+            default:
+                return players; // Already in check-in order
+        }
+    }
+    
+    // ============================================================================
+    // BUYERS SUMMARY
+    // ============================================================================
+    
+    function getBuyersSummary() {
+        const buyers = {};
+        
+        state.checkedInPlayers.forEach(player => {
+            if (player.calcuttaBuyer && player.calcuttaBid > 0) {
+                const buyerName = player.calcuttaBuyer.trim();
+                if (!buyers[buyerName]) {
+                    buyers[buyerName] = {
+                        name: buyerName,
+                        totalOwed: 0,
+                        players: [],
+                        paid: true
+                    };
+                }
+                buyers[buyerName].totalOwed += player.calcuttaBid;
+                buyers[buyerName].players.push(player.name);
+                if (!player.calcuttaPaid) {
+                    buyers[buyerName].paid = false;
+                }
+            }
+        });
+        
+        return Object.values(buyers).sort((a, b) => b.totalOwed - a.totalOwed);
+    }
+    
+    function toggleBuyerPaid(buyerName) {
+        const isPaid = state.checkedInPlayers
+            .filter(p => p.calcuttaBuyer === buyerName)
+            .every(p => p.calcuttaPaid);
+        
+        state.checkedInPlayers.forEach(player => {
+            if (player.calcuttaBuyer === buyerName) {
+                player.calcuttaPaid = !isPaid;
+            }
+        });
+        
+        saveToLocalStorage();
+        updateCalcuttaSummary();
+        updateBuyersSummary();
+        renderCalcuttaTable();
+    }
+    
+    function markAllPaid() {
+        if (confirm('Mark all buyers as paid?')) {
+            state.checkedInPlayers.forEach(player => {
+                if (player.calcuttaBid > 0) {
+                    player.calcuttaPaid = true;
+                }
+            });
+            saveToLocalStorage();
+            updateAllDisplays();
+            showToast('All buyers marked as paid', 'success');
+        }
+    }
+    
+    // ============================================================================
+    // DISPLAY UPDATES
+    // ============================================================================
+    
+    function updateAllDisplays() {
+        renderPlayerSpreadsheet();
+        renderSidepotList();
+        renderCalcuttaTable();
+        updateBuyersSummary();
+        updateSummaryCards();
+        updateBadges();
+        updatePayoutsDisplay();
+    }
+    
+    // ============================================================================
+    // SPREADSHEET-STYLE PLAYER ENTRY
+    // ============================================================================
+    
+    function renderPlayerSpreadsheet() {
+        const tbody = document.getElementById('playerTableBody');
+        if (!tbody) return;
+        
+        const carrierOptions = `
+            <option value="">--</option>
+            <option value="verizon">Verizon</option>
+            <option value="att">AT&T</option>
+            <option value="tmobile">T-Mobile</option>
+            <option value="sprint">Sprint</option>
+            <option value="uscellular">US Cellular</option>
+            <option value="cricket">Cricket</option>
+            <option value="metropcs">Metro PCS</option>
+            <option value="boost">Boost</option>
+            <option value="virgin">Virgin</option>
+            <option value="googlefi">Google Fi</option>
+            <option value="xfinity">Xfinity</option>
+            <option value="spectrum">Spectrum</option>
+            <option value="consumer_cellular">Consumer Cellular</option>
+            <option value="mint">Mint</option>
+            <option value="visible">Visible</option>
+            <option value="straight_talk">Straight Talk</option>
+            <option value="other">Other</option>
+        `;
+        
+        let html = '';
+        
+        // Render existing players
+        state.checkedInPlayers.forEach((player, index) => {
+            const rowClass = player.hasPaid ? 'paid-row' : 'unpaid-row';
+            const carrierValue = player.carrier || '';
+            
+            // Build carrier select with current value selected
+            let carrierSelect = carrierOptions.replace(
+                `value="${carrierValue}"`, 
+                `value="${carrierValue}" selected`
+            );
+            
+            html += `
+                <tr class="${rowClass}" data-player-id="${player.id}">
+                    <td class="row-number">${index + 1}</td>
+                    <td>
+                        <input type="text" value="${escapeHtml(player.name)}" 
+                               readonly 
+                               style="font-weight:500;">
+                    </td>
+                    <td>
+                        <input type="tel" value="${player.phone || ''}" 
+                               onchange="updatePlayerPhone(${player.id}, this.value)"
+                               placeholder="Phone">
+                    </td>
+                    <td>
+                        <select class="carrier-select" onchange="updatePlayerCarrier(${player.id}, this.value)">
+                            ${carrierSelect}
+                        </select>
+                    </td>
+                    <td class="fargo-display">
+                        ${player.skill || '-'}
+                        ${!player.skill ? `<button class="btn btn-small" onclick="linkToFargo(${player.id})" title="Find on FargoRate" style="font-size:0.8rem;padding:2px 5px;">🔍</button>` : ''}
+                    </td>
+                    <td style="text-align:center;">
+                        <input type="checkbox" ${player.hasPaid ? 'checked' : ''} 
+                               onchange="togglePaid(${player.id})">
+                    </td>
+                    <td style="text-align:center;">
+                        <input type="checkbox" ${player.inSidePot ? 'checked' : ''} 
+                               onchange="toggleSidePot(${player.id})">
+                    </td>
+                    <td>
+                        <button class="delete-btn" onclick="removePlayer(${player.id})" title="Remove">✕</button>
+                    </td>
+                </tr>
+            `;
+        });
+        
+        // Add empty row for new entry
+        const newRowNum = state.checkedInPlayers.length + 1;
+        html += `
+            <tr class="empty-row" data-row="new">
+                <td class="row-number">${newRowNum}</td>
+                <td>
+                    <div class="inline-autocomplete">
+                        <input type="text" id="newPlayerInput" 
+                               placeholder="Type player name..."
+                               oninput="handleInlinePlayerSearch(this.value)"
+                               onkeydown="handleInlineAutocompleteKeydown(event)"
+                               onfocus="this.select()">
+                        <div class="inline-autocomplete-list" id="inlineAutocompleteList"></div>
+                    </div>
+                </td>
+                <td>
+                    <input type="tel" id="newPlayerPhone" placeholder="Phone" readonly>
+                </td>
+                <td>
+                    <select class="carrier-select" id="newPlayerCarrier" disabled>
+                        ${carrierOptions}
+                    </select>
+                </td>
+                <td class="fargo-display" id="newPlayerFargo">-</td>
+                <td style="text-align:center;">
+                    <input type="checkbox" id="newPlayerPaid">
+                </td>
+                <td style="text-align:center;">
+                    <input type="checkbox" id="newPlayerSidepot">
+                </td>
+                <td></td>
+            </tr>
+        `;
+        
+        tbody.innerHTML = html;
+        
+        // Update count display
+        const countDisplay = document.getElementById('playerCountDisplay');
+        if (countDisplay) {
+            countDisplay.textContent = `${state.checkedInPlayers.length} player${state.checkedInPlayers.length !== 1 ? 's' : ''}`;
+        }
+    }
+    
+    // Update player carrier
+    async function updatePlayerCarrier(playerId, carrier) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (player) {
+            player.carrier = carrier;
+            
+            // Also update in master list if exists
+            const masterPlayer = state.masterPlayers.find(p => 
+                p.name.toLowerCase() === player.name.toLowerCase() || p.id === player.originalId
+            );
+            if (masterPlayer) {
+                masterPlayer.carrier = carrier;
+            }
+            
+            saveToLocalStorage();
+            
+            // Sync to API in background
+            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+                try {
+                    await fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            action: 'updateCarrier',
+                            name: player.name,
+                            carrier: carrier,
+                            phone: player.phone
+                        })
+                    });
+                    showToast('Carrier updated', 'success');
+                } catch (error) {
+                    console.warn('Could not sync carrier to database:', error);
+                }
+            }
+        }
+    }
+    
+    function handleInlinePlayerSearch(query) {
+        const list = document.getElementById('inlineAutocompleteList');
+        
+        if (query.length < 2) {
+            list.classList.remove('show');
+            return;
+        }
+        
+        // Search master players
+        const matches = state.masterPlayers.filter(p => 
+            p.name.toLowerCase().includes(query.toLowerCase()) &&
+            !state.checkedInPlayers.find(cp => cp.id === p.id)
+        ).slice(0, 8);
+        
+        if (matches.length === 0) {
+            // Show option to add as new player
+            list.innerHTML = `
+                <div class="inline-autocomplete-item" onclick="addNewPlayerQuick('${escapeHtml(query)}')">
+                    <div>
+                        <div class="player-name">➕ Add "${escapeHtml(query)}" as new player</div>
+                    </div>
+                </div>
+            `;
+            list.classList.add('show');
+            return;
+        }
+        
+        list.innerHTML = matches.map((p, i) => `
+            <div class="inline-autocomplete-item" onclick="selectInlinePlayer(${p.id})">
+                <div>
+                    <div class="player-name">${highlightMatch(p.name, query)}</div>
+                    <div class="player-details">${p.phone || 'No phone'}</div>
+                </div>
+                ${p.skill ? `<span class="fargo-badge">${p.skill}</span>` : ''}
+            </div>
+        `).join('') + `
+            <div class="inline-autocomplete-item" onclick="addNewPlayerQuick('${escapeHtml(query)}')" style="border-top:2px solid var(--border);">
+                <div>
+                    <div class="player-name" style="color:var(--text-light);">➕ Add "${escapeHtml(query)}" as new player</div>
+                </div>
+            </div>
+        `;
+        
+        list.classList.add('show');
+    }
+    
+    function handleInlineAutocompleteKeydown(event) {
+        const list = document.getElementById('inlineAutocompleteList');
+        const items = list.querySelectorAll('.inline-autocomplete-item');
+        
+        if (event.key === 'Escape') {
+            list.classList.remove('show');
+        } else if (event.key === 'Enter') {
+            event.preventDefault();
+            if (items.length > 0) {
+                items[0].click();
+            }
+        }
+    }
+    
+    async function selectInlinePlayer(playerId) {
+        const player = state.masterPlayers.find(p => p.id === playerId);
+        if (!player) return;
+        
+        const hasPaid = document.getElementById('newPlayerPaid')?.checked ?? false;
+        const inSidePot = document.getElementById('newPlayerSidepot')?.checked ?? false;
+        
+        // Create the checked-in player entry
+        const checkedInPlayer = {
+            ...player,
+            id: Date.now(), // New unique ID for this check-in
+            originalId: player.id,
+            checkedInAt: new Date().toISOString(),
+            hasPaid: hasPaid,
+            inSidePot: inSidePot,
+            carrier: player.carrier || '', // Copy carrier from master
+            calcuttaBuyer: '',
+            calcuttaBid: 0,
+            calcuttaPaid: false
+        };
+        
+        // Add to checked-in players
+        state.checkedInPlayers.push(checkedInPlayer);
+        
+        // Hide autocomplete
+        document.getElementById('inlineAutocompleteList').classList.remove('show');
+        
+        saveToLocalStorage();
+        updateAllDisplays();
+        
+        // Focus back on input for next entry
+        setTimeout(() => {
+            const input = document.getElementById('newPlayerInput');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+        }, 50);
+        
+        // If player has fargoId, auto-refresh their rating in background
+        if (player.fargoId) {
+            autoRefreshFargoRating(checkedInPlayer.id, player.fargoId, player.name);
+        }
+        
+        showToast(`${player.name} checked in${player.skill ? ` (Fargo ${player.skill})` : ''}`, 'success');
+    }
+    
+    // Auto-refresh Fargo rating when checking in a known player
+    async function autoRefreshFargoRating(checkedInPlayerId, fargoId, playerName) {
+        try {
+            const response = await fetch(FARGO_API_URL + '?q=' + encodeURIComponent(fargoId));
+            const data = await response.json();
+            
+            if (data.value && data.value.length > 0) {
+                // Find matching player by ID prefix
+                const match = data.value.find(p => p.id && p.id.toUpperCase().startsWith(fargoId.toUpperCase()));
+                if (match && match.rating) {
+                    const newRating = parseInt(match.rating);
+                    
+                    // Update checked-in player
+                    const checkedInPlayer = state.checkedInPlayers.find(p => p.id === checkedInPlayerId);
+                    if (checkedInPlayer && checkedInPlayer.skill !== newRating) {
+                        const oldRating = checkedInPlayer.skill;
+                        checkedInPlayer.skill = newRating;
+                        
+                        // Update master player too
+                        const masterPlayer = state.masterPlayers.find(p => p.fargoId === fargoId);
+                        if (masterPlayer) {
+                            masterPlayer.skill = newRating;
+                        }
+                        
+                        saveToLocalStorage();
+                        updateAllDisplays();
+                        
+                        if (oldRating && oldRating !== newRating) {
+                            showToast(`${playerName}: Fargo updated ${oldRating} → ${newRating}`, 'info');
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.log('Auto-refresh Fargo failed (non-critical):', error.message);
+        }
+    }
+    
+    function addNewPlayerQuick(name) {
+        const hasPaid = document.getElementById('newPlayerPaid')?.checked ?? false;
+        const inSidePot = document.getElementById('newPlayerSidepot')?.checked ?? false;
+        
+        // Store for FargoRate lookup
+        state.pendingNewPlayer = {
+            name: name.trim(),
+            phone: '',
+            hasPaid: hasPaid,
+            inSidePot: inSidePot
+        };
+        
+        // Hide autocomplete
+        const list = document.getElementById('inlineAutocompleteList');
+        if (list) list.classList.remove('show');
+        
+        // Show FargoRate search
+        document.getElementById('fargoSearchInput').value = name;
+        document.getElementById('fargoResultsList').innerHTML = '';
+        document.getElementById('fargoModal').classList.add('show');
+        
+        searchFargo();
+    }
+    
+    function togglePaid(playerId) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (player) {
+            player.hasPaid = !player.hasPaid;
+            saveToLocalStorage();
+            updateAllDisplays();
+        }
+    }
+    
+    function updateTournamentSettings() {
+        state.settings.entryFee = parseFloat(document.getElementById('entryFeeInput').value) || 15;
+        state.settings.sidepotAmount = parseFloat(document.getElementById('sidepotInput').value) || 5;
+        saveToLocalStorage();
+        updateSummaryCards();
+        updatePayoutsDisplay();
+    }
+    
+    // ============================================================================
+    // PAYOUTS DISPLAY
+    // ============================================================================
+    
+    function updatePayoutsDisplay() {
+        const container = document.getElementById('payoutsDisplay');
+        const totalDisplay = document.getElementById('payoutTotal');
+        if (!container) return;
+        
+        const paidPlayers = state.checkedInPlayers.filter(p => p.hasPaid).length;
+        const entryFee = state.settings.entryFee;
+        const prizePool = paidPlayers * entryFee;
+        
+        if (totalDisplay) {
+            totalDisplay.textContent = `$${prizePool} Prize Pool`;
+        }
+        
+        if (paidPlayers < 4) {
+            container.innerHTML = `
+                <div class="payout-placeholder">
+                    Need at least 4 paid players for payouts (${paidPlayers} currently)
+                </div>
+            `;
+            return;
+        }
+        
+        // Calculate payouts
+        const calculator = new TournamentPayoutCalculator(entryFee, paidPlayers);
+        const payouts = calculator.getFormattedPayouts();
+        
+        if (payouts.error) {
+            container.innerHTML = `<div class="payout-placeholder">${payouts.error}</div>`;
+            return;
+        }
+        
+        // Render payout items
+        let html = '';
+        const placeClasses = {
+            '1st': 'first-place',
+            '2nd': 'second-place',
+            '3rd': 'third-place'
+        };
+        
+        Object.entries(payouts).forEach(([place, amount]) => {
+            const placeClass = placeClasses[place] || '';
+            html += `
+                <div class="payout-item ${placeClass}">
+                    <div class="payout-place">${place}</div>
+                    <div class="payout-amount">$${amount.toFixed(0)}</div>
+                </div>
+            `;
+        });
+        
+        container.innerHTML = html;
+    }
+    
+    function renderSidepotList() {
+        const container = document.getElementById('sidepotPlayerList');
+        
+        if (state.checkedInPlayers.length === 0) {
+            container.innerHTML = '<div class="loading">No players checked in yet</div>';
+            return;
+        }
+        
+        container.innerHTML = state.checkedInPlayers.map(player => `
+            <div class="player-row ${player.inSidePot ? 'checked-in' : ''}">
+                <input type="checkbox" class="player-checkbox" 
+                       ${player.inSidePot ? 'checked' : ''} 
+                       onchange="toggleSidePot(${player.id})">
+                <div class="player-info">
+                    <div class="player-name">${player.name}</div>
+                </div>
+                ${player.inSidePot ? '<span style="color:var(--success);font-weight:bold;">✓ IN</span>' : ''}
+            </div>
+        `).join('');
+    }
+    
+    function renderCalcuttaTable() {
+        const tbody = document.getElementById('calcuttaBody');
+        const players = getSortedCalcuttaPlayers();
+        const showSkill = state.settings.showSkillLevel;
+        
+        if (players.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No players checked in</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = players.map((player, index) => `
+            <tr class="${player.calcuttaPaid ? '' : (player.calcuttaBid > 0 ? 'unpaid' : '')}">
+                <td>
+                    <div class="player-name">${player.name}</div>
+                    ${player.fargoId ? `<small style="color:var(--text-light);">Fargo ID: ${player.fargoId}</small>` : ''}
+                </td>
+                <td>
+                    ${showSkill ? (player.skill ? `<span class="player-skill">${player.skill}</span>` : '-') : '-'}
+                </td>
+                <td>
+                    <div class="buyer-autocomplete-wrapper">
+                        <input type="text" 
+                               id="buyerInput_${player.id}"
+                               value="${player.calcuttaBuyer || ''}" 
+                               placeholder="Buyer name"
+                               oninput="handleBuyerSearch(${player.id}, this.value)"
+                               onchange="updateCalcuttaBuyer(${player.id}, this.value)"
+                               onblur="setTimeout(() => hideBuyerAutocomplete(${player.id}), 200)"
+                               autocomplete="off">
+                        <div class="buyer-autocomplete-list" id="buyerList_${player.id}"></div>
+                    </div>
+                </td>
+                <td>
+                    <input type="number" value="${player.calcuttaBid || ''}" 
+                           placeholder="$0"
+                           min="0" step="5"
+                           onchange="updateCalcuttaBid(${player.id}, this.value)">
+                </td>
+                <td style="text-align:center;">
+                    <input type="checkbox" class="player-checkbox"
+                           ${player.calcuttaPaid ? 'checked' : ''}
+                           ${player.calcuttaBid > 0 ? '' : 'disabled'}
+                           onchange="toggleCalcuttaPaid(${player.id})">
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    // ============================================================================
+    // BUYER AUTOCOMPLETE
+    // ============================================================================
+    
+    function handleBuyerSearch(playerId, query) {
+        const list = document.getElementById('buyerList_' + playerId);
+        
+        if (query.length < 1) {
+            list.classList.remove('show');
+            return;
+        }
+        
+        // Get all unique names: master players + checked-in players + existing buyers
+        const existingBuyers = [...new Set(state.checkedInPlayers
+            .map(p => p.calcuttaBuyer)
+            .filter(b => b && b.trim())
+        )];
+        
+        const allNames = [...new Set([
+            ...state.masterPlayers.map(p => p.name),
+            ...state.checkedInPlayers.map(p => p.name),
+            ...existingBuyers
+        ])];
+        
+        // Filter by query
+        const matches = allNames.filter(name => 
+            name.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 8);
+        
+        // Build options
+        let html = matches.map(name => `
+            <div class="buyer-option" onclick="selectBuyer(${playerId}, '${escapeHtml(name)}')">${escapeHtml(name)}</div>
+        `).join('');
+        
+        // Add free entry option if query doesn't match exactly
+        if (!matches.some(m => m.toLowerCase() === query.toLowerCase())) {
+            html += `<div class="buyer-option free-entry" onclick="selectBuyer(${playerId}, '${escapeHtml(query)}')">
+                Add "${escapeHtml(query)}" as new buyer
+            </div>`;
+        }
+        
+        list.innerHTML = html;
+        list.classList.add('show');
+    }
+    
+    function selectBuyer(playerId, buyerName) {
+        document.getElementById('buyerInput_' + playerId).value = buyerName;
+        document.getElementById('buyerList_' + playerId).classList.remove('show');
+        updateCalcuttaBuyer(playerId, buyerName);
+    }
+    
+    function hideBuyerAutocomplete(playerId) {
+        document.getElementById('buyerList_' + playerId).classList.remove('show');
+    }
+    
+    function updateBuyersSummary() {
+        const container = document.getElementById('buyerSummaryList');
+        const buyers = getBuyersSummary();
+        
+        if (buyers.length === 0) {
+            container.innerHTML = '<div class="loading">No calcutta bids entered yet</div>';
+            document.getElementById('totalBuyers').textContent = '0';
+            document.getElementById('totalOwed').textContent = '$0';
+            document.getElementById('unpaidBuyers').textContent = '0';
+            document.getElementById('unpaidCount').textContent = '0';
+            return;
+        }
+        
+        container.innerHTML = buyers.map(buyer => `
+            <div class="buyer-row ${buyer.paid ? 'paid' : 'unpaid'}">
+                <input type="checkbox" class="player-checkbox"
+                       ${buyer.paid ? 'checked' : ''}
+                       onchange="toggleBuyerPaid('${buyer.name.replace(/'/g, "\\'")}')">
+                <div class="buyer-name">
+                    <div>${buyer.name}</div>
+                    <div style="font-size:0.8rem;color:var(--text-light);">${buyer.players.join(', ')}</div>
+                </div>
+                <div class="buyer-amount">$${buyer.totalOwed.toFixed(0)}</div>
+            </div>
+        `).join('');
+        
+        const totalOwed = buyers.reduce((sum, b) => sum + b.totalOwed, 0);
+        const unpaidBuyers = buyers.filter(b => !b.paid);
+        
+        document.getElementById('totalBuyers').textContent = buyers.length;
+        document.getElementById('totalOwed').textContent = '$' + totalOwed.toFixed(0);
+        document.getElementById('unpaidBuyers').textContent = unpaidBuyers.length;
+        document.getElementById('unpaidCount').textContent = unpaidBuyers.length || '';
+    }
+    
+    function updateCalcuttaSummary() {
+        const totalBids = state.checkedInPlayers.reduce((sum, p) => sum + (p.calcuttaBid || 0), 0);
+        const unpaidBids = state.checkedInPlayers
+            .filter(p => p.calcuttaBid > 0 && !p.calcuttaPaid)
+            .reduce((sum, p) => sum + p.calcuttaBid, 0);
+        
+        document.getElementById('calcuttaTotal').textContent = '$' + totalBids.toFixed(0);
+        document.getElementById('calcuttaUnpaid').textContent = '$' + unpaidBids.toFixed(0);
+    }
+    
+    function updateSummaryCards() {
+        const checkedIn = state.checkedInPlayers.length;
+        const paidPlayers = state.checkedInPlayers.filter(p => p.hasPaid);
+        const unpaidPlayers = state.checkedInPlayers.filter(p => !p.hasPaid);
+        const sidepotPlayers = state.checkedInPlayers.filter(p => p.inSidePot);
+        
+        const entryCollected = paidPlayers.length * state.settings.entryFee;
+        const sidepotTotal = sidepotPlayers.length * state.settings.sidepotAmount;
+        
+        // Update check-in tab cards
+        const totalPlayersEl = document.getElementById('totalPlayers');
+        const totalCollectedEl = document.getElementById('totalCollected');
+        const sidepotCollectedEl = document.getElementById('sidepotCollected');
+        const unpaidEntriesEl = document.getElementById('unpaidEntries');
+        
+        if (totalPlayersEl) totalPlayersEl.textContent = checkedIn;
+        if (totalCollectedEl) totalCollectedEl.textContent = '$' + entryCollected;
+        if (sidepotCollectedEl) sidepotCollectedEl.textContent = '$' + sidepotTotal;
+        if (unpaidEntriesEl) unpaidEntriesEl.textContent = unpaidPlayers.length;
+        
+        // Update side pot tab cards
+        const sidepotPlayersEl = document.getElementById('sidepotPlayers');
+        const sidepotTotalEl = document.getElementById('sidepotTotal');
+        const sidepotAmountDisplayEl = document.getElementById('sidepotAmountDisplay');
+        
+        if (sidepotPlayersEl) sidepotPlayersEl.textContent = sidepotPlayers.length;
+        if (sidepotTotalEl) sidepotTotalEl.textContent = '$' + sidepotTotal;
+        if (sidepotAmountDisplayEl) sidepotAmountDisplayEl.textContent = state.settings.sidepotAmount;
+        
+        // Update calcutta summary
+        updateCalcuttaSummary();
+    }
+    
+    // Link existing player to FargoRate
+    function linkToFargo(playerId) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (!player) return;
+        
+        state.pendingNewPlayer = {
+            existingPlayerId: playerId,
+            name: player.name,
+            phone: player.phone
+        };
+        
+        document.getElementById('fargoSearchInput').value = player.name;
+        document.getElementById('fargoResultsList').innerHTML = '';
+        document.getElementById('fargoModal').classList.add('show');
+        
+        searchFargo();
+    }
+    
+    function updateBadges() {
+        const checkinBadge = document.getElementById('checkinCount');
+        const sidepotBadge = document.getElementById('sidepotCount');
+        const unpaidBadge = document.getElementById('unpaidCount');
+        
+        const paidCount = state.checkedInPlayers.filter(p => p.hasPaid).length;
+        const sidepotCount = state.checkedInPlayers.filter(p => p.inSidePot).length;
+        const unpaidBuyers = getBuyersSummary().filter(b => !b.paid).length;
+        
+        if (checkinBadge) checkinBadge.textContent = paidCount || '';
+        if (sidepotBadge) sidepotBadge.textContent = sidepotCount || '';
+        if (unpaidBadge) unpaidBadge.textContent = unpaidBuyers || '';
+    }
+    
+    // ============================================================================
+    // SETTINGS
+    // ============================================================================
+    
+    function updateSettings() {
+        // Get from check-in tab settings if available
+        const entryFeeInput = document.getElementById('entryFeeInput');
+        const sidepotInput = document.getElementById('sidepotInput');
+        const showSkillLevel = document.getElementById('showSkillLevel');
+        
+        if (entryFeeInput) {
+            state.settings.entryFee = parseFloat(entryFeeInput.value) || 15;
+        }
+        if (sidepotInput) {
+            state.settings.sidepotAmount = parseFloat(sidepotInput.value) || 5;
+        }
+        if (showSkillLevel) {
+            state.settings.showSkillLevel = showSkillLevel.checked;
+        }
+        
+        saveToLocalStorage();
+        updateAllDisplays();
+    }
+    
+    function saveDataSources() {
+        // Save data source settings
+        localStorage.setItem('masterDbUrl', document.getElementById('masterDbUrl').value);
+        localStorage.setItem('mainWorkbookUrl', document.getElementById('mainWorkbookUrl').value);
+        showToast('Data sources saved', 'success');
+    }
+    
+    // ============================================================================
+    // EXPORT
+    // ============================================================================
+    
+    async function exportToSheet() {
+        const exportData = {
+            action: 'exportToSheet',
+            eventType: state.eventType,
+            specialEventId: state.specialEventUrl ? state.specialEventUrl.match(/\/d\/([a-zA-Z0-9-_]+)/)?.[1] : null,
+            timestamp: new Date().toISOString(),
+            settings: state.settings,
+            players: state.checkedInPlayers.map(p => ({
+                name: p.name,
+                phone: p.phone,
+                skill: p.skill,
+                inSidePot: p.inSidePot,
+                calcuttaBuyer: p.calcuttaBuyer,
+                calcuttaBid: p.calcuttaBid,
+                calcuttaPaid: p.calcuttaPaid
+            })),
+            buyerSummary: getBuyersSummary()
+        };
+        
+        console.log('Export data:', exportData);
+        
+        if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+            try {
+                showToast('Exporting to Google Sheet...', 'info');
+                
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(exportData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+                
+                showToast('Data exported successfully!', 'success');
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Export failed: ' + error.message, 'error');
+            }
+        } else {
+            // No API configured - just log data
+            showToast('Export data logged to console (configure API URL for Google Sheets)', 'info');
+        }
+    }
+    
+    function clearAllData() {
+        if (confirm('Clear all data and start a new tournament? This cannot be undone.')) {
+            state.checkedInPlayers = [];
+            saveToLocalStorage();
+            updateAllDisplays();
+            showToast('All data cleared', 'success');
+        }
+    }
+    
+    // ============================================================================
+    // UI HELPERS
+    // ============================================================================
+    
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        
+        document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
+        document.getElementById('tab-' + tabId).classList.add('active');
+    }
+    
+    function closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('show');
+    }
+    
+    function showLoading(containerId) {
+        document.getElementById(containerId).innerHTML = `
+            <div class="loading">
+                <div class="spinner"></div>
+                Loading...
+            </div>
+        `;
+    }
+    
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.textContent = message;
+        container.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+    
+    // Close autocomplete when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.autocomplete-wrapper')) {
+            const list = document.getElementById('autocompleteList');
+            if (list) list.classList.remove('show');
+        }
+        if (!e.target.closest('.inline-autocomplete')) {
+            const list = document.getElementById('inlineAutocompleteList');
+            if (list) list.classList.remove('show');
+        }
+    });
+    
+    // Close modals when clicking overlay
+    document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('show');
+            }
+        });
+    });
+    </script>
+</body>
+</html>
