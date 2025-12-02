@@ -2231,20 +2231,27 @@
                 return;
             }
             
-            // Display results
+            // Display results using correct API structure
             resultsList.innerHTML = data.value.slice(0, 10).map(player => {
+                // Get Fargo ID prefix (first segment of UUID)
                 const fargoIdPrefix = player.id ? player.id.split('-')[0] : '';
-                const location = [player.city, player.state, player.country]
-                    .filter(x => x)
-                    .join(', ');
+                
+                // Combine firstName and lastName
+                const playerName = `${player.firstName || ''} ${player.lastName || ''}`.trim() || 'Unknown';
+                
+                // Location is already combined in API response
+                const location = player.location ? player.location.trim() : '';
+                
+                // Use effectiveRating (current rating) or fall back to rating
+                const rating = player.effectiveRating || player.rating || 0;
                 
                 return `
-                    <div class="fargo-result-item" onclick="selectFargoPlayer('${fargoIdPrefix}', '${escapeHtml(player.name)}', ${player.rating || 0})">
+                    <div class="fargo-result-item" onclick="selectFargoPlayer('${fargoIdPrefix}', '${escapeHtml(playerName)}', ${rating})">
                         <div class="fargo-info">
-                            <div class="fargo-name">${escapeHtml(player.name)}</div>
+                            <div class="fargo-name">${escapeHtml(playerName)}</div>
                             <div class="fargo-location">${location || 'Location unknown'}</div>
                         </div>
-                        <div class="fargo-rating">${player.rating || '?'}</div>
+                        <div class="fargo-rating">${rating}</div>
                     </div>
                 `;
             }).join('');
@@ -2508,13 +2515,14 @@
             if (data.value && data.value.length > 0) {
                 // Find matching player by ID prefix
                 const match = data.value.find(p => p.id && p.id.startsWith(player.fargoId));
-                if (match && match.rating) {
-                    player.skill = match.rating;
+                if (match && (match.effectiveRating || match.rating)) {
+                    const newRating = parseInt(match.effectiveRating || match.rating);
+                    player.skill = newRating;
                     
                     // Update in master list too
                     const masterPlayer = state.masterPlayers.find(p => p.id === playerId);
                     if (masterPlayer) {
-                        masterPlayer.skill = match.rating;
+                        masterPlayer.skill = newRating;
                     }
                     
                     saveToLocalStorage();
@@ -3006,8 +3014,8 @@
             if (data.value && data.value.length > 0) {
                 // Find matching player by ID prefix
                 const match = data.value.find(p => p.id && p.id.toUpperCase().startsWith(fargoId.toUpperCase()));
-                if (match && match.rating) {
-                    const newRating = parseInt(match.rating);
+                if (match && (match.effectiveRating || match.rating)) {
+                    const newRating = parseInt(match.effectiveRating || match.rating);
                     
                     // Update checked-in player
                     const checkedInPlayer = state.checkedInPlayers.find(p => p.id === checkedInPlayerId);
