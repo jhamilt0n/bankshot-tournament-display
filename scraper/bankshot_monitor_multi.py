@@ -4,6 +4,8 @@ Bankshot Billiards Tournament Monitor - Multi-Tournament Version
 ENHANCED: Gets entry fee DIRECTLY from Digital Pool (tr[18]/td[2])
 CLEANED: Removed unused payout_data legacy code
 FIXED: URL construction removes date prefix to prevent duplicates
+FIXED: Improved date extraction to handle multiple formats
+FIXED: Don't filter out tournaments with missing dates
 """
 
 import datetime
@@ -238,6 +240,50 @@ def setup_driver(headless=True):
         raise
 
 
+def normalize_date_to_slashes(date_str):
+    """Convert any date format to YYYY/MM/DD format"""
+    if not date_str:
+        return None
+    
+    # Already in correct format
+    if re.match(r'^\d{4}/\d{2}/\d{2}$', date_str):
+        return date_str
+    
+    # Handle YYYY-MM-DD format
+    if re.match(r'^\d{4}-\d{2}-\d{2}$', date_str):
+        return date_str.replace('-', '/')
+    
+    # Handle YYYYMMDD format
+    if re.match(r'^\d{8}$', date_str):
+        return f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:8]}"
+    
+    return date_str
+
+
+def extract_date_from_text(text):
+    """Extract date from text, handling multiple formats"""
+    if not text:
+        return None
+    
+    # Try YYYY/MM/DD format first
+    match = re.search(r'(\d{4}/\d{2}/\d{2})', text)
+    if match:
+        return match.group(1)
+    
+    # Try YYYY-MM-DD format
+    match = re.search(r'(\d{4}-\d{2}-\d{2})', text)
+    if match:
+        return match.group(1).replace('-', '/')
+    
+    # Try YYYYMMDD format (often in URLs)
+    match = re.search(r'(\d{8})(?:\s|/|-|$)', text)
+    if match:
+        date_str = match.group(1)
+        return f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:8]}"
+    
+    return None
+
+
 def get_tournament_details_from_page(driver, tournament_url, player_count):
     """Get tournament details with DIRECT entry fee extraction from Digital Pool"""
     try:
@@ -264,6 +310,12 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
             'has_digital_pool_payouts': False,
             'payouts': {}
         }
+        
+        # Try to extract date from URL if present (most reliable source)
+        url_date = extract_date_from_text(tournament_url)
+        if url_date:
+            details['date'] = url_date
+            log(f"✓ Date from URL: {url_date}")
         
         # Extract START TIME (tr[3]/td[2]) - But trust card date over detail date
         xpath_start_time = "/html/body/div[1]/div/div/section/section/section/main/div/div[2]/div[2]/div/div/div/div/div/div[2]/div/div[1]/div[1]/div[2]/div/div/div/div/div/div/div/div[2]/div/div/div/div/table/tbody/tr[3]/td[2]"
@@ -296,15 +348,16 @@ def get_tournament_details_from_page(driver, tournament_url, player_count):
                     details['start_time'] = clean_start_time_string(local_time_line)
                     log(f"✓ Start time: {details['start_time']}")
                     
-                    # Extract date
-                    date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', local_time_line)
-                    if date_match:
-                        try:
-                            parsed = datetime.datetime.strptime(date_match.group(1), "%a, %b %d, %Y")
-                            details['date'] = parsed.strftime("%Y/%m/%d")
-                            log(f"✓ Date: {details['date']}")
-                        except Exception:
-                            pass
+                    # Extract date from time field if not already set from URL
+                    if not details['date']:
+                        date_match = re.search(r'(\w+,\s+\w+\s+\d+,\s+\d{4})', local_time_line)
+                        if date_match:
+                            try:
+                                parsed = datetime.datetime.strptime(date_match.group(1), "%a, %b %d, %Y")
+                                details['date'] = parsed.strftime("%Y/%m/%d")
+                                log(f"✓ Date from time field: {details['date']}")
+                            except Exception:
+                                pass
         except NoSuchElementException:
             log("⚠ Start time not found")
         
@@ -480,8 +533,12 @@ def search_tournaments_on_page(driver):
         if not tournament_cards:
             log("Trying alternative approach...")
             all_divs = driver.find_elements(By.TAG_NAME, "div")
+            # FIXED: Support both date formats (slashes and dashes)
             tournament_cards = [div for div in all_divs 
-                              if VENUE_NAME in div.text and re.search(r'\d{4}/\d{2}/\d{2}', div.text)]
+                              if VENUE_NAME in div.text and (
+                                  re.search(r'\d{4}/\d{2}/\d{2}', div.text) or
+                                  re.search(r'\d{4}-\d{2}-\d{2}', div.text)
+                              )]
             log(f"Found {len(tournament_cards)} potential tournament divs")
         
         log(f"Processing {len(tournament_cards)} potential tournament cards")
@@ -497,6 +554,7 @@ def search_tournaments_on_page(driver):
                 log(f"\n{'='*50}")
                 log(f"Card {idx} - Found matching venue!")
                 log(f"{'='*50}")
+                log(f"DEBUG Card text:\n{card_text[:500]}...")
                 
                 # Extract tournament name
                 tournament_name = None
@@ -522,20 +580,21 @@ def search_tournaments_on_page(driver):
                     for line in lines:
                         line = line.strip()
                         if (line and len(line) > 5 and VENUE_NAME not in line and
-                            VENUE_CITY not in line and not re.match(r'^\d{4}/\d{2}/\d{2}', line)):
+                            VENUE_CITY not in line and not re.match(r'^\d{4}[/-]\d{2}[/-]\d{2}', line)):
                             tournament_name = line
                             break
                 
                 if not tournament_name:
                     tournament_name = f"Tournament at {VENUE_NAME}"
                 
-                # Extract date
-                date_match = re.search(r'(\d{4}/\d{2}/\d{2})', card_text)
-                tournament_date = date_match.group(1) if date_match else None
+                # Extract date - FIXED: Support multiple formats
+                tournament_date = extract_date_from_text(card_text)
+                log(f"DEBUG: Extracted date from card: {tournament_date}")
                 
-                # Extract player count
+                # Extract player count - FIXED: Handle 0 players case better
                 player_match = re.search(r'(\d+)\s+Players?', card_text, re.IGNORECASE)
                 player_count = int(player_match.group(1)) if player_match else 0
+                log(f"DEBUG: Player count: {player_count}")
                 
                 # Get tournament URL
                 tournament_url = None
@@ -568,7 +627,8 @@ def search_tournaments_on_page(driver):
                     if details:
                         if details['start_time']:
                             start_time_str = details['start_time']
-                        if details['date']:
+                        # FIXED: Use detail page date if card date is missing
+                        if details['date'] and not actual_date:
                             actual_date = details['date']
                         entry_fee = details['entry_fee']
                         format_type = details['format_type']
@@ -581,7 +641,7 @@ def search_tournaments_on_page(driver):
                 actual_status = "Unknown"
                 status_indicators = {
                     "In Progress": ["In Progress", "Live", "Active", "Playing"],
-                    "Upcoming": ["Upcoming", "Scheduled", "Future"],
+                    "Upcoming": ["Upcoming", "Scheduled", "Future", "Registration"],
                     "Completed": ["Completed", "Finished", "Final", "Ended"]
                 }
                 
@@ -597,10 +657,11 @@ def search_tournaments_on_page(driver):
                         if completion_pct == 100:
                             actual_status = "Completed"
                         elif completion_pct == 0:
-                            actual_status = "In Progress" if player_count > 0 else "Upcoming"
+                            actual_status = "Upcoming"  # FIXED: 0% complete with 0 players = Upcoming
                         else:
                             actual_status = "In Progress"
                     else:
+                        # FIXED: Default to Upcoming if no players yet, regardless of other factors
                         actual_status = "In Progress" if player_count > 0 else "Upcoming"
                 
                 tournament_info = {
@@ -623,11 +684,14 @@ def search_tournaments_on_page(driver):
                 log(f"✓ Tournament extracted")
                 log(f"  Name: {tournament_name}")
                 log(f"  Date: {actual_date}")
+                log(f"  Players: {player_count}")
                 log(f"  Entry Fee: ${entry_fee} (from Digital Pool)")
                 log(f"  Status: {actual_status}")
                 
             except Exception as e:
                 log(f"Error parsing card {idx}: {e}")
+                import traceback
+                traceback.print_exc()
                 continue
         
         if not tournaments:
@@ -684,19 +748,43 @@ def get_all_todays_tournaments():
         today_eastern = datetime.datetime.now(eastern).date()
         today_str = today_eastern.strftime("%Y/%m/%d")
         
+        log(f"\nFiltering for today's date: {today_str} (Eastern)")
+        log(f"All tournaments found: {len(all_tournaments)}")
+        for t in all_tournaments:
+            log(f"  - {t['name']}: date={t['date']}, players={t['player_count']}, status={t['status']}")
+        
+        # FIXED: Include tournaments with matching date OR missing date (if only one found)
         todays_tournaments = [t for t in all_tournaments if t['date'] == today_str]
+        
+        # FIXED: If no tournaments match today but we found tournaments with no date,
+        # include them if they appear to be for today (e.g., "Upcoming" status)
+        if not todays_tournaments:
+            log("No exact date matches. Checking tournaments without dates...")
+            no_date_tournaments = [t for t in all_tournaments if t['date'] is None]
+            upcoming_or_progress = [t for t in no_date_tournaments 
+                                    if t['status'] in ['Upcoming', 'In Progress']]
+            if upcoming_or_progress:
+                log(f"Found {len(upcoming_or_progress)} tournament(s) without dates but with active status")
+                # Set their date to today since they're currently active/upcoming
+                for t in upcoming_or_progress:
+                    t['date'] = today_str
+                    log(f"  - Setting date to today for: {t['name']}")
+                todays_tournaments = upcoming_or_progress
         
         log(f"\nFound {len(todays_tournaments)} tournament(s) for today ({today_str} Eastern)")
         
         for t in todays_tournaments:
             log(f"  Tournament: {t['name']}")
             log(f"  Entry fee: ${t['entry_fee']}")
+            log(f"  Players: {t['player_count']}")
             log(f"  Status: {t['status']}")
         
         return todays_tournaments
         
     except Exception as e:
         log(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
         return []
     finally:
         if driver:
@@ -734,6 +822,7 @@ def determine_which_tournament_to_display(tournaments):
     not_completed = [t for t in tournaments if t['status'] != 'Completed']
     
     if not not_completed:
+        log("All tournaments completed")
         return None
     
     sorted_tournaments = sorted(not_completed,
@@ -741,6 +830,8 @@ def determine_which_tournament_to_display(tournaments):
     
     selected = sorted_tournaments[0]
     log(f"Selecting first scheduled: {selected['name']}")
+    log(f"  Players: {selected['player_count']}")
+    log(f"  Status: {selected['status']}")
     
     return selected
 
@@ -831,6 +922,7 @@ def save_tournament_data(tournament):
             'display_tournament': False
         }
     else:
+        # FIXED: Display tournament even with 0 players if it's Upcoming
         should_display = (tournament['status'] in ['In Progress', 'Upcoming'])
         
         output_data = {
@@ -851,6 +943,7 @@ def save_tournament_data(tournament):
         
         log(f"\nTournament to display: {tournament['name']}")
         log(f"Entry Fee: ${tournament.get('entry_fee', 15)} (from Digital Pool)")
+        log(f"Players: {tournament.get('player_count', 0)}")
         log(f"Status: {tournament['status']}")
         log(f"Display flag: {should_display}")
     
@@ -882,7 +975,8 @@ def main():
     log("\n" + "="*60)
     log("BANKSHOT TOURNAMENT MONITOR")
     log("ENHANCED: Direct entry fee from Digital Pool")
-    log("CLEANED: Removed unused payout_data field")
+    log("FIXED: Improved date format handling")
+    log("FIXED: Better handling of 0-player tournaments")
     log("="*60)
     
     # Check if previous tournament still active
