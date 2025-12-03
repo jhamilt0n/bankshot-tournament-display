@@ -31,53 +31,286 @@
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
+            margin: 0;
         }
         
-        /* Header */
-        .header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        /* App Layout */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: linear-gradient(180deg, #1a472a 0%, #0d3320 100%);
             color: white;
-            padding: 15px 20px;
-            position: sticky;
-            top: 0;
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
             z-index: 100;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
         }
         
-        .header h1 {
+        .sidebar-header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 10px;
+        }
+        
+        .sidebar-qr {
+            width: 140px;
+            height: 140px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: white;
+            padding: 8px;
+        }
+        
+        .sidebar-qr-label {
+            font-size: 0.75rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+        
+        .sidebar-header h2 {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 1.8rem;
+            font-size: 1.3rem;
             letter-spacing: 2px;
-            margin-bottom: 5px;
-        }
-        
-        .header-info {
-            font-size: 0.85rem;
+            margin: 0;
             opacity: 0.9;
         }
         
-        .event-selector {
-            margin-top: 10px;
+        .sidebar-section {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            margin-bottom: 10px;
+        }
+        
+        /* Event Type Buttons */
+        .event-type-buttons {
             display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .event-type-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-align: left;
+            transition: all 0.2s;
+        }
+        
+        .event-type-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .event-type-btn.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            box-shadow: 0 2px 8px rgba(30, 126, 52, 0.4);
+        }
+        
+        /* Tournament List */
+        .tournament-list {
+            margin-top: 10px;
+        }
+        
+        .tournament-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .tournament-item:hover {
+            background: rgba(255,255,255,0.15);
+        }
+        
+        .tournament-item.active {
+            background: var(--secondary);
+            border-color: var(--secondary);
+        }
+        
+        .tournament-item-name {
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        
+        .tournament-item-date {
+            font-size: 0.75rem;
+            opacity: 0.7;
+            margin-top: 2px;
+        }
+        
+        .tournament-loading {
+            text-align: center;
+            padding: 15px;
+            opacity: 0.6;
+            font-size: 0.85rem;
+        }
+        
+        /* Sidebar Navigation */
+        .sidebar-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        
+        .sidebar-tab {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 12px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .sidebar-tab:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-tab.active {
+            background: rgba(255,255,255,0.2);
+            font-weight: 500;
+        }
+        
+        .sidebar-tab.disabled {
+            opacity: 0.4;
+            pointer-events: none;
+        }
+        
+        .sidebar-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            min-width: 24px;
+            text-align: center;
+        }
+        
+        /* Sidebar Settings */
+        .sidebar-settings {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .sidebar-setting {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
         }
         
-        .event-selector select, .event-selector input {
-            padding: 8px 12px;
-            border: none;
+        .sidebar-setting label {
+            font-size: 0.85rem;
+        }
+        
+        .input-group-small {
+            display: flex;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
             border-radius: 6px;
+            padding: 0 8px;
+        }
+        
+        .input-group-small span {
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+        
+        .input-group-small input {
+            background: transparent;
+            border: none;
+            color: white;
+            width: 60px;
+            padding: 8px 5px;
             font-size: 0.9rem;
-            background: rgba(255,255,255,0.95);
+            text-align: right;
         }
         
-        .event-selector select {
-            min-width: 180px;
+        .input-group-small input:focus {
+            outline: none;
         }
         
-        .event-selector input {
+        /* Sidebar Action Buttons */
+        .sidebar-action-btn {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            text-align: left;
+            transition: all 0.2s;
+            margin-bottom: 8px;
+            width: 100%;
+        }
+        
+        .sidebar-action-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .sidebar-action-btn.danger-btn {
+            margin-top: 10px;
+            background: rgba(239, 68, 68, 0.2);
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+        
+        .sidebar-action-btn.danger-btn:hover {
+            background: rgba(239, 68, 68, 0.4);
+        }
+        
+        /* Sidebar Status */
+        .sidebar-status {
+            padding: 15px 20px;
+            background: rgba(0,0,0,0.2);
+            font-size: 0.8rem;
+            text-align: center;
+            margin-top: auto;
+        }
+        
+        /* Main Content */
+        .main-content {
             flex: 1;
+            margin-left: 300px;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        /* Hide old elements */
+        .header, .tabs, .settings-bar {
+            display: none !important;
+        }
             min-width: 200px;
         }
         
@@ -778,8 +1011,14 @@
         /* Spreadsheet */
         .spreadsheet-container {
             overflow-x: auto;
-            max-height: 400px;
+            max-height: 600px;
             overflow-y: auto;
+            position: relative;
+        }
+        
+        /* Allow autocomplete to overflow the container */
+        .spreadsheet-container:has(.inline-autocomplete-list.show) {
+            overflow: visible;
         }
         
         .spreadsheet {
@@ -867,6 +1106,21 @@
             opacity: 1;
         }
         
+        .spreadsheet .edit-btn {
+            background: none;
+            border: none;
+            color: var(--primary);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 1rem;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        
+        .spreadsheet .edit-btn:hover {
+            opacity: 1;
+        }
+        
         .spreadsheet .carrier-select {
             width: 100%;
             padding: 6px 4px;
@@ -897,19 +1151,21 @@
             position: relative;
         }
         
+        .inline-autocomplete {
+            position: relative;
+        }
+        
         .inline-autocomplete-list {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
+            position: fixed;
             background: white;
             border: 2px solid var(--primary);
-            border-radius: 0 0 6px 6px;
-            max-height: 200px;
+            border-radius: 6px;
+            max-height: 400px;
+            min-width: 280px;
             overflow-y: auto;
-            z-index: 100;
+            z-index: 9999;
             display: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
         }
         
         .inline-autocomplete-list.show {
@@ -917,25 +1173,32 @@
         }
         
         .inline-autocomplete-item {
-            padding: 10px 12px;
+            padding: 12px 15px;
             cursor: pointer;
             border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            background: white;
         }
         
         .inline-autocomplete-item:hover {
             background: #e8f5e9;
         }
         
+        .inline-autocomplete-item:last-child {
+            border-bottom: none;
+        }
+        
         .inline-autocomplete-item .player-name {
-            font-weight: 500;
+            font-weight: 600;
+            font-size: 1rem;
         }
         
         .inline-autocomplete-item .player-details {
             font-size: 0.85rem;
             color: var(--text-light);
+            margin-top: 2px;
         }
         
         .inline-autocomplete-item .fargo-badge {
@@ -1012,10 +1275,11 @@
             border: 2px solid var(--primary);
             border-top: none;
             border-radius: 0 0 6px 6px;
-            max-height: 150px;
+            max-height: 200px;
             overflow-y: auto;
-            z-index: 100;
+            z-index: 9999;
             display: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
         
         .buyer-autocomplete-list.show {
@@ -1040,76 +1304,129 @@
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <h1>🎱 Tournament Director Console</h1>
-        <div class="header-info" id="headerInfo">Select event type to begin</div>
-        <div class="event-selector">
-            <select id="eventType" onchange="handleEventTypeChange()">
-                <option value="">-- Select Event Type --</option>
-                <option value="weekly">Weekly Tournament</option>
-                <option value="special">Special Event</option>
-            </select>
-            <input type="text" id="specialEventUrl" placeholder="Paste Special Event Google Sheet URL" style="display:none;" onchange="loadSpecialEventData()">
-            <button class="btn btn-primary" onclick="refreshData()" id="refreshBtn" style="display:none;">🔄 Refresh</button>
-        </div>
-    </header>
-    
-    <!-- Tabs -->
-    <nav class="tabs">
-        <button class="tab active" data-tab="checkin" onclick="switchTab('checkin')">
-            Check-In <span class="tab-badge" id="checkinCount">0</span>
-        </button>
-        <button class="tab" data-tab="sidepot" onclick="switchTab('sidepot')">
-            Side Pot <span class="tab-badge" id="sidepotCount">0</span>
-        </button>
-        <button class="tab" data-tab="calcutta" onclick="switchTab('calcutta')">
-            Calcutta
-        </button>
-        <button class="tab" data-tab="buyers" onclick="switchTab('buyers')">
-            Buyers <span class="tab-badge" id="unpaidCount">0</span>
-        </button>
-        <button class="tab" data-tab="settings" onclick="switchTab('settings')">
-            ⚙️ Settings
-        </button>
-    </nav>
-    
-    <!-- Check-In Tab -->
-    <div class="tab-content active" id="tab-checkin">
-        <!-- Tournament Settings Bar -->
-        <div class="settings-bar">
-            <div class="setting-item">
-                <label>Entry Fee <span id="dayIndicator" style="font-size:0.75rem;color:var(--text-light);"></span></label>
-                <div class="input-group">
-                    <span class="input-prefix">$</span>
-                    <input type="number" id="entryFeeInput" min="5" step="5" onchange="updateTournamentSettings()">
+    <!-- Main Layout Container -->
+    <div class="app-layout">
+        <!-- Left Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="https://raw.githubusercontent.com/jhamilt0n/bankshot-tournament-display/main/assets/Bankshot_Logo.png" alt="Bankshot" class="sidebar-logo" id="sidebarLogo">
+                <div id="sidebarQR" style="display:none;" title="Players can scan to register for this tournament">
+                    <img src="https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=https://jhamilt0n.github.io/tournamentwatcher/" alt="Register" class="sidebar-qr">
+                    <div class="sidebar-qr-label">Scan to Register</div>
+                </div>
+                <h2>Tournament Console</h2>
+            </div>
+            
+            <!-- Event Type Selection -->
+            <div class="sidebar-section">
+                <div class="sidebar-label">Event Type</div>
+                <div class="event-type-buttons">
+                    <button class="event-type-btn" id="btnRecurring" onclick="selectEventType('recurring')" title="For weekly or monthly events that are open with a single player. No teams.">
+                        🔄 Recurring Tournament
+                    </button>
+                    <button class="event-type-btn" id="btnSpecial" onclick="selectEventType('special')" title="For pre-registered tournaments with teams or special formats">
+                        ⭐ Special Event
+                    </button>
+                </div>
+                
+                <!-- Special Event Tournament List (hidden by default) -->
+                <div class="tournament-list" id="tournamentList" style="display:none;">
+                    <div class="sidebar-label" style="margin-top:10px;">Select Tournament</div>
+                    <div id="tournamentListItems">
+                        <div class="tournament-loading">Loading tournaments...</div>
+                    </div>
                 </div>
             </div>
-            <div class="setting-item">
-                <label>Side Pot</label>
-                <div class="input-group">
-                    <span class="input-prefix">$</span>
-                    <input type="number" id="sidepotInput" value="5" min="1" step="1" onchange="updateTournamentSettings()">
+            
+            <!-- Navigation Tabs -->
+            <div class="sidebar-section">
+                <div class="sidebar-label">Navigation</div>
+                <nav class="sidebar-nav">
+                    <button class="sidebar-tab active" data-tab="checkin" onclick="switchTab('checkin')" title="Mark players as paid or late to include them in the tournament">
+                        📋 Check-In <span class="sidebar-badge" id="checkinCount">0</span>
+                    </button>
+                    <button class="sidebar-tab" data-tab="sidepot" onclick="switchTab('sidepot')" title="Manage optional side pot entries for checked-in players">
+                        💰 Side Pot <span class="sidebar-badge" id="sidepotCount">0</span>
+                    </button>
+                    <button class="sidebar-tab" data-tab="calcutta" onclick="switchTab('calcutta')" title="Run the player auction - only paid or late players appear here">
+                        🎯 Calcutta
+                    </button>
+                    <button class="sidebar-tab" data-tab="buyers" onclick="switchTab('buyers')" title="View all Calcutta buyers and their purchased players">
+                        🛒 Buyers <span class="sidebar-badge" id="unpaidCount">0</span>
+                    </button>
+                </nav>
+            </div>
+            
+            <!-- Tournament Settings -->
+            <div class="sidebar-section">
+                <div class="sidebar-label">Tournament Settings</div>
+                <div class="sidebar-settings">
+                    <div class="sidebar-setting" title="Tournament entry fee per player">
+                        <label>Entry Fee <span id="dayIndicator" style="font-size:0.7rem;opacity:0.7;"></span></label>
+                        <div class="input-group-small">
+                            <span>$</span>
+                            <input type="number" id="entryFeeInput" min="5" step="5" onchange="updateTournamentSettings()">
+                        </div>
+                    </div>
+                    <div class="sidebar-setting" id="sidepotSetting" title="Optional side pot amount per player">
+                        <label>Side Pot</label>
+                        <div class="input-group-small">
+                            <span>$</span>
+                            <input type="number" id="sidepotInput" value="5" min="1" step="1" onchange="updateTournamentSettings()">
+                        </div>
+                    </div>
                 </div>
             </div>
-            <button class="btn btn-primary" onclick="showAddNewPlayerModal()">+ Add Brand New Player</button>
-        </div>
+            
+            <!-- Quick Actions -->
+            <div class="sidebar-section">
+                <div class="sidebar-label">Actions</div>
+                <button class="sidebar-action-btn" id="btnAddPlayer" onclick="showAddNewPlayerModal()" title="Add a new player and check them in">
+                    ➕ Add New Player
+                </button>
+                <a href="https://jhamilt0n.github.io/tournamentwatcher/" target="_blank" class="sidebar-action-btn" id="btnAddRegistration" style="display:none; text-decoration:none;" title="Opens registration form to add players or teams to this tournament">
+                    ➕ Add Registration
+                </a>
+                <button class="sidebar-action-btn" onclick="downloadPlayersCSV()" title="Export paid and late players only - triggers bracket display update">
+                    📥 Download CSV
+                </button>
+                <a href="https://docs.google.com/spreadsheets/d/1UVH0Yv-I8usR-1OIA0uEdgeAAjiG8rGE5c0N45o2AOo/edit" target="_blank" class="sidebar-action-btn" id="btnPlayerDB" style="text-decoration:none;" title="Open the spreadsheet to manually update player">
+                    📋 Player Database
+                </a>
+                <button class="sidebar-action-btn danger-btn" onclick="clearAllData()" title="Clear all check-ins, Calcutta bids, and side pot entries for this tournament">
+                    🗑️ Clear Tournament
+                </button>
+                <a href="https://docs.google.com/spreadsheets/d/1MUC0HUzKql6UxVOJQL55ooz5VlBLf097jktD_TTwCfM/edit?gid=2019392543#gid=2019392543" target="_blank" class="sidebar-action-btn" style="text-decoration:none;" title="Open the Tournaments sheet to add a new special event">
+                    📅 Add Special Event
+                </a>
+            </div>
+            
+            <!-- Status Info -->
+            <div class="sidebar-status" id="headerInfo">
+                Select event type to begin
+            </div>
+        </aside>
+        
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Check-In Tab -->
+            <div class="tab-content active" id="tab-checkin">
         
         <!-- Summary Cards -->
         <div class="summary-grid-4">
-            <div class="summary-card">
+            <div class="summary-card" title="Total players checked in">
                 <div class="summary-value" id="totalPlayers">0</div>
                 <div class="summary-label">Players</div>
             </div>
-            <div class="summary-card secondary">
+            <div class="summary-card secondary" title="Total entry fees from paid players">
                 <div class="summary-value" id="totalCollected">$0</div>
                 <div class="summary-label">Entry Collected</div>
             </div>
-            <div class="summary-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+            <div class="summary-card" style="background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);" title="Total collected from side pot entries">
                 <div class="summary-value" id="sidepotCollected">$0</div>
                 <div class="summary-label">Side Pot</div>
             </div>
-            <div class="summary-card warning">
+            <div class="summary-card warning" title="Players checked in but not yet paid">
                 <div class="summary-value" id="unpaidEntries">0</div>
                 <div class="summary-label">Unpaid</div>
             </div>
@@ -1119,19 +1436,23 @@
         <div class="card">
             <div class="card-header">
                 <span>Player Check-In</span>
-                <span id="playerCountDisplay">0 players</span>
+                <span>
+                    <span id="dbPlayerCount" style="font-size:0.8rem; color:#6b7280; margin-right:10px;">DB: 0</span>
+                    <span id="playerCountDisplay">0 players</span>
+                </span>
             </div>
             <div class="spreadsheet-container">
                 <table class="spreadsheet" id="playerSpreadsheet">
                     <thead>
                         <tr>
                             <th style="width:4%">#</th>
-                            <th style="width:22%">Player Name</th>
-                            <th style="width:15%">Phone</th>
-                            <th style="width:14%">Carrier</th>
-                            <th style="width:10%">Fargo</th>
-                            <th style="width:8%">Paid</th>
-                            <th style="width:10%">Side Pot</th>
+                            <th style="width:20%" title="Click a name to edit player details">Player Name</th>
+                            <th style="width:13%" title="Player's phone number for text messages">Phone</th>
+                            <th style="width:12%" id="thCarrier">Carrier</th>
+                            <th style="width:9%" title="FargoRate skill rating - yellow highlight means missing">Fargo</th>
+                            <th style="width:8%" id="thSidePot" title="Check to enter player in optional side pot">Side Pot</th>
+                            <th style="width:7%" title="Check when player has paid entry fee">Paid</th>
+                            <th style="width:6%" title="Check if player is running late but confirmed coming">Late</th>
                             <th style="width:7%"></th>
                         </tr>
                     </thead>
@@ -1154,8 +1475,8 @@
         </div>
     </div>
     
-    <!-- Side Pot Tab -->
-    <div class="tab-content" id="tab-sidepot">
+            <!-- Side Pot Tab -->
+            <div class="tab-content" id="tab-sidepot">
         <div class="summary-grid">
             <div class="summary-card">
                 <div class="summary-value" id="sidepotPlayers">0</div>
@@ -1184,11 +1505,11 @@
     <!-- Calcutta Tab -->
     <div class="tab-content" id="tab-calcutta">
         <div class="summary-grid">
-            <div class="summary-card">
+            <div class="summary-card" title="Sum of all Calcutta auction bids">
                 <div class="summary-value" id="calcuttaTotal">$0</div>
                 <div class="summary-label">Total Bids</div>
             </div>
-            <div class="summary-card warning">
+            <div class="summary-card warning" title="Total Calcutta bids not yet collected">
                 <div class="summary-value" id="calcuttaUnpaid">$0</div>
                 <div class="summary-label">Unpaid</div>
             </div>
@@ -1201,20 +1522,20 @@
             <div class="card-body">
                 <div class="sort-controls">
                     <span style="align-self: center; margin-right: 10px;">Sort by:</span>
-                    <button class="sort-btn active" onclick="sortCalcutta('order')" id="sortOrder">Check-in Order</button>
+                    <button class="sort-btn" onclick="sortCalcutta('order')" id="sortOrder">Check-in Order</button>
                     <button class="sort-btn" onclick="sortCalcutta('name')" id="sortName">Name</button>
-                    <button class="sort-btn" onclick="sortCalcutta('skill')" id="sortSkill">Skill Level ↓</button>
+                    <button class="sort-btn active" onclick="sortCalcutta('skill')" id="sortSkill">Skill Level ↓</button>
                     <button class="sort-btn" onclick="sortCalcutta('bid')" id="sortBid">Bid Amount ↓</button>
                 </div>
                 <div style="overflow-x: auto;">
                     <table class="calcutta-table" id="calcuttaTable">
                         <thead>
                             <tr>
-                                <th style="width:30%">Player</th>
-                                <th style="width:15%">Skill</th>
-                                <th style="width:25%">Buyer</th>
-                                <th style="width:15%">Bid</th>
-                                <th style="width:15%">Paid</th>
+                                <th style="width:28%">Player</th>
+                                <th style="width:12%">Skill</th>
+                                <th style="width:8%" title="Check when buyer has paid for this player">Paid</th>
+                                <th style="width:32%" title="Enter the name of who purchased this player">Buyer</th>
+                                <th style="width:20%" title="Enter the winning bid amount">Bid</th>
                             </tr>
                         </thead>
                         <tbody id="calcuttaBody">
@@ -1251,88 +1572,7 @@
             </div>
         </div>
     </div>
-    
-    <!-- Settings Tab -->
-    <div class="tab-content" id="tab-settings">
-        <div class="card" id="apiNotConfiguredCard" style="background:#fff3cd; border-color:#f59e0b;">
-            <div class="card-header" style="background:#fef3c7;">
-                <span>⚠️ API Not Configured</span>
-            </div>
-            <div class="card-body">
-                <p style="margin-bottom:10px;">To load players from Google Sheets and sync data, you need to:</p>
-                <ol style="margin-left:20px; line-height:1.8;">
-                    <li>Copy <strong>TournamentConsoleAPI.gs</strong> to Google Apps Script</li>
-                    <li>Deploy as Web App (Anyone can access)</li>
-                    <li>Copy the deployment URL</li>
-                    <li>Edit <code>tournament_console.html</code> line ~1767</li>
-                    <li>Replace <code>https://script.google.com/macros/s/AKfycbzQ5_5LzmudZ15JjAXguaL3HU0ZxeQKNRO0n--kbOZ3DkbapCoh4NvVQWwqQwwVZ-kRLg/exec</code> with your URL</li>
-                </ol>
-                <p style="margin-top:10px; color:var(--text-light);">Until configured, the app uses sample data and works offline.</p>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <span>Display Settings</span>
-            </div>
-            <div class="card-body">
-                <div class="setting-row">
-                    <div class="setting-label">Show Fargo Rating Column</div>
-                    <div class="setting-value">
-                        <input type="checkbox" id="showSkillLevel" checked onchange="updateSettings()" style="width:22px;height:22px;">
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <span>Data Sources</span>
-            </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label>Master Player Database</label>
-                    <input type="text" class="form-control" id="masterDbUrl" 
-                           value="1UVH0Yv-I8usR-1OIA0uEdgeAAjiG8rGE5c0N45o2AOo"
-                           placeholder="Google Sheet ID">
-                    <small style="color:var(--text-light);">Sheet with all player names, phones, and Fargo IDs</small>
-                </div>
-                <div class="form-group">
-                    <label>Main Tournament Workbook</label>
-                    <input type="text" class="form-control" id="mainWorkbookUrl" 
-                           value="1MN7r74z3II7pMA_jMK0l03faFTG9KR84wktLNc3a6A0"
-                           placeholder="Google Sheet ID">
-                    <small style="color:var(--text-light);">Where tournament data gets exported</small>
-                </div>
-                <button class="btn btn-primary" onclick="saveDataSources()" style="margin-top:10px;">
-                    Save Data Sources
-                </button>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <span>Actions</span>
-            </div>
-            <div class="card-body">
-                <div style="margin-bottom:15px;">
-                    <button class="btn btn-warning" onclick="exportToSheet()" style="width:100%;">
-                        📤 Export to Google Sheet
-                    </button>
-                    <small style="display:block; margin-top:5px; color:var(--text-light);">
-                        Writes all check-ins, side pots, and Calcutta data to your Tournament Workbook
-                    </small>
-                </div>
-                <div>
-                    <button class="btn btn-danger" onclick="clearAllData()" style="width:100%;">
-                        🗑️ Clear All Data (New Tournament)
-                    </button>
-                    <small style="display:block; margin-top:5px; color:var(--text-light);">
-                        Clears checked-in players to start fresh (doesn't affect master database)
-                    </small>
-                </div>
-            </div>
-        </div>
+        </main>
     </div>
     
     <!-- Add New Player Modal -->
@@ -1345,15 +1585,15 @@
             <div class="modal-body">
                 <div class="form-group">
                     <label>Full Name *</label>
-                    <input type="text" class="form-control" id="newPlayerName" placeholder="Enter full name">
+                    <input type="text" class="form-control" id="addPlayerModalName" placeholder="Enter full name">
                 </div>
                 <div class="form-group">
                     <label>Phone Number</label>
-                    <input type="tel" class="form-control" id="newPlayerPhone" placeholder="(xxx) xxx-xxxx">
+                    <input type="tel" class="form-control" id="addPlayerModalPhone" placeholder="(xxx) xxx-xxxx">
                 </div>
                 <div class="form-group">
                     <label>Mobile Carrier</label>
-                    <select class="form-control" id="newPlayerCarrier">
+                    <select class="form-control" id="addPlayerModalCarrier">
                         <option value="">-- Select Carrier --</option>
                         <option value="verizon">Verizon</option>
                         <option value="att">AT&T</option>
@@ -1441,6 +1681,62 @@
         </div>
     </div>
     
+    <!-- Edit Player Modal -->
+    <div class="modal-overlay" id="editPlayerModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span>Edit Player Record</span>
+                <button class="modal-close" onclick="closeModal('editPlayerModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editPlayerOriginalName">
+                <input type="hidden" id="editPlayerId">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" class="form-control" id="editPlayerName" placeholder="Player name">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number</label>
+                    <input type="tel" class="form-control" id="editPlayerPhone" placeholder="(xxx) xxx-xxxx">
+                </div>
+                <div class="form-group">
+                    <label>Mobile Carrier</label>
+                    <select class="form-control" id="editPlayerCarrier">
+                        <option value="">-- Select Carrier --</option>
+                        <option value="verizon">Verizon</option>
+                        <option value="att">AT&T</option>
+                        <option value="tmobile">T-Mobile</option>
+                        <option value="sprint">Sprint</option>
+                        <option value="uscellular">US Cellular</option>
+                        <option value="cricket">Cricket</option>
+                        <option value="metropcs">Metro PCS</option>
+                        <option value="boost">Boost Mobile</option>
+                        <option value="virgin">Virgin Mobile</option>
+                        <option value="googlefi">Google Fi</option>
+                        <option value="xfinity">Xfinity Mobile</option>
+                        <option value="spectrum">Spectrum Mobile</option>
+                        <option value="consumer_cellular">Consumer Cellular</option>
+                        <option value="mint">Mint Mobile</option>
+                        <option value="visible">Visible</option>
+                        <option value="straight_talk">Straight Talk</option>
+                        <option value="other">Other / Unknown</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Fargo Rating</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="number" class="form-control" id="editPlayerSkill" placeholder="Rating" min="0" max="900" style="width:100px;">
+                        <button class="btn btn-primary" onclick="lookupFargoForEdit()" style="white-space:nowrap;">🔍 Lookup</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('editPlayerModal')">Cancel</button>
+                <button class="btn btn-success" onclick="savePlayerEdit()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+    
     <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
@@ -1460,8 +1756,9 @@
     }
     
     const state = {
-        eventType: '', // 'weekly' or 'special'
-        specialEventUrl: '',
+        eventType: '', // 'recurring' or 'special'
+        selectedTournament: '', // Selected tournament name for special events
+        upcomingTournaments: [], // List of upcoming tournaments
         masterPlayers: [], // All players from master database
         preregisteredPlayers: [], // For special events
         checkedInPlayers: [], // Currently checked in
@@ -1470,10 +1767,20 @@
             sidepotAmount: 5,
             showSkillLevel: true
         },
-        calcuttaSort: 'order',
+        tournamentSettings: {
+            playerAuction: true,
+            sidepot: true,
+            entryFee: null
+        },
+        calcuttaSort: 'skill',
         editingPlayerId: null,
         pendingNewPlayer: null, // For FargoRate selection flow
-        activeAutocompleteRow: null // Track which row has autocomplete open
+        activeAutocompleteRow: null, // Track which row has autocomplete open
+        poolAuction: {
+            buyer: '',
+            bid: 0,
+            paid: false
+        }
     };
     
     // ============================================================================
@@ -1791,7 +2098,18 @@
     // GOOGLE APPS SCRIPT URL - UPDATE THIS AFTER DEPLOYMENT
     // ============================================================================
     
-    const APPS_SCRIPT_URL = 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE';
+    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzQ5_5LzmudZ15JjAXguaL3HU0ZxeQKNRO0n--kbOZ3DkbapCoh4NvVQWwqQwwVZ-kRLg/exec';
+    
+    // GitHub Actions Workflow Configuration
+    // To trigger the workflow, you need a GitHub Personal Access Token with 'repo' and 'workflow' scopes
+    // Generate one at: https://github.com/settings/tokens
+    const GITHUB_CONFIG = {
+        token: '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',
+        owner: 'jhamilt0n',
+        repo: 'bankshot-tournament-display',
+        workflow: 'scrape.yml',
+        branch: 'main'
+    };
     
     // ============================================================================
     // INITIALIZATION
@@ -1815,14 +2133,32 @@
             dayIndicator.textContent = `(${dayName} = $${fee})`;
         }
         
-        // Hide API notice if configured
-        const apiNotice = document.getElementById('apiNotConfiguredCard');
-        if (apiNotice && APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
-            apiNotice.style.display = 'none';
-        }
+        // Close autocomplete dropdowns on scroll
+        document.querySelector('.spreadsheet-container')?.addEventListener('scroll', () => {
+            const list = document.getElementById('inlineAutocompleteList');
+            if (list) list.classList.remove('show');
+        });
+        
+        // Close autocomplete on click outside
+        document.addEventListener('click', (e) => {
+            const list = document.getElementById('inlineAutocompleteList');
+            const input = document.getElementById('newPlayerInput');
+            if (list && input && !list.contains(e.target) && e.target !== input) {
+                list.classList.remove('show');
+                list.style.display = 'none';
+            }
+        });
         
         loadFromLocalStorage();
         updateAllDisplays();
+        
+        // Always load master players from API on startup if not already loaded
+        if (APPS_SCRIPT_URL && state.masterPlayers.length === 0) {
+            console.log('No master players in cache, loading from API...');
+            loadMasterPlayers();
+        } else {
+            console.log('Loaded', state.masterPlayers.length, 'players from cache');
+        }
     });
     
     function loadFromLocalStorage() {
@@ -1831,8 +2167,32 @@
             const parsed = JSON.parse(saved);
             Object.assign(state, parsed);
             
-            // Restore UI state
-            document.getElementById('eventType').value = state.eventType;
+            // Migrate 'weekly' to 'recurring' for backwards compatibility
+            if (state.eventType === 'weekly') {
+                state.eventType = 'recurring';
+            }
+            
+            // Ensure poolAuction exists (for backwards compatibility)
+            if (!state.poolAuction) {
+                state.poolAuction = { buyer: '', bid: 0, paid: false };
+            }
+            
+            // Ensure new tournament fields exist
+            if (!state.upcomingTournaments) {
+                state.upcomingTournaments = [];
+            }
+            if (!state.selectedTournament) {
+                state.selectedTournament = '';
+            }
+            
+            // Ensure tournament settings exist
+            if (!state.tournamentSettings) {
+                state.tournamentSettings = {
+                    playerAuction: true,
+                    sidepot: true,
+                    entryFee: null
+                };
+            }
             
             // Restore settings inputs
             const entryFeeInput = document.getElementById('entryFeeInput');
@@ -1843,14 +2203,20 @@
             if (sidepotInput) sidepotInput.value = state.settings.sidepotAmount;
             if (showSkillLevel) showSkillLevel.checked = state.settings.showSkillLevel;
             
-            // Also update legacy settings inputs if they exist
-            const legacyEntryFee = document.getElementById('entryFee');
-            const legacySidepot = document.getElementById('sidepotAmount');
-            if (legacyEntryFee) legacyEntryFee.value = state.settings.entryFee;
-            if (legacySidepot) legacySidepot.value = state.settings.sidepotAmount;
+            // Apply tournament settings (tabs enable/disable)
+            applyTournamentSettings();
             
+            // Restore event type selection
             if (state.eventType) {
-                handleEventTypeChange();
+                selectEventType(state.eventType);
+                
+                // If special event with selected tournament, render the list and reselect
+                if (state.eventType === 'special' && state.selectedTournament) {
+                    if (state.upcomingTournaments.length > 0) {
+                        renderTournamentList();
+                    }
+                    document.getElementById('headerInfo').textContent = `${state.selectedTournament} - ${state.checkedInPlayers?.length || 0} checked in`;
+                }
             }
         }
         
@@ -1860,35 +2226,515 @@
     
     function saveToLocalStorage() {
         localStorage.setItem('tournamentConsoleState', JSON.stringify(state));
+        
+        // Also save tournament-specific data
+        saveTournamentData();
     }
+    
+    // ============================================================================
+    // TOURNAMENT-SPECIFIC DATA STORAGE
+    // ============================================================================
+    
+    // Generate a unique storage key for the current tournament
+    function getTournamentStorageKey() {
+        if (state.eventType === 'special' && state.selectedTournament) {
+            // Use tournament name for special events
+            return 'tournamentData_' + state.selectedTournament.replace(/[^a-zA-Z0-9]/g, '_');
+        } else if (state.eventType === 'recurring') {
+            // Use today's date for recurring tournaments
+            const today = new Date().toISOString().split('T')[0];
+            return 'tournamentData_recurring_' + today;
+        }
+        return null;
+    }
+    
+    // Save current tournament's data separately
+    function saveTournamentData() {
+        const key = getTournamentStorageKey();
+        if (!key) return;
+        
+        const tournamentData = {
+            checkedInPlayers: state.checkedInPlayers,
+            poolAuction: state.poolAuction,
+            settings: {
+                entryFee: state.settings.entryFee,
+                sidepotAmount: state.settings.sidepotAmount
+            },
+            tournamentSettings: state.tournamentSettings,
+            savedAt: new Date().toISOString()
+        };
+        
+        localStorage.setItem(key, JSON.stringify(tournamentData));
+        console.log('Saved tournament data to:', key);
+    }
+    
+    // Load tournament-specific data (returns true if data was found)
+    function loadTournamentData() {
+        const key = getTournamentStorageKey();
+        if (!key) return false;
+        
+        const saved = localStorage.getItem(key);
+        if (saved) {
+            try {
+                const data = JSON.parse(saved);
+                state.checkedInPlayers = data.checkedInPlayers || [];
+                state.poolAuction = data.poolAuction || { buyer: '', bid: 0, paid: false };
+                
+                // Restore settings
+                if (data.settings) {
+                    state.settings.entryFee = data.settings.entryFee || state.settings.entryFee;
+                    state.settings.sidepotAmount = data.settings.sidepotAmount || state.settings.sidepotAmount;
+                    
+                    // Update UI
+                    const entryFeeInput = document.getElementById('entryFeeInput');
+                    if (entryFeeInput) entryFeeInput.value = state.settings.entryFee;
+                }
+                
+                if (data.tournamentSettings) {
+                    state.tournamentSettings = data.tournamentSettings;
+                }
+                
+                console.log('Loaded tournament data from:', key, '- Players:', state.checkedInPlayers.length);
+                return true;
+            } catch (e) {
+                console.error('Error loading tournament data:', e);
+                return false;
+            }
+        }
+        return false;
+    }
+    
+    // Clear tournament data (for starting fresh)
+    function clearTournamentData() {
+        const key = getTournamentStorageKey();
+        if (key) {
+            localStorage.removeItem(key);
+            console.log('Cleared tournament data:', key);
+        }
+    }
+    
+    // List all saved tournaments (for debugging)
+    window.listSavedTournaments = function() {
+        const tournaments = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('tournamentData_')) {
+                const data = JSON.parse(localStorage.getItem(key));
+                tournaments.push({
+                    key: key,
+                    players: data.checkedInPlayers?.length || 0,
+                    savedAt: data.savedAt
+                });
+            }
+        }
+        console.table(tournaments);
+        return tournaments;
+    };
     
     // ============================================================================
     // EVENT TYPE HANDLING
     // ============================================================================
     
-    function handleEventTypeChange() {
-        const eventType = document.getElementById('eventType').value;
+    function selectEventType(eventType) {
+        const previousEventType = state.eventType;
+        
+        // Save current tournament data before switching event types
+        if (previousEventType && (previousEventType !== eventType)) {
+            saveTournamentData();
+        }
+        
         state.eventType = eventType;
         
-        const specialUrlInput = document.getElementById('specialEventUrl');
-        const refreshBtn = document.getElementById('refreshBtn');
+        // Update button states
+        document.getElementById('btnRecurring').classList.remove('active');
+        document.getElementById('btnSpecial').classList.remove('active');
+        
+        const tournamentListDiv = document.getElementById('tournamentList');
         
         if (eventType === 'special') {
-            specialUrlInput.style.display = 'block';
-            refreshBtn.style.display = 'inline-block';
-            document.getElementById('headerInfo').textContent = 'Special Event Mode - Paste sheet URL';
-        } else if (eventType === 'weekly') {
-            specialUrlInput.style.display = 'none';
-            refreshBtn.style.display = 'inline-block';
-            document.getElementById('headerInfo').textContent = 'Weekly Tournament Mode';
+            document.getElementById('btnSpecial').classList.add('active');
+            
+            // Clear state for special events (will be loaded when tournament is selected)
+            state.selectedTournament = '';
+            state.checkedInPlayers = [];
+            state.poolAuction = { buyer: '', bid: 0, paid: false };
+            
+            // Show tournament list
+            tournamentListDiv.style.display = 'block';
+            document.getElementById('headerInfo').textContent = 'Select a tournament...';
+            loadUpcomingTournaments();
+        } else if (eventType === 'recurring') {
+            document.getElementById('btnRecurring').classList.add('active');
+            
+            // Hide tournament list
+            tournamentListDiv.style.display = 'none';
+            document.getElementById('headerInfo').textContent = 'Recurring Tournament';
+            
+            // Reset tournament settings for recurring mode (enable all features)
+            state.tournamentSettings = {
+                playerAuction: true,
+                sidepot: true,
+                entryFee: null
+            };
+            
+            // Try to load saved recurring tournament data for today
+            state.selectedTournament = '';
+            const hasSavedData = loadTournamentData();
+            
+            if (hasSavedData) {
+                showToast(`Restored ${state.checkedInPlayers.length} players from today's tournament`, 'success');
+            } else {
+                // Reset for fresh tournament
+                state.checkedInPlayers = [];
+                state.poolAuction = { buyer: '', bid: 0, paid: false };
+                state.settings.entryFee = getDefaultEntryFee();
+            }
+            
+            const entryFeeInput = document.getElementById('entryFeeInput');
+            if (entryFeeInput) {
+                entryFeeInput.value = state.settings.entryFee;
+            }
+            
+            applyTournamentSettings();
             loadMasterPlayers();
-        } else {
-            specialUrlInput.style.display = 'none';
-            refreshBtn.style.display = 'none';
-            document.getElementById('headerInfo').textContent = 'Select event type to begin';
+        }
+        
+        updateAllDisplays();
+        saveToLocalStorage();
+    }
+    
+    // Legacy function for backward compatibility
+    function handleEventTypeChange() {
+        const select = document.getElementById('eventType');
+        if (select) {
+            const value = select.value;
+            if (value === 'weekly') selectEventType('recurring');
+            else if (value === 'special') selectEventType('special');
+        }
+    }
+    
+    // Load upcoming tournaments and render as list
+    async function loadUpcomingTournaments() {
+        const listContainer = document.getElementById('tournamentListItems');
+        listContainer.innerHTML = '<div class="tournament-loading">Loading tournaments...</div>';
+        
+        try {
+            if (!APPS_SCRIPT_URL) {
+                throw new Error('API not configured');
+            }
+            
+            const response = await fetch(APPS_SCRIPT_URL + '?action=getUpcomingTournaments');
+            const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            state.upcomingTournaments = data.tournaments || [];
+            
+            // Render tournament list
+            renderTournamentList();
+            
+            document.getElementById('headerInfo').textContent = `${state.upcomingTournaments.length} tournaments available`;
+            
+        } catch (error) {
+            console.error('Error loading tournaments:', error);
+            listContainer.innerHTML = '<div class="tournament-loading" style="color:#f87171;">Error loading tournaments</div>';
+            document.getElementById('headerInfo').textContent = 'Error loading tournaments';
+            showToast('Error loading tournaments: ' + error.message, 'error');
+        }
+    }
+    
+    // Render tournament list in sidebar
+    function renderTournamentList() {
+        const listContainer = document.getElementById('tournamentListItems');
+        
+        if (state.upcomingTournaments.length === 0) {
+            listContainer.innerHTML = '<div class="tournament-loading">No upcoming tournaments</div>';
+            return;
+        }
+        
+        let html = '';
+        state.upcomingTournaments.forEach(tournament => {
+            const isActive = state.selectedTournament === tournament.name;
+            html += `
+                <div class="tournament-item ${isActive ? 'active' : ''}" onclick="selectTournament('${escapeForJs(tournament.name)}')">
+                    <div class="tournament-item-name">${escapeHtml(tournament.name)}</div>
+                    ${tournament.date ? `<div class="tournament-item-date">${tournament.date}</div>` : ''}
+                </div>
+            `;
+        });
+        
+        listContainer.innerHTML = html;
+    }
+    
+    // Select a tournament from the list
+    async function selectTournament(tournamentName) {
+        // Save previous tournament data
+        if (state.selectedTournament && state.selectedTournament !== tournamentName) {
+            saveTournamentData();
+            state.checkedInPlayers = [];
+            state.poolAuction = { buyer: '', bid: 0, paid: false };
+        } else if (state.selectedTournament === tournamentName) {
+            // Same tournament - save current state before refresh
+            saveTournamentData();
+        }
+        
+        state.selectedTournament = tournamentName;
+        
+        // Update UI to show selection
+        renderTournamentList();
+        document.getElementById('headerInfo').textContent = 'Loading ' + tournamentName + '...';
+        
+        // Load the tournament data
+        await loadTournamentRegistrationsForName(tournamentName);
+    }
+    
+    // Load registrations for selected tournament (legacy wrapper)
+    async function loadTournamentRegistrations() {
+        const tournamentSelect = document.getElementById('tournamentSelect');
+        if (tournamentSelect && tournamentSelect.value) {
+            await loadTournamentRegistrationsForName(tournamentSelect.value);
+        }
+    }
+    
+    // Load registrations for a specific tournament by name
+    async function loadTournamentRegistrationsForName(tournamentName) {
+        if (!tournamentName) {
+            // Save current tournament data before deselecting
+            saveTournamentData();
+            
+            state.selectedTournament = '';
+            state.preregisteredPlayers = [];
+            state.masterPlayers = [];
+            document.getElementById('headerInfo').textContent = 'Select a tournament...';
+            updateAllDisplays();
+            saveToLocalStorage();
+            return;
+        }
+        
+        state.selectedTournament = tournamentName;
+        document.getElementById('headerInfo').textContent = 'Loading registrations...';
+        
+        try {
+            if (!APPS_SCRIPT_URL) {
+                throw new Error('API not configured');
+            }
+            
+            const response = await fetch(APPS_SCRIPT_URL + '?action=getTournamentRegistrations&tournament=' + encodeURIComponent(tournamentName));
+            const data = await response.json();
+            
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            state.preregisteredPlayers = data.players || [];
+            state.masterPlayers = state.preregisteredPlayers;
+            
+            // Apply tournament settings first
+            if (data.settings) {
+                state.tournamentSettings = {
+                    playerAuction: data.settings.playerAuction !== false,
+                    sidepot: data.settings.sidepot !== false,
+                    entryFee: data.settings.entryFee
+                };
+                
+                // Update entry fee if provided (but may be overridden by saved data)
+                if (data.settings.entryFee) {
+                    state.settings.entryFee = data.settings.entryFee;
+                }
+                
+                console.log('Tournament settings from API:', state.tournamentSettings);
+            }
+            
+            // Try to load saved tournament data
+            const hasSavedData = loadTournamentData();
+            
+            if (hasSavedData) {
+                // Sync with registration sheet: handle adds, removes, and updates
+                const registrationNames = state.preregisteredPlayers.map(p => p.name.toLowerCase().trim());
+                const checkedInNames = state.checkedInPlayers.map(p => p.name.toLowerCase().trim());
+                
+                // 1. REMOVE: Players no longer in registration sheet
+                const removedPlayers = state.checkedInPlayers.filter(p => 
+                    !registrationNames.includes(p.name.toLowerCase().trim())
+                );
+                if (removedPlayers.length > 0) {
+                    state.checkedInPlayers = state.checkedInPlayers.filter(p => 
+                        registrationNames.includes(p.name.toLowerCase().trim())
+                    );
+                    console.log('Removed players no longer in registration:', removedPlayers.map(p => p.name));
+                }
+                
+                // 2. UPDATE: Sync data for existing players (skill rating, phone, team members)
+                state.checkedInPlayers.forEach(checkedIn => {
+                    const registration = state.preregisteredPlayers.find(p => 
+                        p.name.toLowerCase().trim() === checkedIn.name.toLowerCase().trim()
+                    );
+                    if (registration) {
+                        // Update fields that come from registration (preserve local fields like hasPaid, calcuttaBuyer, etc.)
+                        checkedIn.skill = registration.skill;
+                        checkedIn.phone = registration.phone || checkedIn.phone;
+                        checkedIn.isTeam = registration.isTeam;
+                        checkedIn.playerCount = registration.playerCount;
+                        checkedIn.teamName = registration.teamName;
+                    }
+                });
+                
+                // 3. ADD: New registrants not yet checked in
+                const newRegistrants = state.preregisteredPlayers.filter(player => 
+                    !checkedInNames.includes(player.name.toLowerCase().trim())
+                );
+                
+                if (newRegistrants.length > 0) {
+                    const newCheckedIn = newRegistrants.map((player, index) => ({
+                        ...player,
+                        id: Date.now() + index,
+                        originalId: player.id,
+                        checkedInAt: new Date().toISOString(),
+                        hasPaid: false,
+                        inSidePot: false,
+                        isLate: false,
+                        carrier: player.carrier || '',
+                        calcuttaBuyer: '',
+                        calcuttaBid: 0,
+                        calcuttaPaid: false,
+                        isSpecialEvent: true,
+                        isTeam: player.isTeam || false,
+                        playerCount: player.playerCount || 1
+                    }));
+                    
+                    state.checkedInPlayers = [...state.checkedInPlayers, ...newCheckedIn];
+                }
+                
+                // Show summary of changes
+                const changes = [];
+                if (removedPlayers.length > 0) changes.push(`${removedPlayers.length} removed`);
+                if (newRegistrants.length > 0) changes.push(`${newRegistrants.length} added`);
+                
+                if (changes.length > 0) {
+                    showToast(`Synced: ${changes.join(', ')}. ${state.checkedInPlayers.length} total.`, 'success');
+                } else {
+                    showToast(`${state.checkedInPlayers.length} players synced`, 'success');
+                }
+            } else {
+                // No saved data - auto-check in all registrants
+                state.checkedInPlayers = state.preregisteredPlayers.map((player, index) => ({
+                    ...player,
+                    id: Date.now() + index,
+                    originalId: player.id,
+                    checkedInAt: new Date().toISOString(),
+                    hasPaid: false,
+                    inSidePot: false,
+                    isLate: false,
+                    carrier: player.carrier || '',
+                    calcuttaBuyer: '',
+                    calcuttaBid: 0,
+                    calcuttaPaid: false,
+                    isSpecialEvent: true,
+                    isTeam: player.isTeam || false,
+                    playerCount: player.playerCount || 1
+                }));
+                showToast(`Auto-checked in ${state.checkedInPlayers.length} registrants`, 'success');
+            }
+            
+            document.getElementById('headerInfo').textContent = `${tournamentName} - ${state.checkedInPlayers.length} checked in`;
+            
+            // Update entry fee UI
+            const entryFeeInput = document.getElementById('entryFeeInput');
+            if (entryFeeInput) {
+                entryFeeInput.value = state.settings.entryFee;
+            }
+            
+            // Update UI based on tournament settings
+            applyTournamentSettings();
+            
+            updateAllDisplays();
+            
+        } catch (error) {
+            console.error('Error loading registrations:', error);
+            document.getElementById('headerInfo').textContent = `${tournamentName} - Error loading registrations`;
+            showToast('Error loading registrations: ' + error.message, 'error');
         }
         
         saveToLocalStorage();
+    }
+    
+    // Apply tournament settings to UI
+    function applyTournamentSettings() {
+        const isSpecialEvent = state.eventType === 'special';
+        
+        // Handle logo vs QR code
+        const sidebarLogo = document.getElementById('sidebarLogo');
+        const sidebarQR = document.getElementById('sidebarQR');
+        if (sidebarLogo && sidebarQR) {
+            if (isSpecialEvent) {
+                sidebarLogo.style.display = 'none';
+                sidebarQR.style.display = 'block';
+            } else {
+                sidebarLogo.style.display = 'block';
+                sidebarQR.style.display = 'none';
+            }
+        }
+        
+        // Handle Add Player vs Add Registration button
+        const btnAddPlayer = document.getElementById('btnAddPlayer');
+        const btnAddRegistration = document.getElementById('btnAddRegistration');
+        if (btnAddPlayer && btnAddRegistration) {
+            if (isSpecialEvent) {
+                btnAddPlayer.style.display = 'none';
+                btnAddRegistration.style.display = 'block';
+            } else {
+                btnAddPlayer.style.display = 'block';
+                btnAddRegistration.style.display = 'none';
+            }
+        }
+        
+        // Handle Calcutta/Auction tab - HIDE if no player auction for special events
+        const calcuttaTab = document.querySelector('.sidebar-tab[data-tab="calcutta"]');
+        if (calcuttaTab) {
+            if (isSpecialEvent && !state.tournamentSettings.playerAuction) {
+                calcuttaTab.style.display = 'none';
+            } else {
+                calcuttaTab.style.display = 'flex';
+            }
+        }
+        
+        // Handle Buyers tab - HIDE if no player auction for special events
+        const buyersTab = document.querySelector('.sidebar-tab[data-tab="buyers"]');
+        if (buyersTab) {
+            if (isSpecialEvent && !state.tournamentSettings.playerAuction) {
+                buyersTab.style.display = 'none';
+            } else {
+                buyersTab.style.display = 'flex';
+            }
+        }
+        
+        // Handle Side Pot tab - HIDE if no sidepot for special events
+        const sidepotTab = document.querySelector('.sidebar-tab[data-tab="sidepot"]');
+        if (sidepotTab) {
+            if (isSpecialEvent && !state.tournamentSettings.sidepot) {
+                sidepotTab.style.display = 'none';
+            } else {
+                sidepotTab.style.display = 'flex';
+            }
+        }
+        
+        // Handle Side Pot setting in sidebar - HIDE if no sidepot for special events
+        const sidepotSetting = document.getElementById('sidepotSetting');
+        if (sidepotSetting) {
+            if (isSpecialEvent && !state.tournamentSettings.sidepot) {
+                sidepotSetting.style.display = 'none';
+            } else {
+                sidepotSetting.style.display = 'flex';
+            }
+        }
+        
+        // Handle Player Database link - HIDE for special events (only useful for recurring)
+        const btnPlayerDB = document.getElementById('btnPlayerDB');
+        if (btnPlayerDB) {
+            btnPlayerDB.style.display = isSpecialEvent ? 'none' : 'block';
+        }
     }
     
     // ============================================================================
@@ -1896,11 +2742,12 @@
     // ============================================================================
     
     async function loadMasterPlayers() {
-        showLoading('checkinPlayerList');
+        console.log('loadMasterPlayers() called...');
         
         try {
             // Try to load from Google Apps Script API
-            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+            if (APPS_SCRIPT_URL) {
+                console.log('Fetching from API:', APPS_SCRIPT_URL + '?action=getMasterPlayers');
                 const response = await fetch(APPS_SCRIPT_URL + '?action=getMasterPlayers');
                 const data = await response.json();
                 
@@ -1909,6 +2756,36 @@
                 }
                 
                 state.masterPlayers = data.players || [];
+                
+                // Debug: Log comprehensive info
+                console.log('========================================');
+                console.log('LOADED PLAYERS FROM API:', state.masterPlayers.length);
+                console.log('========================================');
+                
+                if (state.masterPlayers.length > 0) {
+                    console.log('First 5 players:');
+                    state.masterPlayers.slice(0, 5).forEach((p, i) => {
+                        console.log(`  ${i+1}. ${p.name}`);
+                        console.log(`      phone: "${p.phone}" (${p.phone ? '✓ HAS PHONE' : '✗ NO PHONE'})`);
+                        console.log(`      skill: ${p.skill || 'none'}`);
+                    });
+                    
+                    // Look for specific players
+                    const testNames = ['Aaron Muncy', 'Tom Carlisle', 'Jason Bertolo', 'Michael D Chambers'];
+                    console.log('\nSearching for specific players:');
+                    testNames.forEach(name => {
+                        const found = state.masterPlayers.find(p => 
+                            p.name.toLowerCase().includes(name.toLowerCase())
+                        );
+                        if (found) {
+                            console.log(`  ✓ Found "${found.name}": phone="${found.phone}", id=${found.id}`);
+                        } else {
+                            console.log(`  ✗ NOT FOUND: "${name}"`);
+                        }
+                    });
+                }
+                console.log('========================================');
+                
                 showToast(`Loaded ${state.masterPlayers.length} players from database`, 'success');
             } else {
                 // Fallback to sample data for demo/offline mode
@@ -1916,6 +2793,7 @@
                 showToast('Using sample data (configure API URL for live data)', 'info');
             }
             
+            saveToLocalStorage();
             updateAllDisplays();
         } catch (error) {
             console.error('Error loading master players:', error);
@@ -1926,26 +2804,45 @@
         }
     }
     
-    async function loadSpecialEventData() {
-        const url = document.getElementById('specialEventUrl').value;
-        if (!url) return;
+    // Note: loadSpecialEventData() removed - replaced with loadTournamentRegistrations()
+    
+    function refreshData() {
+        // Clear cached master players to force fresh load
+        state.masterPlayers = [];
         
-        state.specialEventUrl = url;
-        showLoading('checkinPlayerList');
+        if (state.eventType === 'special') {
+            // For special events, reload tournaments and re-select
+            loadUpcomingTournaments().then(() => {
+                if (state.selectedTournament) {
+                    loadTournamentRegistrations();
+                }
+            });
+        } else {
+            loadMasterPlayers();
+        }
+    }
+    
+    // Force clear all cached data and reload
+    async function forceRefreshFromAPI() {
+        console.log('Force refreshing from API...');
         
+        // Preserve current tournament data (checked-in players, etc.)
+        const checkedIn = state.checkedInPlayers || [];
+        const settings = state.settings;
+        const poolAuction = state.poolAuction;
+        const eventType = state.eventType;
+        const selectedTournament = state.selectedTournament;
+        
+        // Clear master players cache
+        state.masterPlayers = [];
+        
+        // Load fresh from API
         try {
-            // Extract sheet ID from URL
-            const match = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
-            if (!match) {
-                throw new Error('Invalid Google Sheet URL');
-            }
+            showToast('Loading players from database...', 'info');
             
-            const sheetId = match[1];
-            document.getElementById('headerInfo').textContent = 'Special Event: ' + sheetId.substring(0, 10) + '...';
-            
-            // Try to load from Google Apps Script API
-            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
-                const response = await fetch(APPS_SCRIPT_URL + '?action=getPreregistration&sheetId=' + sheetId);
+            if (eventType === 'special' && selectedTournament) {
+                // For special events, reload tournament registrations
+                const response = await fetch(APPS_SCRIPT_URL + '?action=getTournamentRegistrations&tournament=' + encodeURIComponent(selectedTournament));
                 const data = await response.json();
                 
                 if (data.error) {
@@ -1954,32 +2851,104 @@
                 
                 state.preregisteredPlayers = data.players || [];
                 state.masterPlayers = state.preregisteredPlayers;
-                showToast(`Loaded ${state.preregisteredPlayers.length} preregistered players`, 'success');
+                
+                // Sync with registration sheet: handle adds, removes, and updates
+                const registrationNames = state.preregisteredPlayers.map(p => p.name.toLowerCase().trim());
+                const checkedInNames = checkedIn.map(p => p.name.toLowerCase().trim());
+                
+                // 1. REMOVE: Players no longer in registration sheet
+                const keptPlayers = checkedIn.filter(p => 
+                    registrationNames.includes(p.name.toLowerCase().trim())
+                );
+                const removedCount = checkedIn.length - keptPlayers.length;
+                
+                // 2. UPDATE: Sync data for existing players
+                keptPlayers.forEach(player => {
+                    const registration = state.preregisteredPlayers.find(p => 
+                        p.name.toLowerCase().trim() === player.name.toLowerCase().trim()
+                    );
+                    if (registration) {
+                        player.skill = registration.skill;
+                        player.phone = registration.phone || player.phone;
+                        player.isTeam = registration.isTeam;
+                        player.playerCount = registration.playerCount;
+                        player.teamName = registration.teamName;
+                    }
+                });
+                
+                // 3. ADD: New registrants
+                const newRegistrants = state.preregisteredPlayers.filter(player => 
+                    !checkedInNames.includes(player.name.toLowerCase().trim())
+                );
+                
+                const newCheckedIn = newRegistrants.map((player, index) => ({
+                    ...player,
+                    id: Date.now() + index,
+                    originalId: player.id,
+                    checkedInAt: new Date().toISOString(),
+                    hasPaid: false,
+                    inSidePot: false,
+                    isLate: false,
+                    carrier: player.carrier || '',
+                    calcuttaBuyer: '',
+                    calcuttaBid: 0,
+                    calcuttaPaid: false,
+                    isSpecialEvent: true,
+                    isTeam: player.isTeam || false,
+                    playerCount: player.playerCount || 1
+                }));
+                
+                state.checkedInPlayers = [...keptPlayers, ...newCheckedIn];
+                
+                // Show summary
+                const changes = [];
+                if (removedCount > 0) changes.push(`${removedCount} removed`);
+                if (newRegistrants.length > 0) changes.push(`${newRegistrants.length} added`);
+                if (changes.length > 0) {
+                    showToast(`Synced: ${changes.join(', ')}. ${state.checkedInPlayers.length} total.`, 'success');
+                } else {
+                    showToast(`${state.checkedInPlayers.length} players synced`, 'success');
+                }
+                
             } else {
-                // Fallback to sample data
-                state.preregisteredPlayers = getSamplePreregistrationData();
-                state.masterPlayers = state.preregisteredPlayers;
-                showToast('Using sample data (configure API URL for live data)', 'info');
+                // For recurring events, load master players
+                const response = await fetch(APPS_SCRIPT_URL + '?action=getMasterPlayers');
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                state.masterPlayers = data.players || [];
+                
+                // Restore tournament state for recurring
+                state.checkedInPlayers = checkedIn;
+                showToast(`Loaded ${state.masterPlayers.length} players from database`, 'success');
             }
             
+            // Restore other state
+            state.settings = settings;
+            state.poolAuction = poolAuction;
+            state.eventType = eventType;
+            state.selectedTournament = selectedTournament;
+            
+            console.log('========================================');
+            console.log('FORCE RELOAD - Loaded', state.masterPlayers.length, 'players');
+            console.log('========================================');
+            
+            if (state.masterPlayers.length > 0) {
+                console.log('Sample players:');
+                state.masterPlayers.slice(0, 3).forEach(p => {
+                    console.log(`  - ${p.name}: phone="${p.phone}"`);
+                });
+            }
+            
+            saveToLocalStorage();
             updateAllDisplays();
+            
         } catch (error) {
-            console.error('Error loading special event data:', error);
-            // Fallback to sample data
-            state.preregisteredPlayers = getSamplePreregistrationData();
-            state.masterPlayers = state.preregisteredPlayers;
-            showToast('Using offline mode: ' + error.message, 'error');
-            updateAllDisplays();
-        }
-        
-        saveToLocalStorage();
-    }
-    
-    function refreshData() {
-        if (state.eventType === 'weekly') {
-            loadMasterPlayers();
-        } else if (state.eventType === 'special') {
-            loadSpecialEventData();
+            console.error('Force refresh failed:', error);
+            showToast('Error loading: ' + error.message, 'error');
         }
     }
     
@@ -2164,16 +3133,21 @@
     }
     
     function showAddNewPlayerModal() {
-        document.getElementById('newPlayerName').value = '';
-        document.getElementById('newPlayerPhone').value = '';
-        document.getElementById('newPlayerSkill').value = '';
-        document.getElementById('addPlayerModal').classList.add('show');
+        const nameInput = document.getElementById('addPlayerModalName');
+        const phoneInput = document.getElementById('addPlayerModalPhone');
+        const carrierInput = document.getElementById('addPlayerModalCarrier');
+        const modal = document.getElementById('addPlayerModal');
+        
+        if (nameInput) nameInput.value = '';
+        if (phoneInput) phoneInput.value = '';
+        if (carrierInput) carrierInput.value = '';
+        if (modal) modal.classList.add('show');
     }
     
     async function saveNewPlayer() {
-        const name = document.getElementById('newPlayerName').value.trim();
-        const phone = document.getElementById('newPlayerPhone').value.trim();
-        const carrier = document.getElementById('newPlayerCarrier').value;
+        const name = document.getElementById('addPlayerModalName').value.trim();
+        const phone = document.getElementById('addPlayerModalPhone').value.trim();
+        const carrier = document.getElementById('addPlayerModalCarrier').value;
         
         if (!name) {
             showToast('Please enter a name', 'error');
@@ -2351,18 +3325,37 @@
                 masterPlayer.skill = fargoRating;
             }
             
-            // Sync to API
-            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+            // Skip sync for teams/special events
+            const isTeamOrSpecialEvent = checkedInPlayer && (checkedInPlayer.isTeam || checkedInPlayer.isSpecialEvent || (checkedInPlayer.playerCount && checkedInPlayer.playerCount > 1));
+            
+            // Sync to API (only for individual players, not teams)
+            if (APPS_SCRIPT_URL && !isTeamOrSpecialEvent) {
+                console.log('Syncing Fargo to database:', state.pendingNewPlayer.name, fargoIdPrefix, fargoRating);
                 fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'updateFargo',
                         name: state.pendingNewPlayer.name,
                         fargoId: fargoIdPrefix,
                         skill: fargoRating
                     })
-                }).catch(err => console.warn('Could not sync Fargo update:', err));
+                })
+                .then(r => r.json())
+                .then(result => {
+                    if (result.error) {
+                        console.error('API error updating Fargo:', result.error);
+                    } else {
+                        console.log('Fargo synced to database:', result);
+                        showToast('Fargo rating saved to database', 'success');
+                    }
+                })
+                .catch(err => {
+                    console.error('Could not sync Fargo update:', err);
+                    showToast('Error saving to database', 'error');
+                });
+            } else if (isTeamOrSpecialEvent) {
+                console.log('Skipping Fargo sync for team/special event:', state.pendingNewPlayer.name);
             }
             
             state.pendingNewPlayer = null;
@@ -2403,6 +3396,7 @@
         // Get pending info
         const hasPaid = state.pendingNewPlayer.hasPaid ?? false;
         const inSidePot = state.pendingNewPlayer.inSidePot ?? false;
+        const isLate = state.pendingNewPlayer.isLate ?? false;
         const carrier = state.pendingNewPlayer.carrier || '';
         
         const player = {
@@ -2424,6 +3418,7 @@
             checkedInAt: new Date().toISOString(),
             hasPaid: hasPaid,
             inSidePot: inSidePot,
+            isLate: isLate,
             calcuttaBuyer: '',
             calcuttaBid: 0,
             calcuttaPaid: false
@@ -2462,22 +3457,36 @@
             
             saveToLocalStorage();
             
-            // Sync to API in background
-            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+            // Skip sync for teams/special events
+            const isTeamOrSpecialEvent = player.isTeam || player.isSpecialEvent || (player.playerCount && player.playerCount > 1);
+            
+            // Sync to API in background (only for individual players, not teams)
+            if (APPS_SCRIPT_URL && !isTeamOrSpecialEvent) {
                 try {
-                    await fetch(APPS_SCRIPT_URL, {
+                    console.log('Syncing phone to database:', player.name, phone);
+                    const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             action: 'updatePhone',
                             name: player.name,
                             phone: phone
                         })
                     });
-                    console.log('Phone synced to database');
+                    const result = await response.json();
+                    if (result.error) {
+                        console.error('API error updating phone:', result.error);
+                        showToast('Error saving phone: ' + result.error, 'error');
+                    } else {
+                        console.log('Phone synced to database:', result);
+                        showToast('Phone saved to database', 'success');
+                    }
                 } catch (error) {
-                    console.warn('Could not sync phone to database:', error);
+                    console.error('Could not sync phone to database:', error);
+                    showToast('Error saving to database', 'error');
                 }
+            } else if (isTeamOrSpecialEvent) {
+                console.log('Skipping phone sync for team/special event:', player.name);
             }
         }
     }
@@ -2488,11 +3497,14 @@
         player.carrier = carrier;
         
         // Try to add to master database via API
-        if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+        // Skip for special events/teams - they shouldn't be added to the master player database
+        const isTeamOrSpecialEvent = player.isTeam || player.isSpecialEvent || (player.playerCount && player.playerCount > 1);
+        
+        if (APPS_SCRIPT_URL && !isTeamOrSpecialEvent) {
             try {
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'addPlayer',
                         name: player.name,
@@ -2510,13 +3522,16 @@
             } catch (error) {
                 console.warn('Could not sync to database:', error);
             }
+        } else if (isTeamOrSpecialEvent) {
+            console.log('Skipping database sync for team/special event:', player.name);
         }
         
         state.masterPlayers.push(player);
         
-        // Check if we have pending payment/sidepot info from quick add
+        // Check if we have pending payment/sidepot/late info from quick add
         const hasPaid = state.pendingNewPlayer?.hasPaid ?? false;
         const inSidePot = state.pendingNewPlayer?.inSidePot ?? false;
+        const isLate = state.pendingNewPlayer?.isLate ?? false;
         
         // Add to checked-in players
         state.checkedInPlayers.push({
@@ -2524,6 +3539,7 @@
             checkedInAt: new Date().toISOString(),
             hasPaid: hasPaid,
             inSidePot: inSidePot,
+            isLate: isLate,
             carrier: carrier,
             calcuttaBuyer: '',
             calcuttaBid: 0,
@@ -2555,6 +3571,138 @@
         div.textContent = text;
         return div.innerHTML;
     }
+    
+    // Escape text for use inside JavaScript string literals (handles quotes)
+    function escapeForJs(text) {
+        if (!text) return '';
+        return text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+    
+    // Global test function - call from console: testAPI()
+    window.testAPI = async function() {
+        console.log('Testing API connection...');
+        console.log('URL:', APPS_SCRIPT_URL);
+        try {
+            const response = await fetch(APPS_SCRIPT_URL + '?action=getMasterPlayers');
+            const data = await response.json();
+            console.log('API Response:', data);
+            console.log('Players returned:', data.players?.length || 0);
+            if (data.players && data.players.length > 0) {
+                console.log('First player:', data.players[0]);
+            }
+            return data;
+        } catch (e) {
+            console.error('API Error:', e);
+            return null;
+        }
+    };
+    
+    // Test UPDATE to API - call from console: testUpdate('Aaron Muncy')
+    window.testUpdate = async function(playerName) {
+        if (!playerName) {
+            console.log('Usage: testUpdate("Aaron Muncy")');
+            return;
+        }
+        console.log('Testing API UPDATE for:', playerName);
+        console.log('URL:', APPS_SCRIPT_URL);
+        
+        const testPhone = '(555) 999-' + Math.floor(1000 + Math.random() * 9000);
+        console.log('Setting test phone to:', testPhone);
+        
+        try {
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                    action: 'updatePhone',
+                    name: playerName,
+                    phone: testPhone
+                })
+            });
+            
+            console.log('Response status:', response.status);
+            const text = await response.text();
+            console.log('Raw response:', text);
+            
+            try {
+                const data = JSON.parse(text);
+                console.log('Parsed response:', data);
+                if (data.error) {
+                    console.error('❌ API returned error:', data.error);
+                } else {
+                    console.log('✅ SUCCESS! Check your Google Sheet for', playerName);
+                    console.log('Phone should now be:', testPhone);
+                }
+                return data;
+            } catch (e) {
+                console.error('Could not parse response as JSON');
+                return text;
+            }
+        } catch (e) {
+            console.error('❌ Fetch error:', e);
+            return null;
+        }
+    };
+    
+    // Global function to check state - call from console: checkState()
+    window.checkState = function() {
+        console.log('=== Current State ===');
+        console.log('Master Players:', state.masterPlayers.length);
+        console.log('Checked In:', state.checkedInPlayers.length);
+        console.log('Event Type:', state.eventType);
+        if (state.masterPlayers.length > 0) {
+            console.log('First 3 master players:');
+            state.masterPlayers.slice(0, 3).forEach(p => console.log('  -', p.name, '| phone:', p.phone));
+        }
+        return state;
+    };
+    
+    // Global function to manually search - call from console: testSearch('jason')
+    window.testSearch = function(query) {
+        console.log(`Searching for "${query}" in ${state.masterPlayers.length} players...`);
+        const matches = state.masterPlayers.filter(p => 
+            p.name.toLowerCase().includes(query.toLowerCase())
+        );
+        console.log(`Found ${matches.length} matches:`);
+        matches.forEach(p => console.log('  -', p.name, '| phone:', p.phone, '| id:', p.id));
+        return matches;
+    };
+    
+    // Test API POST request - call from console: testUpdate('Aaron Muncy')
+    window.testUpdate = async function(playerName) {
+        console.log('Testing API POST to update phone for:', playerName);
+        console.log('URL:', APPS_SCRIPT_URL);
+        try {
+            const response = await fetch(APPS_SCRIPT_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: JSON.stringify({
+                    action: 'updatePhone',
+                    name: playerName,
+                    phone: '(555) 123-4567'
+                })
+            });
+            console.log('Response status:', response.status);
+            const text = await response.text();
+            console.log('Raw response:', text);
+            try {
+                const data = JSON.parse(text);
+                console.log('Parsed response:', data);
+                if (data.error) {
+                    console.error('API returned error:', data.error);
+                } else {
+                    console.log('SUCCESS! Check your Google Sheet for', playerName);
+                }
+                return data;
+            } catch (e) {
+                console.log('Response was not JSON');
+                return text;
+            }
+        } catch (e) {
+            console.error('API Error:', e);
+            return null;
+        }
+    };
     
     // Refresh Fargo rating for a player
     async function refreshFargoRating(playerId) {
@@ -2623,12 +3771,18 @@
             masterPlayer.phone = phone;
         }
         
-        // Try to update in database via API
-        if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE' && playerName) {
+        // Skip sync for teams/special events
+        const isTeamOrSpecialEvent = checkedInPlayer && (checkedInPlayer.isTeam || checkedInPlayer.isSpecialEvent || (checkedInPlayer.playerCount && checkedInPlayer.playerCount > 1));
+        
+        // Try to update in database via API (only for individual players, not teams)
+        if (APPS_SCRIPT_URL && playerName && !isTeamOrSpecialEvent) {
             try {
+                console.log('Saving phone to database:', playerName, phone);
+                showToast('Saving to database...', 'info');
+                
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({
                         action: 'updatePhone',
                         name: playerName,
@@ -2637,18 +3791,150 @@
                 });
                 
                 const result = await response.json();
+                console.log('API response:', result);
+                
                 if (result.error) {
-                    console.warn('API update phone warning:', result.error);
+                    console.error('API error:', result.error);
+                    showToast('Database error: ' + result.error, 'error');
+                } else {
+                    showToast('Phone saved to database ✓', 'success');
                 }
             } catch (error) {
-                console.warn('Could not sync phone update to database:', error);
+                console.error('Could not sync phone update to database:', error);
+                showToast('Could not save to database', 'error');
             }
+        } else if (isTeamOrSpecialEvent) {
+            console.log('Skipping phone sync for team/special event:', playerName);
+            showToast('Phone updated locally', 'success');
+        } else {
+            showToast('Phone updated locally', 'success');
         }
         
         closeModal('editPhoneModal');
         saveToLocalStorage();
         updateAllDisplays();
-        showToast('Phone number updated', 'success');
+    }
+    
+    // ============================================================================
+    // EDIT PLAYER
+    // ============================================================================
+    
+    function showEditPlayerModal(playerId) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (!player) {
+            showToast('Player not found', 'error');
+            return;
+        }
+        
+        // Populate modal fields
+        document.getElementById('editPlayerOriginalName').value = player.name;
+        document.getElementById('editPlayerId').value = playerId;
+        document.getElementById('editPlayerName').value = player.name;
+        document.getElementById('editPlayerPhone').value = player.phone || '';
+        document.getElementById('editPlayerCarrier').value = player.carrier || '';
+        document.getElementById('editPlayerSkill').value = player.skill || '';
+        
+        document.getElementById('editPlayerModal').classList.add('show');
+    }
+    
+    function lookupFargoForEdit() {
+        const name = document.getElementById('editPlayerName').value.trim();
+        if (!name) {
+            showToast('Enter a name first', 'error');
+            return;
+        }
+        
+        // Store context for Fargo lookup
+        state.pendingNewPlayer = {
+            existingPlayerId: document.getElementById('editPlayerId').value,
+            name: name,
+            isEdit: true
+        };
+        
+        closeModal('editPlayerModal');
+        
+        // Open Fargo modal with name pre-filled
+        document.getElementById('fargoSearchInput').value = name;
+        document.getElementById('fargoResultsList').innerHTML = '';
+        document.getElementById('fargoModal').classList.add('show');
+        
+        searchFargo();
+    }
+    
+    async function savePlayerEdit() {
+        const playerId = parseInt(document.getElementById('editPlayerId').value);
+        const originalName = document.getElementById('editPlayerOriginalName').value;
+        const newName = document.getElementById('editPlayerName').value.trim();
+        const phone = document.getElementById('editPlayerPhone').value.trim();
+        const carrier = document.getElementById('editPlayerCarrier').value;
+        const skill = document.getElementById('editPlayerSkill').value;
+        
+        if (!newName) {
+            showToast('Name is required', 'error');
+            return;
+        }
+        
+        // Update checked-in player
+        const checkedInPlayer = state.checkedInPlayers.find(p => p.id === playerId);
+        if (checkedInPlayer) {
+            checkedInPlayer.name = newName;
+            checkedInPlayer.phone = phone;
+            checkedInPlayer.carrier = carrier;
+            checkedInPlayer.skill = skill ? parseInt(skill) : null;
+        }
+        
+        // Update master player
+        const masterPlayer = state.masterPlayers.find(p => 
+            p.name.toLowerCase() === originalName.toLowerCase()
+        );
+        if (masterPlayer) {
+            masterPlayer.name = newName;
+            masterPlayer.phone = phone;
+            masterPlayer.carrier = carrier;
+            masterPlayer.skill = skill ? parseInt(skill) : null;
+        }
+        
+        // Skip sync for teams/special events
+        const isTeamOrSpecialEvent = checkedInPlayer && (checkedInPlayer.isTeam || checkedInPlayer.isSpecialEvent || (checkedInPlayer.playerCount && checkedInPlayer.playerCount > 1));
+        
+        // Sync to API (only for individual players, not teams)
+        if (APPS_SCRIPT_URL && !isTeamOrSpecialEvent) {
+            try {
+                showToast('Saving to database...', 'info');
+                const response = await fetch(APPS_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({
+                        action: 'updatePlayer',
+                        originalName: originalName,
+                        newName: newName,
+                        phone: phone,
+                        carrier: carrier,
+                        skill: skill ? parseInt(skill) : null
+                    })
+                });
+                
+                const result = await response.json();
+                if (result.error) {
+                    console.warn('API update warning:', result.error);
+                    showToast('Local save only: ' + result.error, 'warning');
+                } else {
+                    showToast('Player updated in database', 'success');
+                }
+            } catch (error) {
+                console.warn('Could not sync to database:', error);
+                showToast('Saved locally (database sync failed)', 'warning');
+            }
+        } else if (isTeamOrSpecialEvent) {
+            console.log('Skipping database sync for team/special event:', originalName);
+            showToast('Player updated locally', 'success');
+        } else {
+            showToast('Player updated', 'success');
+        }
+        
+        closeModal('editPlayerModal');
+        saveToLocalStorage();
+        updateAllDisplays();
     }
     
     // ============================================================================
@@ -2671,16 +3957,24 @@
     function updateCalcuttaBuyer(playerId, buyer) {
         const player = state.checkedInPlayers.find(p => p.id === playerId);
         if (player) {
+            const wasPool = isPoolBuyer(player.calcuttaBuyer);
+            const isNowPool = isPoolBuyer(buyer);
+            
             player.calcuttaBuyer = buyer;
             
             // If buyer is "pool", set bid to 0 and paid to false
-            if (isPoolBuyer(buyer)) {
+            if (isNowPool) {
                 player.calcuttaBid = 0;
                 player.calcuttaPaid = false;
             }
             
             saveToLocalStorage();
-            renderCalcuttaTable(); // Re-render to move pool players to end
+            
+            // Only re-render if pool status changed (player needs to move)
+            if (wasPool !== isNowPool) {
+                renderCalcuttaTable();
+            }
+            
             updateCalcuttaSummary();
             updateBuyersSummary();
         }
@@ -2706,6 +4000,22 @@
         }
     }
     
+    function toggleSelfBuyer(playerId, playerName) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (player) {
+            // If currently self, clear it. If not self, set to self.
+            if (player.calcuttaBuyer === playerName) {
+                player.calcuttaBuyer = '';
+            } else {
+                player.calcuttaBuyer = playerName;
+            }
+            saveToLocalStorage();
+            renderCalcuttaTable();
+            updateCalcuttaSummary();
+            updateBuyersSummary();
+        }
+    }
+    
     function sortCalcutta(sortBy) {
         state.calcuttaSort = sortBy;
         
@@ -2717,7 +4027,8 @@
     }
     
     function getSortedCalcuttaPlayers() {
-        const players = [...state.checkedInPlayers];
+        // Only show players who are paid or running late in the Calcutta
+        const players = state.checkedInPlayers.filter(p => p.hasPaid || p.isLate);
         
         switch (state.calcuttaSort) {
             case 'name':
@@ -2739,8 +4050,15 @@
     function getBuyersSummary() {
         const buyers = {};
         
-        state.checkedInPlayers.forEach(player => {
-            if (player.calcuttaBuyer && player.calcuttaBid > 0) {
+        // Only include paid or late players
+        const eligiblePlayers = state.checkedInPlayers.filter(p => p.hasPaid || p.isLate);
+        
+        // Get pool players (from eligible players)
+        const poolPlayers = eligiblePlayers.filter(p => isPoolBuyer(p.calcuttaBuyer));
+        
+        // Add regular players (not pool)
+        eligiblePlayers.forEach(player => {
+            if (player.calcuttaBuyer && player.calcuttaBid > 0 && !isPoolBuyer(player.calcuttaBuyer)) {
                 const buyerName = player.calcuttaBuyer.trim();
                 if (!buyers[buyerName]) {
                     buyers[buyerName] = {
@@ -2758,19 +4076,54 @@
             }
         });
         
+        // Add pool to buyer if there's a pool auction
+        if (poolPlayers.length > 0 && state.poolAuction.buyer) {
+            const poolBuyerName = state.poolAuction.buyer.trim();
+            if (poolBuyerName) {
+                if (!buyers[poolBuyerName]) {
+                    buyers[poolBuyerName] = {
+                        name: poolBuyerName,
+                        totalOwed: 0,
+                        players: [],
+                        paid: true
+                    };
+                }
+                buyers[poolBuyerName].totalOwed += state.poolAuction.bid || 0;
+                buyers[poolBuyerName].players.push(`Pool (${poolPlayers.length})`);
+                if (!state.poolAuction.paid && state.poolAuction.bid > 0) {
+                    buyers[poolBuyerName].paid = false;
+                }
+            }
+        }
+        
         return Object.values(buyers).sort((a, b) => b.totalOwed - a.totalOwed);
     }
     
     function toggleBuyerPaid(buyerName) {
-        const isPaid = state.checkedInPlayers
-            .filter(p => p.calcuttaBuyer === buyerName)
-            .every(p => p.calcuttaPaid);
+        // Check if this buyer has any pool auctions
+        const isPoolBuyerForThisBuyer = state.poolAuction.buyer === buyerName;
         
+        // Get current paid status for regular players
+        const regularPlayers = state.checkedInPlayers.filter(p => p.calcuttaBuyer === buyerName);
+        const regularAllPaid = regularPlayers.length === 0 || regularPlayers.every(p => p.calcuttaPaid);
+        
+        // Check pool paid status
+        const poolPaid = isPoolBuyerForThisBuyer ? state.poolAuction.paid : true;
+        
+        // Overall paid status
+        const isPaid = regularAllPaid && poolPaid;
+        
+        // Toggle regular players
         state.checkedInPlayers.forEach(player => {
             if (player.calcuttaBuyer === buyerName) {
                 player.calcuttaPaid = !isPaid;
             }
         });
+        
+        // Toggle pool if this buyer owns the pool
+        if (isPoolBuyerForThisBuyer) {
+            state.poolAuction.paid = !isPaid;
+        }
         
         saveToLocalStorage();
         updateCalcuttaSummary();
@@ -2785,6 +4138,10 @@
                     player.calcuttaPaid = true;
                 }
             });
+            // Also mark pool as paid
+            if (state.poolAuction.bid > 0) {
+                state.poolAuction.paid = true;
+            }
             saveToLocalStorage();
             updateAllDisplays();
             showToast('All buyers marked as paid', 'success');
@@ -2803,6 +4160,13 @@
         updateSummaryCards();
         updateBadges();
         updatePayoutsDisplay();
+        
+        // Update DB player count indicator
+        const dbCount = document.getElementById('dbPlayerCount');
+        if (dbCount) {
+            dbCount.textContent = `DB: ${state.masterPlayers.length}`;
+            dbCount.style.color = state.masterPlayers.length > 0 ? '#16a34a' : '#dc2626';
+        }
     }
     
     // ============================================================================
@@ -2812,6 +4176,16 @@
     function renderPlayerSpreadsheet() {
         const tbody = document.getElementById('playerTableBody');
         if (!tbody) return;
+        
+        const isSpecialEvent = state.eventType === 'special';
+        const hideSidePot = isSpecialEvent && !state.tournamentSettings.sidepot;
+        const hideCarrier = isSpecialEvent; // Always hide carrier for special events
+        
+        // Update header visibility
+        const thCarrier = document.getElementById('thCarrier');
+        const thSidePot = document.getElementById('thSidePot');
+        if (thCarrier) thCarrier.style.display = hideCarrier ? 'none' : '';
+        if (thSidePot) thSidePot.style.display = hideSidePot ? 'none' : '';
         
         const carrierOptions = `
             <option value="">--</option>
@@ -2847,6 +4221,9 @@
                 `value="${carrierValue}" selected`
             );
             
+            // Show Fargo lookup only for non-special events and players without fargoId
+            const showFargoLookup = !isSpecialEvent && !player.fargoId;
+            
             html += `
                 <tr class="${rowClass}" data-player-id="${player.id}">
                     <td class="row-number">${index + 1}</td>
@@ -2860,11 +4237,13 @@
                                onchange="updatePlayerPhone(${player.id}, this.value)"
                                placeholder="Phone">
                     </td>
+                    ${hideCarrier ? '' : `
                     <td>
                         <select class="carrier-select" onchange="updatePlayerCarrier(${player.id}, this.value)">
                             ${carrierSelect}
                         </select>
                     </td>
+                    `}
                     <td>
                         <div style="display:flex; align-items:center; gap:4px;">
                             <input type="number" 
@@ -2874,57 +4253,74 @@
                                    min="0" max="900"
                                    onchange="updatePlayerSkill(${player.id}, this.value)"
                                    style="width:55px; text-align:center; padding:4px; border:1px solid ${player.skill ? 'transparent' : '#f59e0b'}; border-radius:4px; background:${player.skill ? 'transparent' : '#fffbeb'};">
-                            ${!player.fargoId ? `<button class="btn btn-small" onclick="linkToFargo(${player.id})" title="Find on FargoRate" style="font-size:0.7rem;padding:2px 4px;">🔍</button>` : ''}
+                            ${showFargoLookup ? `<button class="btn btn-small" onclick="linkToFargo(${player.id})" title="Search FargoRate to find this player's rating" style="font-size:0.7rem;padding:2px 4px;">🔍</button>` : ''}
                         </div>
                     </td>
+                    ${hideSidePot ? '' : `
+                    <td style="text-align:center;">
+                        <input type="checkbox" ${player.inSidePot ? 'checked' : ''} 
+                               onchange="toggleSidePot(${player.id})">
+                    </td>
+                    `}
                     <td style="text-align:center;">
                         <input type="checkbox" ${player.hasPaid ? 'checked' : ''} 
                                onchange="togglePaid(${player.id})">
                     </td>
                     <td style="text-align:center;">
-                        <input type="checkbox" ${player.inSidePot ? 'checked' : ''} 
-                               onchange="toggleSidePot(${player.id})">
+                        <input type="checkbox" ${player.isLate ? 'checked' : ''} 
+                               onchange="toggleLate(${player.id})"
+                               title="Running Late">
                     </td>
                     <td>
-                        <button class="delete-btn" onclick="removePlayer(${player.id})" title="Remove">✕</button>
+                        <button class="edit-btn" onclick="showEditPlayerModal(${player.id})" title="Edit player details">✎</button>
+                        <button class="delete-btn" onclick="removePlayer(${player.id})" title="Remove player from check-in list">✕</button>
                     </td>
                 </tr>
             `;
         });
         
-        // Add empty row for new entry
-        const newRowNum = state.checkedInPlayers.length + 1;
-        html += `
-            <tr class="empty-row" data-row="new">
-                <td class="row-number">${newRowNum}</td>
-                <td>
-                    <div class="inline-autocomplete">
-                        <input type="text" id="newPlayerInput" 
-                               placeholder="Type player name..."
-                               oninput="handleInlinePlayerSearch(this.value)"
-                               onkeydown="handleInlineAutocompleteKeydown(event)"
-                               onfocus="this.select()">
-                        <div class="inline-autocomplete-list" id="inlineAutocompleteList"></div>
-                    </div>
-                </td>
-                <td>
-                    <input type="tel" id="newPlayerPhone" placeholder="Phone" readonly>
-                </td>
-                <td>
-                    <select class="carrier-select" id="newPlayerCarrier" disabled>
-                        ${carrierOptions}
-                    </select>
-                </td>
-                <td class="fargo-display" id="newPlayerFargo">-</td>
-                <td style="text-align:center;">
-                    <input type="checkbox" id="newPlayerPaid">
-                </td>
-                <td style="text-align:center;">
-                    <input type="checkbox" id="newPlayerSidepot">
-                </td>
-                <td></td>
-            </tr>
-        `;
+        // Add empty row for new entry - ONLY for recurring tournaments, not special events
+        if (!isSpecialEvent) {
+            const newRowNum = state.checkedInPlayers.length + 1;
+            html += `
+                <tr class="empty-row" data-row="new">
+                    <td class="row-number">${newRowNum}</td>
+                    <td>
+                        <div class="inline-autocomplete">
+                            <input type="text" id="newPlayerInput" 
+                                   placeholder="Type player name..."
+                                   oninput="handleInlinePlayerSearch(this.value)"
+                                   onkeydown="handleInlineAutocompleteKeydown(event)"
+                                   onfocus="this.select()">
+                            <div class="inline-autocomplete-list" id="inlineAutocompleteList"></div>
+                        </div>
+                    </td>
+                    <td>
+                        <input type="tel" id="newPlayerPhone" placeholder="Phone" readonly>
+                    </td>
+                    ${hideCarrier ? '' : `
+                    <td>
+                        <select class="carrier-select" id="newPlayerCarrier" disabled>
+                            ${carrierOptions}
+                        </select>
+                    </td>
+                    `}
+                    <td class="fargo-display" id="newPlayerFargo">-</td>
+                    ${hideSidePot ? '' : `
+                    <td style="text-align:center;">
+                        <input type="checkbox" id="newPlayerSidepot">
+                    </td>
+                    `}
+                    <td style="text-align:center;">
+                        <input type="checkbox" id="newPlayerPaid">
+                    </td>
+                    <td style="text-align:center;">
+                        <input type="checkbox" id="newPlayerLate" title="Running Late">
+                    </td>
+                    <td></td>
+                </tr>
+            `;
+        }
         
         tbody.innerHTML = html;
         
@@ -2951,12 +4347,16 @@
             
             saveToLocalStorage();
             
-            // Sync to API in background
-            if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+            // Skip sync for teams/special events
+            const isTeamOrSpecialEvent = player.isTeam || player.isSpecialEvent || (player.playerCount && player.playerCount > 1);
+            
+            // Sync to API in background (only for individual players, not teams)
+            if (APPS_SCRIPT_URL && !isTeamOrSpecialEvent) {
                 try {
-                    await fetch(APPS_SCRIPT_URL, {
+                    console.log('Syncing carrier to database:', player.name, carrier);
+                    const response = await fetch(APPS_SCRIPT_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 'Content-Type': 'text/plain' },
                         body: JSON.stringify({
                             action: 'updateCarrier',
                             name: player.name,
@@ -2964,51 +4364,97 @@
                             phone: player.phone
                         })
                     });
-                    showToast('Carrier updated', 'success');
+                    const result = await response.json();
+                    if (result.error) {
+                        console.error('API error updating carrier:', result.error);
+                        showToast('Error saving carrier: ' + result.error, 'error');
+                    } else {
+                        console.log('Carrier synced to database:', result);
+                        showToast('Carrier saved to database', 'success');
+                    }
                 } catch (error) {
-                    console.warn('Could not sync carrier to database:', error);
+                    console.error('Could not sync carrier to database:', error);
+                    showToast('Error saving to database', 'error');
                 }
+            } else if (isTeamOrSpecialEvent) {
+                console.log('Skipping carrier sync for team/special event:', player.name);
             }
         }
     }
     
     function handleInlinePlayerSearch(query) {
+        const input = document.getElementById('newPlayerInput');
         const list = document.getElementById('inlineAutocompleteList');
+        
+        // DEBUG - show what's happening
+        console.log('=== SEARCH TRIGGERED ===');
+        console.log('Query:', query);
+        console.log('Master players loaded:', state.masterPlayers.length);
         
         if (query.length < 2) {
             list.classList.remove('show');
             return;
         }
         
-        // Search master players
+        // Debug: Check if we have players loaded
+        if (state.masterPlayers.length === 0) {
+            console.error('NO MASTER PLAYERS LOADED!');
+            alert('No players loaded! Click the 🔄 Refresh button first.');
+            return;
+        }
+        
+        // Position the dropdown below the input using fixed positioning
+        const rect = input.getBoundingClientRect();
+        list.style.position = 'fixed';
+        list.style.top = (rect.bottom + 2) + 'px';
+        list.style.left = rect.left + 'px';
+        list.style.width = Math.max(rect.width, 350) + 'px';
+        list.style.zIndex = '99999';
+        list.style.background = 'white';
+        list.style.border = '2px solid #16a34a';
+        list.style.boxShadow = '0 8px 24px rgba(0,0,0,0.4)';
+        
+        // Search master players - don't filter by checked in for now
         const matches = state.masterPlayers.filter(p => 
-            p.name.toLowerCase().includes(query.toLowerCase()) &&
-            !state.checkedInPlayers.find(cp => cp.id === p.id)
-        ).slice(0, 8);
+            p.name.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 10);
+        
+        // Debug log
+        console.log(`Found ${matches.length} matches for "${query}"`);
+        if (matches.length > 0) {
+            console.log('First match:', matches[0].name, '- phone:', matches[0].phone);
+        }
         
         if (matches.length === 0) {
             // Show option to add as new player
             list.innerHTML = `
-                <div class="inline-autocomplete-item" onclick="addNewPlayerQuick('${escapeHtml(query)}')">
+                <div class="inline-autocomplete-item" onclick="addNewPlayerQuick('${escapeForJs(query)}')">
                     <div>
                         <div class="player-name">➕ Add "${escapeHtml(query)}" as new player</div>
+                        <div class="player-details">Not found in ${state.masterPlayers.length} players</div>
                     </div>
                 </div>
             `;
             list.classList.add('show');
+            list.style.display = 'block';
             return;
         }
         
-        list.innerHTML = matches.map((p, i) => `
-            <div class="inline-autocomplete-item" onclick="selectInlinePlayer(${p.id})">
+        // Check if already checked in
+        const alreadyCheckedIn = state.checkedInPlayers.map(p => p.originalId || p.id);
+        
+        list.innerHTML = matches.map((p, i) => {
+            const isCheckedIn = alreadyCheckedIn.includes(p.id);
+            return `
+            <div class="inline-autocomplete-item" onclick="selectInlinePlayer(${p.id})" style="${isCheckedIn ? 'opacity:0.5;' : ''}">
                 <div>
-                    <div class="player-name">${highlightMatch(p.name, query)}</div>
-                    <div class="player-details">${p.phone || 'No phone'}</div>
+                    <div class="player-name">${highlightMatch(p.name, query)} ${isCheckedIn ? '<span style="color:#f59e0b;">(checked in)</span>' : ''}</div>
+                    <div class="player-details">${p.phone || '<span style="color:#f59e0b;">No phone</span>'} ${p.skill ? '• Fargo ' + p.skill : ''}</div>
                 </div>
-                ${p.skill ? `<span class="fargo-badge">${p.skill}</span>` : ''}
+                ${p.skill ? `<span class="fargo-badge">${p.skill}</span>` : '<span class="fargo-badge" style="background:#9ca3af;">?</span>'}
             </div>
-        `).join('') + `
-            <div class="inline-autocomplete-item" onclick="addNewPlayerQuick('${escapeHtml(query)}')" style="border-top:2px solid var(--border);">
+        `}).join('') + `
+            <div class="inline-autocomplete-item" onclick="addNewPlayerQuick('${escapeForJs(query)}')" style="border-top:2px solid var(--border); background:#f8fafc;">
                 <div>
                     <div class="player-name" style="color:var(--text-light);">➕ Add "${escapeHtml(query)}" as new player</div>
                 </div>
@@ -3016,6 +4462,8 @@
         `;
         
         list.classList.add('show');
+        list.style.display = 'block';
+        console.log('Dropdown should now be visible');
     }
     
     function handleInlineAutocompleteKeydown(event) {
@@ -3038,6 +4486,7 @@
         
         const hasPaid = document.getElementById('newPlayerPaid')?.checked ?? false;
         const inSidePot = document.getElementById('newPlayerSidepot')?.checked ?? false;
+        const isLate = document.getElementById('newPlayerLate')?.checked ?? false;
         
         // Create the checked-in player entry
         const checkedInPlayer = {
@@ -3047,10 +4496,12 @@
             checkedInAt: new Date().toISOString(),
             hasPaid: hasPaid,
             inSidePot: inSidePot,
+            isLate: isLate,
             carrier: player.carrier || '', // Copy carrier from master
             calcuttaBuyer: '',
             calcuttaBid: 0,
-            calcuttaPaid: false
+            calcuttaPaid: false,
+            isSpecialEvent: player.isSpecialEvent || false // Preserve special event flag
         };
         
         // Add to checked-in players
@@ -3071,8 +4522,9 @@
             }
         }, 50);
         
-        // If player has fargoId, auto-refresh their rating in background
-        if (player.fargoId) {
+        // If player has fargoId and is NOT a special event, auto-refresh their rating in background
+        // Special events use the rating at time of registration, not current rating
+        if (player.fargoId && !player.isSpecialEvent) {
             autoRefreshFargoRating(checkedInPlayer.id, player.fargoId, player.name);
         }
         
@@ -3120,13 +4572,15 @@
     function addNewPlayerQuick(name) {
         const hasPaid = document.getElementById('newPlayerPaid')?.checked ?? false;
         const inSidePot = document.getElementById('newPlayerSidepot')?.checked ?? false;
+        const isLate = document.getElementById('newPlayerLate')?.checked ?? false;
         
         // Store for FargoRate lookup
         state.pendingNewPlayer = {
             name: name.trim(),
             phone: '',
             hasPaid: hasPaid,
-            inSidePot: inSidePot
+            inSidePot: inSidePot,
+            isLate: isLate
         };
         
         // Hide autocomplete
@@ -3150,6 +4604,15 @@
         }
     }
     
+    function toggleLate(playerId) {
+        const player = state.checkedInPlayers.find(p => p.id === playerId);
+        if (player) {
+            player.isLate = !player.isLate;
+            saveToLocalStorage();
+            updateAllDisplays();
+        }
+    }
+    
     function updateTournamentSettings() {
         state.settings.entryFee = parseFloat(document.getElementById('entryFeeInput').value) || 15;
         state.settings.sidepotAmount = parseFloat(document.getElementById('sidepotInput').value) || 5;
@@ -3168,24 +4631,31 @@
         if (!container) return;
         
         const paidPlayers = state.checkedInPlayers.filter(p => p.hasPaid).length;
+        const latePlayers = state.checkedInPlayers.filter(p => p.isLate && !p.hasPaid).length;
+        const totalPlayersForPayout = paidPlayers + latePlayers;
         const entryFee = state.settings.entryFee;
-        const prizePool = paidPlayers * entryFee;
+        const collectedPool = paidPlayers * entryFee;
+        const expectedPool = totalPlayersForPayout * entryFee;
         
         if (totalDisplay) {
-            totalDisplay.textContent = `$${prizePool} Prize Pool`;
+            if (latePlayers > 0) {
+                totalDisplay.textContent = `$${collectedPool} collected ($${expectedPool} expected)`;
+            } else {
+                totalDisplay.textContent = `$${collectedPool} Prize Pool`;
+            }
         }
         
-        if (paidPlayers < 4) {
+        if (totalPlayersForPayout < 4) {
             container.innerHTML = `
                 <div class="payout-placeholder">
-                    Need at least 4 paid players for payouts (${paidPlayers} currently)
+                    Need at least 4 players for payouts (${paidPlayers} paid${latePlayers > 0 ? ` + ${latePlayers} late` : ''})
                 </div>
             `;
             return;
         }
         
-        // Calculate payouts
-        const calculator = new TournamentPayoutCalculator(entryFee, paidPlayers);
+        // Calculate payouts based on total expected players
+        const calculator = new TournamentPayoutCalculator(entryFee, totalPlayersForPayout);
         const payouts = calculator.getFormattedPayouts();
         
         if (payouts.error) {
@@ -3241,7 +4711,7 @@
         const showSkill = state.settings.showSkillLevel;
         
         if (players.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No players checked in</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;">No paid or late players to auction</td></tr>';
             return;
         }
         
@@ -3252,7 +4722,8 @@
         
         let html = allPlayers.map((player, index) => {
             const isPool = isPoolBuyer(player.calcuttaBuyer);
-            const rowClass = isPool ? 'pool-row' : (player.calcuttaPaid ? '' : (player.calcuttaBid > 0 ? 'unpaid' : ''));
+            const isSelf = player.calcuttaBuyer === player.name;
+            const rowClass = isPool ? 'pool-row' : '';
             
             return `
             <tr class="${rowClass}">
@@ -3270,12 +4741,19 @@
                                style="width:60px; text-align:center;">
                     ` : '-'}
                 </td>
+                <td style="text-align:center;">
+                    <input type="checkbox" class="player-checkbox"
+                           ${isSelf ? 'checked' : ''}
+                           ${isPool ? 'disabled' : ''}
+                           onchange="toggleSelfBuyer(${player.id}, '${escapeForJs(player.name)}')">
+                </td>
                 <td>
                     <div class="buyer-autocomplete-wrapper">
                         <input type="text" 
                                id="buyerInput_${player.id}"
-                               value="${player.calcuttaBuyer || ''}" 
+                               value="${escapeHtml(player.calcuttaBuyer || '')}" 
                                placeholder="Buyer name"
+                               ${isSelf ? 'readonly style="background:#f0fdf4;"' : ''}
                                oninput="handleBuyerSearch(${player.id}, this.value)"
                                onchange="updateCalcuttaBuyer(${player.id}, this.value)"
                                onblur="setTimeout(() => hideBuyerAutocomplete(${player.id}), 200)"
@@ -3290,27 +4768,128 @@
                            ${isPool ? 'disabled' : ''}
                            onchange="updateCalcuttaBid(${player.id}, this.value)">
                 </td>
-                <td style="text-align:center;">
-                    <input type="checkbox" class="player-checkbox"
-                           ${player.calcuttaPaid ? 'checked' : ''}
-                           ${isPool || player.calcuttaBid <= 0 ? 'disabled' : ''}
-                           onchange="toggleCalcuttaPaid(${player.id})">
-                </td>
             </tr>
         `}).join('');
         
-        // Add Pool row at end if there are pooled players
+        // Add Pool auction row at end if there are pooled players
         if (poolPlayers.length > 0) {
+            const poolBid = state.poolAuction.bid || 0;
+            
             html += `
-                <tr class="pool-summary-row">
-                    <td colspan="5" style="background:#fff3cd; padding:10px; text-align:center; font-weight:600;">
-                        🎱 Pool (${poolPlayers.length} player${poolPlayers.length > 1 ? 's' : ''} to auction as group)
+                <tr class="pool-auction-row" style="background:#fef3c7; border-top:3px solid #f59e0b;">
+                    <td>
+                        <div class="player-name" style="font-weight:600;">🎱 Pool</div>
+                        <small style="color:#92400e;">${poolPlayers.length} player${poolPlayers.length > 1 ? 's' : ''}: ${poolPlayers.map(p => p.name.split(' ')[0]).join(', ')}</small>
+                    </td>
+                    <td style="text-align:center;">-</td>
+                    <td style="text-align:center;">-</td>
+                    <td>
+                        <div class="buyer-autocomplete-wrapper">
+                            <input type="text" 
+                                   id="poolBuyerInput"
+                                   value="${state.poolAuction.buyer || ''}" 
+                                   placeholder="Pool buyer"
+                                   oninput="handlePoolBuyerSearch(this.value)"
+                                   onchange="updatePoolBuyer(this.value)"
+                                   onblur="setTimeout(() => hidePoolBuyerAutocomplete(), 200)"
+                                   autocomplete="off">
+                            <div class="buyer-autocomplete-list" id="poolBuyerList"></div>
+                        </div>
+                    </td>
+                    <td>
+                        <input type="number" value="${poolBid || ''}" 
+                               placeholder="$0"
+                               min="0" step="5"
+                               onchange="updatePoolBid(this.value)">
                     </td>
                 </tr>
             `;
         }
         
         tbody.innerHTML = html;
+    }
+    
+    // Pool auction functions
+    function handlePoolBuyerSearch(query) {
+        const list = document.getElementById('poolBuyerList');
+        
+        if (query.length < 1) {
+            list.classList.remove('show');
+            list.style.display = 'none';
+            return;
+        }
+        
+        // Get all unique names from buyers and players
+        const existingBuyers = [...new Set(state.checkedInPlayers
+            .map(p => p.calcuttaBuyer)
+            .filter(b => b && b.trim() && !isPoolBuyer(b))
+        )];
+        
+        const allNames = [...new Set([
+            ...state.masterPlayers.map(p => p.name),
+            ...state.checkedInPlayers.map(p => p.name),
+            ...existingBuyers
+        ])];
+        
+        const matches = allNames.filter(name => 
+            name.toLowerCase().includes(query.toLowerCase())
+        ).slice(0, 8);
+        
+        // Use mousedown instead of onclick (fires before blur)
+        let html = matches.map(name => `
+            <div class="buyer-option" onmousedown="event.preventDefault(); selectPoolBuyer('${escapeForJs(name)}')">${escapeHtml(name)}</div>
+        `).join('');
+        
+        if (!matches.some(m => m.toLowerCase() === query.toLowerCase())) {
+            html += `<div class="buyer-option free-entry" onmousedown="event.preventDefault(); selectPoolBuyer('${escapeForJs(query)}')">
+                Add "${escapeHtml(query)}" as new buyer
+            </div>`;
+        }
+        
+        list.innerHTML = html;
+        list.classList.add('show');
+        list.style.display = 'block';
+    }
+    
+    function hidePoolBuyerAutocomplete() {
+        const list = document.getElementById('poolBuyerList');
+        if (list) {
+            list.classList.remove('show');
+            list.style.display = 'none';
+        }
+    }
+    
+    function selectPoolBuyer(buyerName) {
+        console.log('selectPoolBuyer called:', buyerName);
+        const input = document.getElementById('poolBuyerInput');
+        if (input) {
+            input.value = buyerName;
+        }
+        hidePoolBuyerAutocomplete();
+        updatePoolBuyer(buyerName);
+    }
+    
+    function updatePoolBuyer(buyer) {
+        state.poolAuction.buyer = buyer;
+        saveToLocalStorage();
+        updateCalcuttaSummary();
+        updateBuyersSummary();
+    }
+    
+    function updatePoolBid(bid) {
+        state.poolAuction.bid = parseFloat(bid) || 0;
+        saveToLocalStorage();
+        renderCalcuttaTable();
+        updateCalcuttaSummary();
+        updateBuyersSummary();
+    }
+    
+    function togglePoolPaid() {
+        state.poolAuction.paid = !state.poolAuction.paid;
+        saveToLocalStorage();
+        updateCalcuttaSummary();
+        updateBuyersSummary();
+        renderCalcuttaTable();
     }
     
     // Check if buyer is "Pool" (case insensitive)
@@ -3345,6 +4924,7 @@
         
         if (query.length < 1) {
             list.classList.remove('show');
+            list.style.display = 'none';
             return;
         }
         
@@ -3365,30 +4945,53 @@
             name.toLowerCase().includes(query.toLowerCase())
         ).slice(0, 8);
         
-        // Build options
+        // Build options - use mousedown instead of onclick (fires before blur)
         let html = matches.map(name => `
-            <div class="buyer-option" onclick="selectBuyer(${playerId}, '${escapeHtml(name)}')">${escapeHtml(name)}</div>
+            <div class="buyer-option" onmousedown="event.preventDefault(); selectBuyer(${playerId}, '${escapeForJs(name)}')">${escapeHtml(name)}</div>
         `).join('');
         
         // Add free entry option if query doesn't match exactly
         if (!matches.some(m => m.toLowerCase() === query.toLowerCase())) {
-            html += `<div class="buyer-option free-entry" onclick="selectBuyer(${playerId}, '${escapeHtml(query)}')">
+            html += `<div class="buyer-option free-entry" onmousedown="event.preventDefault(); selectBuyer(${playerId}, '${escapeForJs(query)}')">
                 Add "${escapeHtml(query)}" as new buyer
             </div>`;
         }
         
         list.innerHTML = html;
         list.classList.add('show');
+        list.style.display = 'block';
     }
     
     function selectBuyer(playerId, buyerName) {
-        document.getElementById('buyerInput_' + playerId).value = buyerName;
-        document.getElementById('buyerList_' + playerId).classList.remove('show');
+        console.log('selectBuyer called:', playerId, buyerName);
+        const input = document.getElementById('buyerInput_' + playerId);
+        const list = document.getElementById('buyerList_' + playerId);
+        
+        // First update the input value directly
+        if (input) {
+            input.value = buyerName;
+            console.log('Set input value to:', buyerName);
+        } else {
+            console.error('Could not find buyerInput_' + playerId);
+            return;
+        }
+        
+        // Hide the dropdown
+        if (list) {
+            list.classList.remove('show');
+            list.style.display = 'none';
+        }
+        
+        // Update player data
         updateCalcuttaBuyer(playerId, buyerName);
     }
     
     function hideBuyerAutocomplete(playerId) {
-        document.getElementById('buyerList_' + playerId).classList.remove('show');
+        const list = document.getElementById('buyerList_' + playerId);
+        if (list) {
+            list.classList.remove('show');
+            list.style.display = 'none';
+        }
     }
     
     function updateBuyersSummary() {
@@ -3427,10 +5030,24 @@
     }
     
     function updateCalcuttaSummary() {
-        const totalBids = state.checkedInPlayers.reduce((sum, p) => sum + (p.calcuttaBid || 0), 0);
-        const unpaidBids = state.checkedInPlayers
-            .filter(p => p.calcuttaBid > 0 && !p.calcuttaPaid)
+        // Only count bids from paid or late players (those visible in Calcutta)
+        const eligiblePlayers = state.checkedInPlayers.filter(p => p.hasPaid || p.isLate);
+        
+        // Sum regular bids (not pool players)
+        const regularBids = eligiblePlayers
+            .filter(p => !isPoolBuyer(p.calcuttaBuyer))
+            .reduce((sum, p) => sum + (p.calcuttaBid || 0), 0);
+        
+        // Add pool bid
+        const poolBid = state.poolAuction.bid || 0;
+        const totalBids = regularBids + poolBid;
+        
+        // Calculate unpaid
+        const unpaidRegular = eligiblePlayers
+            .filter(p => p.calcuttaBid > 0 && !p.calcuttaPaid && !isPoolBuyer(p.calcuttaBuyer))
             .reduce((sum, p) => sum + p.calcuttaBid, 0);
+        const unpaidPool = (poolBid > 0 && !state.poolAuction.paid) ? poolBid : 0;
+        const unpaidBids = unpaidRegular + unpaidPool;
         
         document.getElementById('calcuttaTotal').textContent = '$' + totalBids.toFixed(0);
         document.getElementById('calcuttaUnpaid').textContent = '$' + unpaidBids.toFixed(0);
@@ -3439,7 +5056,8 @@
     function updateSummaryCards() {
         const checkedIn = state.checkedInPlayers.length;
         const paidPlayers = state.checkedInPlayers.filter(p => p.hasPaid);
-        const unpaidPlayers = state.checkedInPlayers.filter(p => !p.hasPaid);
+        const latePlayers = state.checkedInPlayers.filter(p => p.isLate && !p.hasPaid);
+        const unpaidPlayers = state.checkedInPlayers.filter(p => !p.hasPaid && !p.isLate);
         const sidepotPlayers = state.checkedInPlayers.filter(p => p.inSidePot);
         
         const entryCollected = paidPlayers.length * state.settings.entryFee;
@@ -3451,7 +5069,14 @@
         const sidepotCollectedEl = document.getElementById('sidepotCollected');
         const unpaidEntriesEl = document.getElementById('unpaidEntries');
         
-        if (totalPlayersEl) totalPlayersEl.textContent = checkedIn;
+        // Show total players including late
+        if (totalPlayersEl) {
+            if (latePlayers.length > 0) {
+                totalPlayersEl.innerHTML = `${paidPlayers.length} <small style="font-size:0.6em;opacity:0.8;">+${latePlayers.length} late</small>`;
+            } else {
+                totalPlayersEl.textContent = checkedIn;
+            }
+        }
         if (totalCollectedEl) totalCollectedEl.textContent = '$' + entryCollected;
         if (sidepotCollectedEl) sidepotCollectedEl.textContent = '$' + sidepotTotal;
         if (unpaidEntriesEl) unpaidEntriesEl.textContent = unpaidPlayers.length;
@@ -3468,6 +5093,144 @@
         // Update calcutta summary
         updateCalcuttaSummary();
     }
+    
+    // Download CSV of paid and late players
+    function downloadPlayersCSV() {
+        // Get paid and late players
+        const eligiblePlayers = state.checkedInPlayers.filter(p => p.hasPaid || p.isLate);
+        
+        if (eligiblePlayers.length === 0) {
+            showToast('No paid or late players to export', 'error');
+            return;
+        }
+        
+        // Sort by skill level (highest to lowest)
+        eligiblePlayers.sort((a, b) => (b.skill || 0) - (a.skill || 0));
+        
+        // Build CSV content
+        let csv = 'name,phone_number,skill_level\n';
+        
+        eligiblePlayers.forEach(player => {
+            const name = player.name || '';
+            // Extract just digits from phone number
+            const phoneDigits = (player.phone || '').replace(/\D/g, '');
+            const skill = player.skill || '';
+            
+            // Escape name if it contains commas
+            const escapedName = name.includes(',') ? `"${name}"` : name;
+            
+            csv += `${escapedName},${phoneDigits},${skill}\n`;
+        });
+        
+        // Create and trigger download
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        
+        // Generate filename with date
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const filename = `tournament_players_${dateStr}.csv`;
+        
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast(`Downloaded ${eligiblePlayers.length} players to CSV`, 'success');
+        
+        // Schedule GitHub workflow trigger for 10 minutes from now
+        scheduleWorkflowTrigger();
+    }
+    
+    // Schedule the GitHub Actions workflow to run after 10 minutes
+    let workflowTimerId = null;
+    
+    function scheduleWorkflowTrigger() {
+        // Cancel any existing scheduled trigger
+        if (workflowTimerId) {
+            clearTimeout(workflowTimerId);
+            console.log('Cancelled previous workflow timer');
+        }
+        
+        const delayMinutes = 10;
+        const delayMs = delayMinutes * 60 * 1000;
+        
+        // Calculate trigger time for display
+        const triggerTime = new Date(Date.now() + delayMs);
+        const timeStr = triggerTime.toLocaleTimeString();
+        
+        console.log(`Workflow scheduled to trigger at ${timeStr} (in ${delayMinutes} minutes)`);
+        showToast(`Display update scheduled for ${timeStr}`, 'info');
+        
+        workflowTimerId = setTimeout(async () => {
+            console.log('Timer fired - triggering GitHub workflow...');
+            await triggerGitHubWorkflow();
+            workflowTimerId = null;
+        }, delayMs);
+    }
+    
+    // Trigger the GitHub Actions workflow
+    async function triggerGitHubWorkflow() {
+        if (!GITHUB_CONFIG.token) {
+            console.error('GitHub token not configured. Please add your token to GITHUB_CONFIG.token');
+            showToast('GitHub token not configured', 'error');
+            return false;
+        }
+        
+        const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/actions/workflows/${GITHUB_CONFIG.workflow}/dispatches`;
+        
+        try {
+            console.log('Triggering GitHub workflow:', url);
+            
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/vnd.github.v3+json',
+                    'Authorization': `token ${GITHUB_CONFIG.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    ref: GITHUB_CONFIG.branch
+                })
+            });
+            
+            if (response.status === 204) {
+                console.log('GitHub workflow triggered successfully!');
+                showToast('Tournament display update triggered!', 'success');
+                return true;
+            } else {
+                const errorText = await response.text();
+                console.error('GitHub API error:', response.status, errorText);
+                showToast(`Failed to trigger workflow: ${response.status}`, 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error triggering GitHub workflow:', error);
+            showToast('Error triggering workflow', 'error');
+            return false;
+        }
+    }
+    
+    // Manual trigger function (can be called from console)
+    window.triggerWorkflowNow = async function() {
+        console.log('Manual workflow trigger requested');
+        return await triggerGitHubWorkflow();
+    };
+    
+    // Cancel scheduled workflow
+    window.cancelScheduledWorkflow = function() {
+        if (workflowTimerId) {
+            clearTimeout(workflowTimerId);
+            workflowTimerId = null;
+            console.log('Scheduled workflow cancelled');
+            showToast('Scheduled update cancelled', 'info');
+        } else {
+            console.log('No workflow scheduled');
+        }
+    };
     
     // Link existing player to FargoRate
     function linkToFargo(playerId) {
@@ -3557,14 +5320,14 @@
         
         console.log('Export data:', exportData);
         
-        if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== 'YOUR_DEPLOYED_APPS_SCRIPT_URL_HERE') {
+        if (APPS_SCRIPT_URL) {
             try {
                 showToast('Exporting to Google Sheet...', 'info');
                 
                 const response = await fetch(APPS_SCRIPT_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'text/plain',
                     },
                     body: JSON.stringify(exportData)
                 });
@@ -3587,24 +5350,50 @@
     }
     
     function clearAllData() {
-        if (confirm('Clear all data and start a new tournament? This cannot be undone.')) {
+        if (confirm('Clear all data for the current tournament? This cannot be undone.\n\nNote: Other saved tournaments will not be affected.')) {
             state.checkedInPlayers = [];
+            state.poolAuction = { buyer: '', bid: 0, paid: false };
+            
+            // Also clear the tournament-specific saved data
+            clearTournamentData();
+            
             saveToLocalStorage();
             updateAllDisplays();
-            showToast('All data cleared', 'success');
+            showToast('Tournament data cleared', 'success');
         }
     }
+    
+    // Clear ALL saved tournament data (use with caution)
+    window.clearAllSavedTournaments = function() {
+        if (confirm('This will delete ALL saved tournament data. Are you sure?')) {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('tournamentData_')) {
+                    keysToRemove.push(key);
+                }
+            }
+            keysToRemove.forEach(key => localStorage.removeItem(key));
+            console.log('Cleared', keysToRemove.length, 'saved tournaments');
+            showToast(`Cleared ${keysToRemove.length} saved tournaments`, 'success');
+        }
+    };
     
     // ============================================================================
     // UI HELPERS
     // ============================================================================
     
     function switchTab(tabId) {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        // Remove active from both old tabs and new sidebar tabs
+        document.querySelectorAll('.tab, .sidebar-tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         
-        document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
-        document.getElementById('tab-' + tabId).classList.add('active');
+        // Add active to the correct tab
+        const tab = document.querySelector(`[data-tab="${tabId}"]`);
+        if (tab) tab.classList.add('active');
+        
+        const content = document.getElementById('tab-' + tabId);
+        if (content) content.classList.add('active');
     }
     
     function closeModal(modalId) {
@@ -3612,12 +5401,17 @@
     }
     
     function showLoading(containerId) {
-        document.getElementById(containerId).innerHTML = `
-            <div class="loading">
-                <div class="spinner"></div>
-                Loading...
-            </div>
-        `;
+        const container = document.getElementById(containerId);
+        if (container) {
+            container.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Loading...
+                </div>
+            `;
+        }
+        // Also show a toast for visibility
+        console.log('Loading...');
     }
     
     function showToast(message, type = 'info') {
