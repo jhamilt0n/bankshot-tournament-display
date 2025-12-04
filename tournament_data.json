@@ -1,15 +1,14 @@
 {
-  "tournament_name": "2025/12/3 Wednesday Night 9-Ball Tournament",
+  "tournament_name": "No tournaments to display",
   "tournament_url": null,
-  "venue": "Bankshot Billiards, Hilliard",
-  "date": "2025/12/03",
+  "venue": null,
+  "date": null,
   "start_time": null,
-  "status": "In Progress",
-  "player_count": 19,
+  "status": null,
   "entry_fee": 15,
   "format_type": "Singles",
   "has_digital_pool_payouts": false,
   "digital_pool_payouts": {},
-  "last_updated": "2025-12-04 03:15:50",
-  "display_tournament": true
+  "last_updated": "2025-12-04 04:26:21",
+  "display_tournament": false
 }
