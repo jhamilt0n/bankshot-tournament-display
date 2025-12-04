@@ -159,20 +159,67 @@ def extract_date_from_text(text):
     if not text:
         return None
     
+    # Try YYYY/MM/DD format first
     match = re.search(r'(\d{4}/\d{2}/\d{2})', text)
     if match:
         return match.group(1)
     
+    # Try YYYY-MM-DD format
     match = re.search(r'(\d{4}-\d{2}-\d{2})', text)
     if match:
         return match.group(1).replace('-', '/')
     
+    # Try YYYYMMDD format (8 digits)
     match = re.search(r'(\d{8})(?:\s|/|-|$)', text)
     if match:
         date_str = match.group(1)
         return f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:8]}"
     
+    # Try YYYYMMD or YYYYMDD format (7 digits - Digital Pool format without leading zeros)
+    match = re.search(r'(\d{7})(?:\s|/|-|$)', text)
+    if match:
+        date_str = match.group(1)
+        # Could be YYYYMMD (month has 2 digits, day has 1) or YYYYMDD (month has 1 digit, day has 2)
+        year = date_str[:4]
+        rest = date_str[4:]  # 3 digits for month+day
+        
+        # Try to parse intelligently - if rest starts with 1, could be month 1, 10, 11, or 12
+        if rest[0] == '1' and int(rest[1:]) <= 31:
+            # Could be month 1X with day Y, or month 1 with day XY
+            # Check if it makes sense as month 10, 11, or 12
+            if rest[1] in '012' and int(rest[2]) <= 9:
+                month = rest[:2]
+                day = rest[2]
+            else:
+                month = rest[0]
+                day = rest[1:]
+        else:
+            month = rest[0]
+            day = rest[1:]
+        
+        return f"{year}/{int(month):02d}/{int(day):02d}"
+    
     return None
+
+
+def format_date_for_url(date_str):
+    """Format date for Digital Pool URL (no leading zeros): YYYY/MM/DD -> YYYYMD"""
+    if not date_str:
+        return None
+    
+    try:
+        # Parse the date
+        parts = date_str.split('/')
+        if len(parts) == 3:
+            year = parts[0]
+            month = str(int(parts[1]))  # Remove leading zero
+            day = str(int(parts[2]))    # Remove leading zero
+            return f"{year}{month}{day}"
+    except:
+        pass
+    
+    # Fallback: just remove slashes
+    return date_str.replace('/', '')
 
 
 def is_valid_player_name(name):
@@ -537,10 +584,12 @@ def search_tournaments(driver):
                 if not tournament_url and tournament_date and tournament_name:
                     name_for_slug = re.sub(r'^\d{4}[/-]\d{2}[/-]\d{2}\s*', '', tournament_name)
                     name_for_slug = re.sub(r'^\d{8}\s*', '', name_for_slug)
-                    date_no_slashes = tournament_date.replace('/', '').replace('-', '')
+                    name_for_slug = re.sub(r'^\d{7}\s*', '', name_for_slug)  # Also remove 7-digit dates
+                    # Use format without leading zeros for Digital Pool URLs
+                    date_for_url = format_date_for_url(tournament_date)
                     name_slug = re.sub(r'[^a-z0-9-]', '', name_for_slug.lower().replace(' ', '-'))
                     name_slug = re.sub(r'-+', '-', name_slug).strip('-')
-                    tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
+                    tournament_url = f"https://digitalpool.com/tournaments/{date_for_url}-{name_slug}/"
                 
                 # Check if this tournament is within the last week
                 if tournament_date:
