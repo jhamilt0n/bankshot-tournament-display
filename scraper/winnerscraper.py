@@ -1,413 +1,544 @@
 #!/usr/bin/env python3
 """
 Digital Pool Tournament Winner Scraper
-Scrapes Bankshot Billiards tournaments from digitalpool.com
-and returns top 3 finishers from the most recent tournament(s).
-Also generates a themed HTML display page.
+Based on working bankshot_monitor_multi.py
+Extracts top 3 finishers from completed Bankshot Billiards tournaments
 """
 
-import asyncio
+import datetime
+import time
 import json
+import sys
 import re
+import logging
+import random
 import os
-from datetime import datetime
-from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeout
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 
 
-class DigitalPoolScraper:
-    def __init__(self):
-        self.base_url = "https://digitalpool.com"
-        self.results = {
-            "scrape_date": datetime.now().isoformat(),
-            "search_term": "Bankshot Billiards",
-            "tournaments": []
-        }
+# Configuration
+VENUE_NAME = "Bankshot Billiards"
+VENUE_CITY = "Hilliard"
+
+
+def setup_logging():
+    """Configure logging"""
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    logger.handlers = []
     
-    async def run(self):
-        """Main entry point for the scraper."""
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                headless=True,
-                args=['--no-sandbox', '--disable-setuid-sandbox']
-            )
-            context = await browser.new_context(
-                viewport={"width": 1920, "height": 1080},
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-            )
-            page = await context.new_page()
+    console_handler = logging.StreamHandler()
+    formatter = logging.Formatter('[%(asctime)s] %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
+    console_handler.setFormatter(formatter)
+    logger.addHandler(console_handler)
+    
+    return logger
+
+
+logger = setup_logging()
+
+
+def log(message):
+    logging.info(message)
+
+
+def human_delay(min_seconds=1, max_seconds=3):
+    """Add random delay to simulate human behavior"""
+    delay = random.uniform(min_seconds, max_seconds)
+    time.sleep(delay)
+
+
+def simulate_human_scrolling(driver):
+    """Simulate human-like scrolling behavior"""
+    try:
+        total_height = driver.execute_script("return document.body.scrollHeight")
+        viewport_height = driver.execute_script("return window.innerHeight")
+        
+        current_position = 0
+        scroll_increment = viewport_height // 3
+        
+        while current_position < total_height:
+            scroll_by = random.randint(scroll_increment, scroll_increment * 2)
+            current_position += scroll_by
+            driver.execute_script(f"window.scrollTo(0, {current_position});")
+            time.sleep(random.uniform(0.3, 0.8))
             
-            try:
-                await self.scrape_tournaments(page)
-            except Exception as e:
-                print(f"Error during scraping: {e}")
-                self.results["error"] = str(e)
-            finally:
-                await browser.close()
+            if random.random() < 0.2:
+                back_scroll = random.randint(50, 150)
+                current_position -= back_scroll
+                driver.execute_script(f"window.scrollTo(0, {current_position});")
+                time.sleep(random.uniform(0.2, 0.5))
         
-        return self.results
+        driver.execute_script("window.scrollTo(0, 0);")
+        time.sleep(random.uniform(0.5, 1.0))
+    except Exception:
+        pass
+
+
+def setup_driver(headless=True):
+    """Set up Chrome driver with anti-detection measures"""
+    chrome_options = Options()
     
-    async def scrape_tournaments(self, page):
-        """Navigate to tournaments and find Bankshot Billiards events."""
-        print("Navigating to Digital Pool tournaments page...")
-        
-        # Try multiple times with different wait strategies
-        for attempt in range(3):
-            try:
-                if attempt == 0:
-                    await page.goto(f"{self.base_url}/tournaments", wait_until="domcontentloaded", timeout=30000)
-                else:
-                    await page.goto(f"{self.base_url}/tournaments", wait_until="load", timeout=45000)
-                
-                # Wait for page to stabilize and JavaScript to render
-                await page.wait_for_timeout(5000)
-                
-                # Check if page loaded properly
-                content = await page.content()
-                if "tournament" in content.lower() or "digitalpool" in content.lower():
-                    print(f"Page loaded successfully on attempt {attempt + 1}")
-                    break
-            except Exception as e:
-                print(f"Attempt {attempt + 1} failed: {e}")
-                if attempt == 2:
-                    raise
-                await page.wait_for_timeout(2000)
-        
-        print("Searching for Bankshot Billiards...")
-        await self.search_for_venue(page, "Bankshot Billiards")
-        
-        tournament_links = await self.find_tournament_links(page)
-        print(f"Found {len(tournament_links)} tournament links")
-        
-        if not tournament_links:
-            print("No tournament links found via search, trying alternative methods...")
-            tournament_links = await self.find_links_by_text(page, "Bankshot")
-        
-        tournaments_by_date = {}
-        
-        for link in tournament_links[:20]:
-            tournament_data = await self.get_tournament_details(page, link)
-            if tournament_data:
-                date_key = tournament_data.get("date", "unknown")
-                if date_key not in tournaments_by_date:
-                    tournaments_by_date[date_key] = []
-                tournaments_by_date[date_key].append(tournament_data)
-        
-        if tournaments_by_date:
-            sorted_dates = sorted(
-                [d for d in tournaments_by_date.keys() if d != "unknown"],
-                reverse=True
-            )
-            
-            if sorted_dates:
-                most_recent_date = sorted_dates[0]
-                self.results["most_recent_date"] = most_recent_date
-                self.results["tournaments"] = tournaments_by_date[most_recent_date]
-                print(f"\nMost recent tournament date: {most_recent_date}")
-                print(f"Number of tournaments on this date: {len(self.results['tournaments'])}")
-            else:
-                all_tournaments = []
-                for tournaments in tournaments_by_date.values():
-                    all_tournaments.extend(tournaments)
-                self.results["tournaments"] = all_tournaments[:5]
+    if headless:
+        chrome_options.add_argument('--headless=new')
     
-    async def search_for_venue(self, page, venue_name):
-        """Search for a specific venue in the tournaments page."""
-        search_selectors = [
-            'input[placeholder*="Search"]',
-            'input[placeholder*="search"]',
-            'input[type="search"]',
-            'input[name="search"]',
-            'input[name="q"]',
-            '.ant-input',
-            'input.search',
-            '#search-input'
+    chrome_options.add_argument('--no-sandbox')
+    chrome_options.add_argument('--disable-dev-shm-usage')
+    chrome_options.add_argument('--disable-gpu')
+    chrome_options.add_argument('--start-maximized')
+    chrome_options.add_argument('--disable-extensions')
+    
+    width = random.randint(1920, 1930)
+    height = random.randint(1080, 1090)
+    chrome_options.add_argument(f'--window-size={width},{height}')
+    
+    chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
+    chrome_options.add_argument('--disable-blink-features=AutomationControlled')
+    chrome_options.add_argument('--lang=en-US')
+    
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation", "enable-logging"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    
+    prefs = {
+        "profile.default_content_setting_values.notifications": 2,
+        "credentials_enable_service": False,
+        "profile.password_manager_enabled": False,
+    }
+    chrome_options.add_experimental_option("prefs", prefs)
+    
+    try:
+        # Try different chromedriver locations
+        chromedriver_paths = [
+            '/usr/bin/chromedriver',
+            '/usr/local/bin/chromedriver',
+            'chromedriver',
         ]
         
-        for selector in search_selectors:
+        driver = None
+        for path in chromedriver_paths:
             try:
-                search_input = await page.wait_for_selector(selector, timeout=3000)
-                if search_input:
-                    await search_input.click()
-                    await search_input.fill(venue_name)
-                    await page.keyboard.press("Enter")
-                    await page.wait_for_timeout(3000)
-                    print(f"Searched using selector: {selector}")
-                    return True
-            except PlaywrightTimeout:
+                service = Service(executable_path=path)
+                driver = webdriver.Chrome(service=service, options=chrome_options)
+                break
+            except Exception:
                 continue
         
-        print("No search input found")
-        return False
-    
-    async def find_tournament_links(self, page):
-        """Find all tournament links on the current page."""
-        links = []
+        if not driver:
+            # Let Selenium find chromedriver automatically
+            driver = webdriver.Chrome(options=chrome_options)
         
-        selectors = [
-            'a[href*="/tournaments/"]',
-            'a[href*="/tournament/"]',
-            '.tournament-link',
-            '.ant-table-row a',
-            'tr a[href*="tournament"]'
-        ]
+        # Anti-detection JavaScript
+        driver.execute_cdp_cmd('Network.setUserAgentOverride', {
+            "userAgent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        })
         
-        for selector in selectors:
-            try:
-                elements = await page.query_selector_all(selector)
-                for elem in elements:
-                    href = await elem.get_attribute("href")
-                    if href and "/tournaments/" in href:
-                        try:
-                            row = await elem.evaluate("el => el.closest('tr, .ant-table-row, .tournament-card, div')")
-                            text = await page.evaluate("el => el ? el.innerText : ''", row)
-                            if "Bankshot" in text or "bankshot" in text.lower():
-                                links.append(href)
-                        except:
-                            links.append(href)
-            except:
-                continue
+        stealth_js = """
+        Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
+        Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en'] });
+        window.chrome = { runtime: {} };
+        """
+        driver.execute_script(stealth_js)
         
-        return list(set(links))
-    
-    async def find_links_by_text(self, page, text_pattern):
-        """Find links by searching page text content."""
-        links = []
-        
-        try:
-            all_links = await page.query_selector_all('a')
-            for link in all_links:
-                try:
-                    href = await link.get_attribute("href")
-                    inner_text = await link.inner_text()
-                    if href and text_pattern.lower() in inner_text.lower():
-                        if "/tournaments/" in href or "/tournament/" in href:
-                            links.append(href)
-                except:
-                    continue
-        except Exception as e:
-            print(f"Error finding links by text: {e}")
-        
-        return list(set(links))
-    
-    async def get_tournament_details(self, page, link):
-        """Get details for a specific tournament including top 3 finishers."""
-        full_url = link if link.startswith("http") else f"{self.base_url}{link}"
-        print(f"\nFetching tournament: {full_url}")
-        
-        try:
-            await page.goto(full_url, wait_until="domcontentloaded", timeout=30000)
-            await page.wait_for_timeout(3000)
-            
-            tournament = {
-                "url": full_url,
-                "name": "",
-                "date": "",
-                "top_3": []
-            }
-            
-            tournament["name"] = await self.extract_tournament_name(page)
-            tournament["date"] = await self.extract_tournament_date(page)
-            tournament["top_3"] = await self.extract_top_3(page)
-            
-            if tournament["top_3"]:
-                print(f"  Name: {tournament['name']}")
-                print(f"  Date: {tournament['date']}")
-                print(f"  Top 3: {[p['name'] for p in tournament['top_3']]}")
-                return tournament
-            else:
-                print(f"  Could not extract standings")
-                return None
-                
-        except Exception as e:
-            print(f"  Error: {e}")
-            return None
-    
-    async def extract_tournament_name(self, page):
-        """Extract tournament name from the page."""
-        selectors = ['h1', 'h2', '.tournament-title', '.tournament-name', '[class*="title"]']
-        
-        for selector in selectors:
-            try:
-                elem = await page.query_selector(selector)
-                if elem:
-                    text = await elem.inner_text()
-                    if text and len(text) > 3:
-                        return text.strip()
-            except:
-                continue
-        
-        try:
-            return await page.title()
-        except:
-            return "Unknown Tournament"
-    
-    async def extract_tournament_date(self, page):
-        """Extract tournament date from the page."""
-        date_selectors = ['[class*="date"]', 'time', '.tournament-date', 'span:has-text("202")']
-        
-        for selector in date_selectors:
-            try:
-                elem = await page.query_selector(selector)
-                if elem:
-                    text = await elem.inner_text()
-                    date = self.parse_date(text)
-                    if date:
-                        return date
-            except:
-                continue
-        
-        try:
-            body_text = await page.inner_text("body")
-            date_patterns = [
-                r'(\d{1,2}/\d{1,2}/\d{4})',
-                r'(\d{4}-\d{2}-\d{2})',
-                r'((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]* \d{1,2},? \d{4})',
-            ]
-            
-            for pattern in date_patterns:
-                match = re.search(pattern, body_text)
-                if match:
-                    return match.group(1)
-        except:
-            pass
-        
-        return "unknown"
-    
-    def parse_date(self, text):
-        """Try to parse a date string."""
-        if not text:
-            return None
-        
-        formats = ["%m/%d/%Y", "%Y-%m-%d", "%B %d, %Y", "%b %d, %Y", "%d %B %Y", "%d %b %Y"]
-        
-        for fmt in formats:
-            try:
-                dt = datetime.strptime(text.strip(), fmt)
-                return dt.strftime("%Y-%m-%d")
-            except:
-                continue
-        
+        return driver
+    except Exception as e:
+        log(f"Error setting up ChromeDriver: {e}")
+        raise
+
+
+def extract_date_from_text(text):
+    """Extract date from text, handling multiple formats"""
+    if not text:
         return None
     
-    async def extract_top_3(self, page):
-        """Extract top 3 finishers from tournament standings."""
+    match = re.search(r'(\d{4}/\d{2}/\d{2})', text)
+    if match:
+        return match.group(1)
+    
+    match = re.search(r'(\d{4}-\d{2}-\d{2})', text)
+    if match:
+        return match.group(1).replace('-', '/')
+    
+    match = re.search(r'(\d{8})(?:\s|/|-|$)', text)
+    if match:
+        date_str = match.group(1)
+        return f"{date_str[:4]}/{date_str[4:6]}/{date_str[6:8]}"
+    
+    return None
+
+
+def get_top_3_from_tournament(driver, tournament_url):
+    """Extract top 3 finishers from a tournament page"""
+    try:
+        log(f"Fetching standings from: {tournament_url}")
+        driver.get(tournament_url)
+        human_delay(3, 5)
+        simulate_human_scrolling(driver)
+        
         top_3 = []
         
+        # Try clicking on "Standings" tab if it exists
         try:
-            row_selectors = [
-                'table tbody tr',
-                '.ant-table-row',
-                '[class*="standing"] [class*="row"]',
-                '[class*="result"] [class*="row"]',
-                '[class*="rank"]'
-            ]
-            
-            for selector in row_selectors:
-                rows = await page.query_selector_all(selector)
+            standings_tab = driver.find_element(By.XPATH, "//div[contains(text(), 'Standings')]")
+            standings_tab.click()
+            human_delay(2, 3)
+        except NoSuchElementException:
+            pass
+        
+        # Method 1: Try to find standings table
+        standings_xpaths = [
+            "//table[contains(@class, 'standings')]//tbody//tr",
+            "//div[contains(@class, 'standings')]//tr",
+            "//div[contains(@class, 'ant-table')]//tbody//tr",
+            "//table//tbody//tr",
+        ]
+        
+        for xpath in standings_xpaths:
+            try:
+                rows = driver.find_elements(By.XPATH, xpath)
                 if len(rows) >= 3:
                     for i, row in enumerate(rows[:3]):
-                        text = await row.inner_text()
-                        name = self.extract_player_name(text)
-                        if name:
-                            top_3.append({"place": i + 1, "name": name})
+                        try:
+                            cells = row.find_elements(By.TAG_NAME, "td")
+                            if cells:
+                                player_name = None
+                                for cell in cells[:3]:
+                                    text = cell.text.strip()
+                                    if text and not re.match(r'^[\d\$\.,%]+$', text):
+                                        player_name = text
+                                        break
+                                
+                                if player_name:
+                                    player_name = re.sub(r'^\d+[\.\)]\s*', '', player_name)
+                                    player_name = player_name.split('\n')[0].strip()
+                                    
+                                    if player_name and len(player_name) > 1:
+                                        top_3.append({
+                                            "place": i + 1,
+                                            "name": player_name
+                                        })
+                        except Exception:
+                            continue
+                    
                     if len(top_3) >= 3:
+                        log(f"✓ Found top 3 via table: {[p['name'] for p in top_3]}")
                         return top_3
-        except:
+            except Exception:
+                continue
+        
+        # Method 2: Look for bracket/final results
+        try:
+            winner_selectors = [
+                "[class*='winner']",
+                "[class*='champion']",
+                "[class*='first-place']",
+                "[class*='1st']",
+            ]
+            
+            for selector in winner_selectors:
+                try:
+                    winner = driver.find_element(By.CSS_SELECTOR, selector)
+                    if winner.text.strip():
+                        name = winner.text.strip().split('\n')[0]
+                        if name and not re.match(r'^[\d\$\.,%]+$', name):
+                            top_3.append({"place": 1, "name": name})
+                            break
+                except NoSuchElementException:
+                    continue
+        except Exception:
             pass
         
-        try:
-            for place in range(1, 4):
-                place_selectors = [
-                    f'[class*="place-{place}"]',
-                    f'[class*="rank-{place}"]',
+        # Method 3: Try to find from page text patterns
+        if len(top_3) < 3:
+            try:
+                page_text = driver.find_element(By.TAG_NAME, "body").text
+                
+                place_patterns = [
+                    (r'1st\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 1),
+                    (r'2nd\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 2),
+                    (r'3rd\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 3),
+                    (r'First\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 1),
+                    (r'Second\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 2),
+                    (r'Third\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 3),
                 ]
                 
-                for selector in place_selectors:
-                    try:
-                        elem = await page.query_selector(selector)
-                        if elem:
-                            text = await elem.inner_text()
-                            name = self.extract_player_name(text)
-                            if name:
+                for pattern, place in place_patterns:
+                    if not any(p['place'] == place for p in top_3):
+                        match = re.search(pattern, page_text, re.IGNORECASE)
+                        if match:
+                            name = match.group(1).strip()
+                            if name and len(name) > 1:
                                 top_3.append({"place": place, "name": name})
-                                break
-                    except:
-                        continue
-        except:
-            pass
-        
-        if len(top_3) < 3:
-            try:
-                items = await page.query_selector_all('ol li')
-                for i, item in enumerate(items[:3]):
-                    text = await item.inner_text()
-                    name = self.extract_player_name(text)
-                    if name:
-                        top_3.append({"place": i + 1, "name": name})
-            except:
+            except Exception:
                 pass
         
-        if len(top_3) < 3:
-            try:
-                results = await page.evaluate('''
-                    () => {
-                        const results = [];
-                        const standingsSection = document.querySelector('[class*="standing"], [class*="result"], [class*="bracket"]');
-                        if (standingsSection) {
-                            const spans = standingsSection.querySelectorAll('span');
-                            for (let i = 0; i < Math.min(spans.length, 10); i++) {
-                                const text = spans[i].innerText.trim();
-                                if (text && text.length > 2 && text.length < 50) {
-                                    results.push(text);
-                                }
-                            }
-                        }
-                        return results;
-                    }
-                ''')
-                
-                for i, text in enumerate(results[:3]):
-                    name = self.extract_player_name(text)
-                    if name:
-                        top_3.append({"place": i + 1, "name": name})
-            except:
-                pass
+        top_3.sort(key=lambda x: x['place'])
+        
+        if top_3:
+            log(f"✓ Found {len(top_3)} finishers: {[p['name'] for p in top_3]}")
+        else:
+            log("✗ Could not extract standings")
         
         return top_3[:3]
+        
+    except Exception as e:
+        log(f"Error extracting standings: {e}")
+        return []
+
+
+def search_tournaments(driver):
+    """Search for Bankshot Billiards tournaments"""
+    tournaments = []
     
-    def extract_player_name(self, text):
-        """Clean and extract player name from text."""
-        if not text:
-            return None
+    try:
+        log(f"Searching for: {VENUE_NAME}")
         
-        text = text.strip()
-        text = re.sub(r'^(1st|2nd|3rd|1\.|2\.|3\.|\d+\.|\d+\))\s*', '', text)
+        search_input = None
+        selectors = [
+            "input.ant-input",
+            "input[type='text']",
+            "//input[contains(@class, 'ant-input')]",
+        ]
         
-        lines = [l.strip() for l in text.split('\n') if l.strip()]
-        if lines:
-            text = lines[0]
+        for selector in selectors:
+            try:
+                if selector.startswith('//'):
+                    search_input = driver.find_element(By.XPATH, selector)
+                else:
+                    search_input = driver.find_element(By.CSS_SELECTOR, selector)
+                
+                if search_input.is_displayed() and search_input.is_enabled():
+                    break
+                else:
+                    search_input = None
+            except NoSuchElementException:
+                continue
         
-        if '\t' in text:
-            text = text.split('\t')[0]
+        if not search_input:
+            log("✗ Could not find search input")
+            return []
         
-        text = ' '.join(text.split())
+        search_input.click()
+        human_delay(0.3, 0.7)
+        search_input.clear()
+        human_delay(0.2, 0.5)
         
-        if text and len(text) > 1 and len(text) < 50:
-            if re.search(r'[a-zA-Z]', text):
-                return text
+        for char in VENUE_NAME:
+            search_input.send_keys(char)
+            time.sleep(random.uniform(0.05, 0.15))
         
-        return None
+        human_delay(0.5, 1.2)
+        search_input.send_keys(Keys.ENTER)
+        
+        log("Waiting for search results...")
+        human_delay(3, 5)
+        simulate_human_scrolling(driver)
+        human_delay(1, 2)
+        
+        card_selectors = [
+            ".ant-card",
+            "[class*='tournament']",
+            "[class*='TournamentCard']",
+        ]
+        
+        tournament_cards = []
+        for selector in card_selectors:
+            try:
+                cards = driver.find_elements(By.CSS_SELECTOR, selector)
+                if cards:
+                    log(f"Found {len(cards)} elements with selector: {selector}")
+                    tournament_cards = cards
+                    break
+            except Exception:
+                continue
+        
+        if not tournament_cards:
+            all_divs = driver.find_elements(By.TAG_NAME, "div")
+            tournament_cards = [div for div in all_divs 
+                              if VENUE_NAME in div.text and (
+                                  re.search(r'\d{4}/\d{2}/\d{2}', div.text) or
+                                  re.search(r'\d{4}-\d{2}-\d{2}', div.text)
+                              )]
+        
+        log(f"Processing {len(tournament_cards)} potential tournament cards")
+        
+        for idx, card in enumerate(tournament_cards):
+            try:
+                card_text = card.text
+                
+                if VENUE_NAME not in card_text or VENUE_CITY not in card_text:
+                    continue
+                
+                is_completed = '100%' in card_text or 'Completed' in card_text
+                
+                if not is_completed:
+                    continue
+                
+                log(f"\nFound completed tournament in card {idx}")
+                
+                tournament_name = None
+                for tag in ['h1', 'h2', 'h3', 'h4', 'h5']:
+                    try:
+                        heading = card.find_element(By.TAG_NAME, tag)
+                        if heading.text and heading.text.strip() and VENUE_NAME not in heading.text:
+                            tournament_name = heading.text.strip()
+                            break
+                    except Exception:
+                        continue
+                
+                if not tournament_name:
+                    lines = card_text.split('\n')
+                    for line in lines:
+                        line = line.strip()
+                        if (line and len(line) > 5 and VENUE_NAME not in line and
+                            VENUE_CITY not in line and not re.match(r'^\d{4}[/-]\d{2}[/-]\d{2}', line)):
+                            tournament_name = line
+                            break
+                
+                if not tournament_name:
+                    tournament_name = f"Tournament at {VENUE_NAME}"
+                
+                tournament_date = extract_date_from_text(card_text)
+                
+                tournament_url = None
+                try:
+                    link_element = card.find_element(By.CSS_SELECTOR, "a[href*='/tournaments/']")
+                    tournament_url = link_element.get_attribute('href')
+                except Exception:
+                    if tournament_date and tournament_name:
+                        name_for_slug = re.sub(r'^\d{4}[/-]\d{2}[/-]\d{2}\s*', '', tournament_name)
+                        name_for_slug = re.sub(r'^\d{8}\s*', '', name_for_slug)
+                        date_no_slashes = tournament_date.replace('/', '').replace('-', '')
+                        name_slug = re.sub(r'[^a-z0-9-]', '', name_for_slug.lower().replace(' ', '-'))
+                        name_slug = re.sub(r'-+', '-', name_slug).strip('-')
+                        tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
+                
+                tournaments.append({
+                    'name': tournament_name,
+                    'date': tournament_date,
+                    'url': tournament_url,
+                    'status': 'Completed'
+                })
+                
+                log(f"  Name: {tournament_name}")
+                log(f"  Date: {tournament_date}")
+                log(f"  URL: {tournament_url}")
+                
+            except Exception as e:
+                log(f"Error parsing card {idx}: {e}")
+                continue
+        
+        return tournaments
+        
+    except Exception as e:
+        log(f"Error searching tournaments: {e}")
+        import traceback
+        traceback.print_exc()
+        return []
+
+
+def main():
+    """Main execution"""
+    log("=" * 60)
+    log("BANKSHOT BILLIARDS WINNER SCRAPER")
+    log("=" * 60)
+    
+    driver = None
+    results = {
+        "scrape_date": datetime.datetime.now().isoformat(),
+        "search_term": VENUE_NAME,
+        "most_recent_date": None,
+        "tournaments": []
+    }
+    
+    try:
+        driver = setup_driver(headless=True)
+        driver.get("https://www.digitalpool.com/tournaments")
+        
+        log("Waiting for page to load...")
+        try:
+            WebDriverWait(driver, 20).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "input"))
+            )
+            log("✓ Page loaded")
+        except TimeoutException:
+            log("✗ Page load timeout")
+            results["error"] = "Page load timeout"
+            return results
+        
+        human_delay(2, 4)
+        
+        tournaments = search_tournaments(driver)
+        
+        if not tournaments:
+            log("No completed tournaments found")
+            results["error"] = "No completed tournaments found"
+            return results
+        
+        log(f"\nFound {len(tournaments)} completed tournament(s)")
+        
+        tournaments_with_dates = [t for t in tournaments if t['date']]
+        tournaments_with_dates.sort(key=lambda x: x['date'], reverse=True)
+        
+        if not tournaments_with_dates:
+            log("No tournaments with valid dates")
+            results["error"] = "No tournaments with valid dates"
+            return results
+        
+        most_recent_date = tournaments_with_dates[0]['date']
+        results["most_recent_date"] = most_recent_date
+        
+        most_recent_tournaments = [t for t in tournaments_with_dates if t['date'] == most_recent_date]
+        
+        log(f"\nMost recent date: {most_recent_date}")
+        log(f"Tournaments on that date: {len(most_recent_tournaments)}")
+        
+        for tournament in most_recent_tournaments:
+            if tournament['url']:
+                top_3 = get_top_3_from_tournament(driver, tournament['url'])
+                tournament['top_3'] = top_3
+            else:
+                tournament['top_3'] = []
+            
+            results["tournaments"].append({
+                "name": tournament['name'],
+                "date": tournament['date'],
+                "url": tournament['url'],
+                "top_3": tournament['top_3']
+            })
+        
+        return results
+        
+    except Exception as e:
+        log(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+        results["error"] = str(e)
+        return results
+    finally:
+        if driver:
+            try:
+                driver.quit()
+            except Exception:
+                pass
 
 
 def generate_html_display(results, output_path):
-    """Generate a themed HTML display page for the winners."""
-    
+    """Generate HTML display page"""
     tournaments = results.get("tournaments", [])
     most_recent_date = results.get("most_recent_date", "")
     
-    if most_recent_date and most_recent_date != "unknown":
+    if most_recent_date:
         try:
-            dt = datetime.strptime(most_recent_date, "%Y-%m-%d")
+            dt = datetime.datetime.strptime(most_recent_date, "%Y/%m/%d")
             formatted_date = dt.strftime("%B %d, %Y")
         except:
             formatted_date = most_recent_date
@@ -437,25 +568,15 @@ def generate_html_display(results, output_path):
             place_labels = ["1st Place", "2nd Place", "3rd Place"]
             place_classes = ["first", "second", "third"]
             
-            for i, player in enumerate(top_3):
-                place_label = place_labels[i] if i < 3 else f"{i+1}th Place"
-                place_class = place_classes[i] if i < 3 else ""
-                player_name = player.get("name", "TBD")
+            for i in range(3):
+                place_label = place_labels[i]
+                place_class = place_classes[i]
+                player_name = top_3[i]["name"] if i < len(top_3) else "TBD"
                 
                 winners_html += f"""
                 <div class="winner-card {place_class}">
                     <div class="place-badge">{place_label}</div>
                     <div class="winner-name">{player_name}</div>
-                </div>
-                """
-            
-            for i in range(len(top_3), 3):
-                place_label = place_labels[i]
-                place_class = place_classes[i]
-                winners_html += f"""
-                <div class="winner-card {place_class}">
-                    <div class="place-badge">{place_label}</div>
-                    <div class="winner-name">TBD</div>
                 </div>
                 """
             
@@ -594,7 +715,7 @@ def generate_html_display(results, output_path):
         {tournament_columns}
     </div>
     <div class="footer">
-        Bankshot Billiards &bull; Updated {datetime.now().strftime("%m/%d/%Y %I:%M %p")}
+        Bankshot Billiards &bull; Updated {datetime.datetime.now().strftime("%m/%d/%Y %I:%M %p")}
     </div>
 </body>
 </html>
@@ -603,59 +724,51 @@ def generate_html_display(results, output_path):
     with open(output_path, "w") as f:
         f.write(html_content)
     
-    print(f"HTML display generated: {output_path}")
+    log(f"✓ HTML display generated: {output_path}")
 
 
-def format_results(results):
-    """Format results for display."""
-    output = []
-    output.append("=" * 60)
-    output.append("BANKSHOT BILLIARDS TOURNAMENT RESULTS")
-    output.append("=" * 60)
-    output.append(f"Scraped at: {results['scrape_date']}")
-    
-    if "most_recent_date" in results:
-        output.append(f"Most recent tournament date: {results['most_recent_date']}")
-    
-    output.append("")
-    
-    if results.get("tournaments"):
-        for i, tournament in enumerate(results["tournaments"], 1):
-            output.append(f"Tournament {i}: {tournament['name']}")
-            output.append(f"  Date: {tournament['date']}")
-            output.append(f"  URL: {tournament['url']}")
-            output.append("  Top 3 Finishers:")
-            for player in tournament["top_3"]:
-                output.append(f"    {player['place']}. {player['name']}")
-            output.append("")
-    else:
-        output.append("No tournaments found.")
-        if results.get("error"):
-            output.append(f"Error: {results['error']}")
-    
-    output.append("=" * 60)
-    return "\n".join(output)
-
-
-async def main():
-    """Main entry point."""
-    scraper = DigitalPoolScraper()
-    results = await scraper.run()
+if __name__ == "__main__":
+    results = main()
     
     output_dir = os.environ.get("OUTPUT_DIR", ".")
     
     with open(f"{output_dir}/results.json", "w") as f:
         json.dump(results, f, indent=2)
+    log(f"✓ Saved results.json")
     
-    print(format_results(results))
+    print("\n" + "=" * 60)
+    print("BANKSHOT BILLIARDS TOURNAMENT RESULTS")
+    print("=" * 60)
+    print(f"Scraped at: {results['scrape_date']}")
+    if results.get('most_recent_date'):
+        print(f"Most recent date: {results['most_recent_date']}")
+    
+    if results.get('tournaments'):
+        for i, t in enumerate(results['tournaments'], 1):
+            print(f"\nTournament {i}: {t['name']}")
+            print(f"  Date: {t['date']}")
+            print(f"  URL: {t['url']}")
+            print("  Top 3:")
+            for p in t.get('top_3', []):
+                print(f"    {p['place']}. {p['name']}")
+    else:
+        print("No tournaments found")
+        if results.get('error'):
+            print(f"Error: {results['error']}")
+    
+    print("=" * 60)
     
     with open(f"{output_dir}/results.txt", "w") as f:
-        f.write(format_results(results))
+        f.write(f"Scraped at: {results['scrape_date']}\n")
+        if results.get('most_recent_date'):
+            f.write(f"Most recent date: {results['most_recent_date']}\n\n")
+        for t in results.get('tournaments', []):
+            f.write(f"Tournament: {t['name']}\n")
+            f.write(f"Date: {t['date']}\n")
+            for p in t.get('top_3', []):
+                f.write(f"  {p['place']}. {p['name']}\n")
+            f.write("\n")
     
     generate_html_display(results, f"{output_dir}/winners_display.html")
     
-    return results
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    log("\n✓ Scraper completed")
