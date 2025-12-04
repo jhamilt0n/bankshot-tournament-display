@@ -1,6 +1,0 @@
-{
-  "scrape_date": "2025-12-04T15:36:13.547128",
-  "search_term": "Bankshot Billiards",
-  "tournaments": [],
-  "error": "Page.goto: Timeout 60000ms exceeded.\nCall log:\n  - navigating to \"https://digitalpool.com/tournaments\", waiting until \"networkidle\"\n"
-}
