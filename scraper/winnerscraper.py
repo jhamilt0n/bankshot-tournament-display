@@ -644,27 +644,34 @@ def search_tournaments(driver):
                 try:
                     link_element = card.find_element(By.CSS_SELECTOR, "a[href*='/tournaments/']")
                     tournament_url = link_element.get_attribute('href')
-                except Exception:
+                    log(f"  ✓ Found URL in card: {tournament_url}")
+                except Exception as e:
+                    log(f"  Could not find tournament link with CSS selector: {e}")
                     try:
                         # Try finding any link in the card
                         links = card.find_elements(By.TAG_NAME, "a")
+                        log(f"  Found {len(links)} links in card")
                         for link in links:
                             href = link.get_attribute('href')
                             if href and '/tournaments/' in href:
                                 tournament_url = href
+                                log(f"  ✓ Found URL via link scan: {tournament_url}")
                                 break
-                    except:
-                        pass
+                    except Exception as e2:
+                        log(f"  Link scan failed: {e2}")
                 
                 if not tournament_url and tournament_date and tournament_name:
-                    name_for_slug = re.sub(r'^\d{4}[/-]\d{2}[/-]\d{2}\s*', '', tournament_name)
-                    name_for_slug = re.sub(r'^\d{8}\s*', '', name_for_slug)
-                    name_for_slug = re.sub(r'^\d{7}\s*', '', name_for_slug)  # Also remove 7-digit dates
+                    # Remove date prefix from name - handle both 2-digit and 1-digit month/day
+                    name_for_slug = re.sub(r'^\d{4}[/-]\d{1,2}[/-]\d{1,2}\s*', '', tournament_name)
+                    name_for_slug = re.sub(r'^\d{8}\s*', '', name_for_slug)  # YYYYMMDD
+                    name_for_slug = re.sub(r'^\d{7}\s*', '', name_for_slug)  # YYYYMMD or YYYYMDD
+                    name_for_slug = re.sub(r'^\d{6}\s*', '', name_for_slug)  # YYYYMD
                     # Use format without leading zeros for Digital Pool URLs
                     date_for_url = format_date_for_url(tournament_date)
                     name_slug = re.sub(r'[^a-z0-9-]', '', name_for_slug.lower().replace(' ', '-'))
                     name_slug = re.sub(r'-+', '-', name_slug).strip('-')
                     tournament_url = f"https://digitalpool.com/tournaments/{date_for_url}-{name_slug}/"
+                    log(f"  Constructed URL: {tournament_url}")
                 
                 tournaments.append({
                     'name': tournament_name,
