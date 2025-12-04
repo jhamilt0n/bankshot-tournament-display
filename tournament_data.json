@@ -1,14 +1,15 @@
 {
-  "tournament_name": "No tournaments to display",
-  "tournament_url": null,
-  "venue": null,
-  "date": null,
-  "start_time": null,
-  "status": null,
-  "entry_fee": 15,
+  "tournament_name": "2025/12/04 Test Tournament",
+  "tournament_url": "https://digitalpool.com/tournaments/20251204-test-tournament/",
+  "venue": "Bankshot Billiards, Hilliard",
+  "date": "2025/12/04",
+  "start_time": "3:00 PM",
+  "status": "Upcoming",
+  "player_count": 0,
+  "entry_fee": 20,
   "format_type": "Singles",
   "has_digital_pool_payouts": false,
   "digital_pool_payouts": {},
-  "last_updated": "2025-12-04 20:18:17",
-  "display_tournament": false
+  "last_updated": "2025-12-04 20:25:42",
+  "display_tournament": true
 }
