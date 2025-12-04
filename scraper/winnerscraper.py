@@ -882,6 +882,16 @@ def generate_html_display(results, output_path):
             color: #ffd700;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
             margin-bottom: 0.5vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5em;
+        }}
+        .trophy-icon {{
+            width: 1.2em;
+            height: 1.2em;
+            color: #ffd700;
+            filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.3));
         }}
         .date-line {{
             font-family: 'Oswald', sans-serif;
@@ -972,7 +982,11 @@ def generate_html_display(results, output_path):
 </head>
 <body>
     <div class="header">
-        <div class="congratulations">🏆 Congratulations to Our Most Recent Top Finishers! 🏆</div>
+        <div class="congratulations">
+            <svg class="trophy-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14v2h-1v1c0 2.21-1.79 4-4 4h-1v2h3v2h-3v4h3v2H8v-2h3v-4H8v-2h3v-2H10c-2.21 0-4-1.79-4-4V5H5V3zm3 2v1c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2V5H8z"/></svg>
+            Congratulations to Our Most Recent Top Finishers!
+            <svg class="trophy-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M5 3h14v2h-1v1c0 2.21-1.79 4-4 4h-1v2h3v2h-3v4h3v2H8v-2h3v-4H8v-2h3v-2H10c-2.21 0-4-1.79-4-4V5H5V3zm3 2v1c0 1.1.9 2 2 2h4c1.1 0 2-.9 2-2V5H8z"/></svg>
+        </div>
         <div class="date-line">{formatted_date}</div>
     </div>
     <div class="tournaments-wrapper">
