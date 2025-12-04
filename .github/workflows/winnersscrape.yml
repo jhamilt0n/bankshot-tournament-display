@@ -1,12 +1,10 @@
-name: Scrape Digital Pool Tournament Winners
+name: Scrape Tournament Winners
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 8 * * *'
-  push:
-    branches:
-      - main
+    # 6:00 AM Eastern (11:00 UTC in winter / 10:00 UTC in summer)
+    - cron: '0 11 * * *'
+  workflow_dispatch:
 
 jobs:
   scrape:
@@ -15,34 +13,53 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       
-      - name: Install dependencies
+      - name: Install Chrome and ChromeDriver
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          playwright install chromium
-          playwright install-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y wget unzip chromium-browser chromium-chromedriver
+          
+      - name: Install Python dependencies
+        run: |
+          pip install selenium
       
       - name: Create output directory
-        run: mkdir -p output
+        run: |
+          mkdir -p output
       
       - name: Run winner scraper
         env:
           OUTPUT_DIR: output
-        run: python scraper/winnerscraper.py
-      
-      - name: Display results
         run: |
-          echo "=== JSON Results ==="
-          cat output/results.json
-          echo ""
-          echo "=== Formatted Results ==="
-          cat output/results.txt
+          echo "===================="
+          echo "Starting scraper at $(date)"
+          echo "===================="
+          
+          python3 scraper/winnerscraper.py 2>&1 | tee scraper.log
+          SCRAPER_EXIT_CODE=${PIPESTATUS[0]}
+          
+          echo "===================="
+          echo "Scraper finished with exit code: $SCRAPER_EXIT_CODE"
+          echo "===================="
+          
+          if [ -f output/results.json ]; then
+            echo "=== JSON Results ==="
+            cat output/results.json
+            echo ""
+            echo "=== Text Results ==="
+            cat output/results.txt
+          else
+            echo "ERROR: results.json was not created!"
+          fi
+          
+          exit $SCRAPER_EXIT_CODE
       
       - name: Upload results as artifact
         uses: actions/upload-artifact@v4
@@ -51,17 +68,37 @@ jobs:
           path: output/
           retention-days: 30
       
-      - name: Commit results to repository
-        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+      - name: Check for changes
+        id: check_changes
+        run: |
+          mkdir -p results
+          cp output/results.json results/results.json 2>/dev/null || true
+          cp output/winners_display.html results/winners_display.html 2>/dev/null || true
+          
+          git add results/ 2>/dev/null || true
+          
+          if git diff --staged --quiet; then
+            echo "changes=false" >> $GITHUB_OUTPUT
+            echo "No changes detected"
+          else
+            echo "changes=true" >> $GITHUB_OUTPUT
+            echo "Changes detected"
+          fi
+      
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changes == 'true'
         run: |
           git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          mkdir -p results
-          cp output/results.json results/latest.json
-          cp output/results.txt results/latest.txt
-          cp output/winners_display.html results/winners_display.html
-          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-          cp output/results.json results/results_${TIMESTAMP}.json
-          git add results/
-          git diff --staged --quiet || git commit -m "Update tournament winners - $(date)"
-          git push || echo "No changes to push"
+          git config --local user.name "GitHub Action Bot"
+          git commit -m "Update tournament winners - $(date '+%Y-%m-%d %I:%M %p EST')"
+          git push origin main
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Upload scraper log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraper-log-${{ github.run_number }}
+          path: scraper.log
+          retention-days: 7
