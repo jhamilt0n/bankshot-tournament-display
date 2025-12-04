@@ -1,13 +1,27 @@
 {
-  "scrape_date": "2025-12-04T16:36:39.412445",
+  "scrape_date": "2025-12-04T16:44:44.307820",
   "search_term": "Bankshot Billiards",
   "most_recent_date": "2025/12/03",
   "tournaments": [
     {
       "name": "2025/12/3 Wednesday Night 9-Ball Tournament",
       "date": "2025/12/03",
-      "url": "https://digitalpool.com/tournaments/2025123-2025123-wednesday-night-9-ball-tournament/",
-      "top_3": []
+      "url": "https://digitalpool.com/tournaments/2025123-wednesday-night-9-ball-tournament/",
+      "top_3": [
+        {
+          "place": 1,
+          "name": "2025/12/3 Wednesday Night 9-Ball Tournament",
+          "split": true
+        },
+        {
+          "place": 2,
+          "name": "$15 Entry"
+        },
+        {
+          "place": 3,
+          "name": "Thu, Dec 4, 2025 12:04 AM (UTC)"
+        }
+      ]
     }
   ]
 }
