@@ -1,0 +1,67 @@
+name: Scrape Digital Pool Tournament Winners
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 8 * * *'
+  push:
+    branches:
+      - main
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          playwright install chromium
+          playwright install-deps chromium
+      
+      - name: Create output directory
+        run: mkdir -p output
+      
+      - name: Run winner scraper
+        env:
+          OUTPUT_DIR: output
+        run: python winnerscraper.py
+      
+      - name: Display results
+        run: |
+          echo "=== JSON Results ==="
+          cat output/results.json
+          echo ""
+          echo "=== Formatted Results ==="
+          cat output/results.txt
+      
+      - name: Upload results as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tournament-winners-${{ github.run_number }}
+          path: output/
+          retention-days: 30
+      
+      - name: Commit results to repository
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          mkdir -p results
+          cp output/results.json results/latest.json
+          cp output/results.txt results/latest.txt
+          cp output/winners_display.html results/winners_display.html
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          cp output/results.json results/results_${TIMESTAMP}.json
+          git add results/
+          git diff --staged --quiet || git commit -m "Update tournament winners - $(date)"
+          git push || echo "No changes to push"
