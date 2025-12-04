@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bankshot Billiards - Tournament Winners</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body { width: 100%; height: 100%; overflow: hidden; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(180deg, #1a472a 0%, #0d3320 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            aspect-ratio: 16 / 9;
+            max-height: 100vh;
+            max-width: 177.78vh;
+            margin: 0 auto;
+        }
+        .header { text-align: center; padding: 2vh 2vw; flex-shrink: 0; }
+        .congratulations {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(1.5rem, 4vw, 3.5rem);
+            letter-spacing: 3px;
+            color: #ffd700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin-bottom: 0.5vh;
+        }
+        .date-line {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.8rem, 1.5vw, 1.3rem);
+            opacity: 0.9;
+            letter-spacing: 2px;
+        }
+        .tournaments-wrapper {
+            flex: 1;
+            display: flex;
+            padding: 1vh 2vw 2vh 2vw;
+            gap: 2vw;
+            min-height: 0;
+        }
+        .tournament-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        .tournament-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(1rem, 2.5vw, 2rem);
+            letter-spacing: 2px;
+            text-align: center;
+            margin-bottom: 2vh;
+            color: #90EE90;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+            padding: 0 1vw;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+        .winners-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 2vh;
+            width: 100%;
+            padding: 0 1vw;
+        }
+        .winner-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            padding: 2vh 2vw;
+            text-align: center;
+        }
+        .winner-card.first {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 215, 0, 0.1) 100%);
+            border-color: #ffd700;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        .winner-card.second {
+            background: linear-gradient(135deg, rgba(192, 192, 192, 0.3) 0%, rgba(192, 192, 192, 0.1) 100%);
+            border-color: #c0c0c0;
+            box-shadow: 0 0 15px rgba(192, 192, 192, 0.2);
+        }
+        .winner-card.third {
+            background: linear-gradient(135deg, rgba(205, 127, 50, 0.3) 0%, rgba(205, 127, 50, 0.1) 100%);
+            border-color: #cd7f32;
+            box-shadow: 0 0 15px rgba(205, 127, 50, 0.2);
+        }
+        .place-badge {
+            font-family: 'Oswald', sans-serif;
+            font-size: clamp(0.7rem, 1.2vw, 1rem);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.9;
+            margin-bottom: 0.5vh;
+        }
+        .winner-card.first .place-badge { color: #ffd700; }
+        .winner-card.second .place-badge { color: #c0c0c0; }
+        .winner-card.third .place-badge { color: #cd7f32; }
+        .winner-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: clamp(1.2rem, 2.5vw, 2.2rem);
+            letter-spacing: 1px;
+        }
+        .footer {
+            text-align: center;
+            padding: 1vh 2vw;
+            font-size: clamp(0.6rem, 1vw, 0.8rem);
+            opacity: 0.6;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="congratulations">🏆 Congratulations to Our Most Recent Top Finishers! 🏆</div>
+        <div class="date-line">Recent</div>
+    </div>
+    <div class="tournaments-wrapper">
+        
+        <div class="tournament-column" style="width: 100%;">
+            <div class="tournament-name">No Recent Tournaments Found</div>
+            <div class="winner-card">
+                <div class="winner-name">Check back soon!</div>
+            </div>
+        </div>
+        
+    </div>
+    <div class="footer">
+        Bankshot Billiards &bull; Updated 12/04/2025 03:37 PM
+    </div>
+</body>
+</html>
