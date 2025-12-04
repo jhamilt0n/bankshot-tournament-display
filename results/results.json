@@ -1,0 +1,34 @@
+{
+  "scrape_date": "2025-12-04T15:56:10.481523",
+  "search_term": "Bankshot Billiards",
+  "most_recent_date": "2025/12/01",
+  "tournaments": [
+    {
+      "name": "2025/12/01 Monday Night 10-Ball Tournament",
+      "date": "2025/12/01",
+      "url": "https://digitalpool.com/tournaments/20251201-monday-night-10-ball-tournament/",
+      "top_3": [
+        {
+          "place": 2,
+          "name": "Tony Mougey"
+        },
+        {
+          "place": 3,
+          "name": "Tom Walsh"
+        },
+        {
+          "place": 1,
+          "name": "Name"
+        },
+        {
+          "place": 2,
+          "name": "Description"
+        },
+        {
+          "place": 3,
+          "name": "Start date"
+        }
+      ]
+    }
+  ]
+}
