@@ -326,6 +326,18 @@ def extract_winners_from_card_text(card_text):
         is_split = bool(match[1])
         if is_split:
             found_split = True
+        
+        # Clean up the name - remove any newlines and take last part if "Complete" is in there
+        name = name.replace('\n', ' ').strip()
+        if 'Complete' in name:
+            # Take the part after "Complete"
+            parts = name.split('Complete')
+            name = parts[-1].strip()
+        
+        # Also handle case where name starts with newline content
+        if '\n' in name:
+            name = name.split('\n')[-1].strip()
+        
         if name and is_valid_player_name(name):
             top_3.append({"place": 1, "name": name, "split": is_split})
             log(f"    ✓ 1st place: {name} (split={is_split})")
@@ -336,6 +348,10 @@ def extract_winners_from_card_text(card_text):
         second_match = re.search(second_pattern, card_text)
         if second_match:
             name = second_match.group(1).strip()
+            name = name.replace('\n', ' ').strip()
+            if 'Complete' in name:
+                parts = name.split('Complete')
+                name = parts[-1].strip()
             if name and is_valid_player_name(name):
                 top_3.append({"place": 2, "name": name})
                 log(f"    ✓ 2nd place: {name}")
@@ -345,6 +361,10 @@ def extract_winners_from_card_text(card_text):
     third_match = re.search(third_pattern, card_text)
     if third_match:
         name = third_match.group(1).strip()
+        name = name.replace('\n', ' ').strip()
+        if 'Complete' in name:
+            parts = name.split('Complete')
+            name = parts[-1].strip()
         if name and is_valid_player_name(name):
             top_3.append({"place": 3, "name": name})
             log(f"    ✓ 3rd place: {name}")
