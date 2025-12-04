@@ -1,5 +1,5 @@
 {
-  "scrape_date": "2025-12-04T16:44:44.307820",
+  "scrape_date": "2025-12-04T17:00:14.988770",
   "search_term": "Bankshot Billiards",
   "most_recent_date": "2025/12/03",
   "tournaments": [
@@ -10,16 +10,16 @@
       "top_3": [
         {
           "place": 1,
-          "name": "2025/12/3 Wednesday Night 9-Ball Tournament",
+          "name": "Player type",
           "split": true
         },
         {
           "place": 2,
-          "name": "$15 Entry"
+          "name": "Double Elimination"
         },
         {
           "place": 3,
-          "name": "Thu, Dec 4, 2025 12:04 AM (UTC)"
+          "name": "Standard"
         }
       ]
     }
