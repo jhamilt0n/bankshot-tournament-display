@@ -1,15 +1,15 @@
 {
-  "tournament_name": "2025/12/04 Test Tournament",
-  "tournament_url": "https://digitalpool.com/tournaments/20251204-test-tournament/",
+  "tournament_name": "5th annual toy tournament",
+  "tournament_url": null,
   "venue": "Bankshot Billiards, Hilliard",
   "date": "2025/12/04",
-  "start_time": "3:00 PM",
-  "status": "Upcoming",
-  "player_count": 8,
-  "entry_fee": 20,
+  "start_time": null,
+  "status": "In Progress",
+  "player_count": 18,
+  "entry_fee": 15,
   "format_type": "Singles",
   "has_digital_pool_payouts": false,
   "digital_pool_payouts": {},
-  "last_updated": "2025-12-04 21:17:31",
+  "last_updated": "2025-12-04 21:41:22",
   "display_tournament": true
 }
