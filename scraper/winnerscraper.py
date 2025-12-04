@@ -352,171 +352,136 @@ def get_top_3_from_tournament(driver, tournament_url):
         except:
             pass
         
-        # DEBUG: Log page text to see what we're working with
-        try:
-            body_text = driver.find_element(By.TAG_NAME, "body").text
-            log(f"  Page text length: {len(body_text)}")
-            
-            # Look for player names in the page text
-            # Digital Pool shows standings like "1 PlayerName" or "1. PlayerName"
-            lines = body_text.split('\n')
-            log(f"  Page has {len(lines)} lines")
-            
-            # Log lines that start with numbers 1-3 (potential standings)
-            for line in lines[:50]:
-                line = line.strip()
-                if re.match(r'^[123][\.\s]', line):
-                    log(f"  Potential standing line: {line[:80]}")
-        except Exception as e:
-            log(f"  Debug error: {e}")
+        # METHOD 1: Digital Pool specific XPaths (most reliable)
+        # These are the exact paths to player names in the standings
+        log("Trying Digital Pool specific XPaths...")
         
-        # Look for any tables on the page
-        try:
-            all_tables = driver.find_elements(By.TAG_NAME, "table")
-            log(f"  Found {len(all_tables)} table elements on page")
-            
-            for i, table in enumerate(all_tables[:5]):
-                try:
-                    table_text = table.text[:300] if table.text else "(empty)"
-                    log(f"  Table {i} preview: {table_text[:150]}")
-                except:
-                    pass
-        except Exception as e:
-            log(f"  Table debug error: {e}")
-        
-        # Method 1: Look for standings table with place numbers
-        standings_xpaths = [
-            "//table//tbody//tr",
-            "//div[contains(@class, 'ant-table')]//tbody//tr",
-            "//div[contains(@class, 'standings')]//tr",
-            "//table//tr",
-            "//*[contains(@class, 'ant-table-row')]",
+        dp_xpaths = [
+            # Exact paths provided - the div index changes: div[2]=1st, div[3]=2nd, div[4]=3rd
+            ("/html/body/div[1]/div/div/section/section/section/main/div[2]/div/div[2]/div/div/div[2]/div[1]/div/div/div[2]/div/div/div[2]/div/div[2]/span", 1),
+            ("/html/body/div[1]/div/div/section/section/section/main/div[2]/div/div[2]/div/div/div[2]/div[1]/div/div/div[2]/div/div/div[2]/div/div[3]/span", 2),
+            ("/html/body/div[1]/div/div/section/section/section/main/div[2]/div/div[2]/div/div/div[2]/div[1]/div/div/div[2]/div/div/div[2]/div/div[4]/span", 3),
         ]
         
-        for xpath in standings_xpaths:
+        for xpath, place in dp_xpaths:
             try:
-                rows = driver.find_elements(By.XPATH, xpath)
-                log(f"Found {len(rows)} rows with xpath: {xpath}")
+                element = driver.find_element(By.XPATH, xpath)
+                name = element.text.strip()
+                # Get first line only
+                name = name.split('\n')[0].strip()
                 
-                if len(rows) >= 1:
-                    valid_players = []
-                    
-                    for row_idx, row in enumerate(rows[:15]):  # Check more rows
-                        try:
-                            cells = row.find_elements(By.TAG_NAME, "td")
-                            row_text = row.text.strip()
-                            
-                            # Skip empty rows
-                            if not row_text:
-                                continue
-                            
-                            # Log row for debugging
-                            if row_idx < 8:
-                                log(f"    Row {row_idx}: {row_text[:100]}")
-                            
-                            # Look for place number in first cell
-                            place_num = None
-                            player_name = None
-                            
-                            for idx, cell in enumerate(cells):
-                                cell_text = cell.text.strip()
-                                
-                                # Check if this cell contains a place number (1, 2, 3, etc.)
-                                if idx == 0 and re.match(r'^[1-9]$', cell_text):
-                                    place_num = int(cell_text)
-                                    log(f"      Cell {idx}: place={place_num}")
-                                
-                                # Look for player name in subsequent cells
-                                if idx > 0 or place_num is None:
-                                    # Get first line if multi-line
-                                    first_line = cell_text.split('\n')[0].strip()
-                                    if is_valid_player_name(first_line):
-                                        player_name = first_line
-                                        log(f"      Cell {idx}: valid name={player_name}")
-                                        break
-                                    elif cell_text:
-                                        log(f"      Cell {idx}: invalid name rejected: {first_line[:50]}")
-                            
-                            if player_name:
-                                if place_num:
-                                    valid_players.append({"place": place_num, "name": player_name})
-                                else:
-                                    # Assign place based on order
-                                    valid_players.append({"place": len(valid_players) + 1, "name": player_name})
-                                
-                                log(f"  ✓ Found player: {player_name} (place {place_num or len(valid_players)})")
-                        
-                        except Exception as e:
-                            log(f"    Row parse error: {e}")
-                            continue
-                    
-                    if valid_players:
-                        # Sort by place and take top 3
-                        valid_players.sort(key=lambda x: x['place'])
-                        top_3 = valid_players[:3]
-                        
-                        if len(top_3) >= 2:
-                            log(f"✓ Found {len(top_3)} finishers via table")
-                            break
+                if name and is_valid_player_name(name):
+                    top_3.append({"place": place, "name": name})
+                    log(f"  ✓ Found place {place}: {name} (via exact XPath)")
+                elif name:
+                    log(f"  ✗ Place {place} name rejected: {name}")
+            except NoSuchElementException:
+                log(f"  XPath not found for place {place}")
+            except Exception as e:
+                log(f"  Error with place {place} XPath: {e}")
+        
+        # METHOD 2: Try shorter/relative XPaths if exact ones fail
+        if len(top_3) < 2:
+            log("Trying relative XPaths...")
             
-            except Exception as e:
-                log(f"Error with xpath {xpath}: {e}")
-                continue
-        
-        # Method 2: Parse page text directly for place patterns
-        if len(top_3) < 2:
-            log("Trying text-based extraction...")
-            try:
-                body_text = driver.find_element(By.TAG_NAME, "body").text
-                lines = body_text.split('\n')
-                
-                for line in lines:
-                    line = line.strip()
+            # Try to find the standings container first
+            container_xpaths = [
+                "//div[contains(@class, 'standings')]",
+                "//div[contains(@class, 'bracket')]",
+                "//main//div[contains(@class, 'ant-card')]",
+            ]
+            
+            for container_xpath in container_xpaths:
+                try:
+                    container = driver.find_element(By.XPATH, container_xpath)
+                    # Look for spans with player names inside
+                    spans = container.find_elements(By.TAG_NAME, "span")
+                    log(f"  Found {len(spans)} spans in container")
                     
-                    # Look for "1 PlayerName" or "1. PlayerName" patterns
-                    match = re.match(r'^([123])[\.\s]+([A-Z][a-zA-Z]+\s+[A-Z][a-zA-Z]+)', line)
-                    if match:
-                        place = int(match.group(1))
-                        name = match.group(2).strip()
-                        
-                        if is_valid_player_name(name) and not any(p['place'] == place for p in top_3):
-                            top_3.append({"place": place, "name": name})
-                            log(f"  ✓ Found via text pattern: {name} (place {place})")
-            except Exception as e:
-                log(f"  Text extraction error: {e}")
+                    for span in spans[:20]:
+                        text = span.text.strip()
+                        first_line = text.split('\n')[0].strip()
+                        if first_line and is_valid_player_name(first_line):
+                            # Check if we already have this name
+                            if not any(p['name'] == first_line for p in top_3):
+                                place = len(top_3) + 1
+                                if place <= 3:
+                                    top_3.append({"place": place, "name": first_line})
+                                    log(f"  ✓ Found: {first_line} (place {place})")
+                    
+                    if len(top_3) >= 2:
+                        break
+                except:
+                    continue
         
-        # Method 3: Look for payout/prize section which often lists winners
+        # METHOD 3: Look for standings table with place numbers
         if len(top_3) < 2:
-            try:
-                payout_xpaths = [
-                    "//div[contains(@class, 'payout')]//tr",
-                    "//table[contains(@class, 'payout')]//tr",
-                    "//*[contains(text(), '1st')]/ancestor::tr",
-                ]
-                
-                for xpath in payout_xpaths:
-                    try:
-                        rows = driver.find_elements(By.XPATH, xpath)
-                        for row in rows:
-                            row_text = row.text
-                            
-                            # Look for "1st - Name" or "1st: Name" patterns
-                            for place_match in re.finditer(r'(\d)(?:st|nd|rd|th)?\s*[-:]\s*([A-Z][a-zA-Z\s\.]+)', row_text):
-                                place = int(place_match.group(1))
-                                name = place_match.group(2).strip()
+            log("Trying table-based extraction...")
+            standings_xpaths = [
+                "//table//tbody//tr",
+                "//div[contains(@class, 'ant-table')]//tbody//tr",
+                "//div[contains(@class, 'standings')]//tr",
+                "//table//tr",
+                "//*[contains(@class, 'ant-table-row')]",
+            ]
+            
+            for xpath in standings_xpaths:
+                try:
+                    rows = driver.find_elements(By.XPATH, xpath)
+                    log(f"Found {len(rows)} rows with xpath: {xpath}")
+                    
+                    if len(rows) >= 1:
+                        valid_players = []
+                        
+                        for row_idx, row in enumerate(rows[:15]):
+                            try:
+                                cells = row.find_elements(By.TAG_NAME, "td")
+                                row_text = row.text.strip()
                                 
-                                if is_valid_player_name(name) and place <= 3:
-                                    if not any(p['place'] == place for p in top_3):
-                                        top_3.append({"place": place, "name": name})
-                    except:
-                        continue
-            except:
-                pass
+                                if not row_text:
+                                    continue
+                                
+                                if row_idx < 5:
+                                    log(f"    Row {row_idx}: {row_text[:80]}")
+                                
+                                place_num = None
+                                player_name = None
+                                
+                                for idx, cell in enumerate(cells):
+                                    cell_text = cell.text.strip()
+                                    
+                                    if idx == 0 and re.match(r'^[1-9]$', cell_text):
+                                        place_num = int(cell_text)
+                                    
+                                    if idx > 0 or place_num is None:
+                                        first_line = cell_text.split('\n')[0].strip()
+                                        if is_valid_player_name(first_line):
+                                            player_name = first_line
+                                            break
+                                
+                                if player_name:
+                                    if place_num:
+                                        valid_players.append({"place": place_num, "name": player_name})
+                                    else:
+                                        valid_players.append({"place": len(valid_players) + 1, "name": player_name})
+                                    log(f"  ✓ Found player: {player_name}")
+                            
+                            except Exception as e:
+                                continue
+                        
+                        if valid_players:
+                            valid_players.sort(key=lambda x: x['place'])
+                            top_3.extend(valid_players[:3])
+                            if len(top_3) >= 2:
+                                break
+                
+                except Exception as e:
+                    log(f"Error with xpath {xpath}: {e}")
+                    continue
         
         # Sort and deduplicate
         top_3.sort(key=lambda x: x['place'])
         
-        # Remove duplicates keeping first occurrence
         seen_places = set()
         unique_top_3 = []
         for p in top_3:
