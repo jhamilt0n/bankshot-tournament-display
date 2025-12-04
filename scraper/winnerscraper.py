@@ -512,7 +512,6 @@ def search_tournaments(driver):
         # Get today's date for comparison
         from datetime import datetime, timedelta
         today = datetime.now().date()
-        week_ago = today - timedelta(days=7)
         
         for idx, card in enumerate(tournament_cards):
             try:
@@ -521,18 +520,21 @@ def search_tournaments(driver):
                 if VENUE_NAME not in card_text or VENUE_CITY not in card_text:
                     continue
                 
-                # Check if completed - look for various indicators
-                is_completed = any(indicator in card_text for indicator in [
-                    '100%', 'Completed', 'Complete', 'Finished', 'Final'
-                ])
+                # Check if COMPLETED - must be 100% complete or explicitly marked completed
+                is_completed = False
                 
-                # Also check for high completion percentage (90%+)
-                pct_match = re.search(r'(\d+)%', card_text)
-                if pct_match and int(pct_match.group(1)) >= 90:
+                # Look for explicit "100%" or "Completed"
+                if '100%' in card_text:
                     is_completed = True
+                    log(f"  Card {idx}: Found '100%' - marking as completed")
+                elif 'Completed' in card_text or 'Complete' in card_text:
+                    is_completed = True
+                    log(f"  Card {idx}: Found 'Completed' - marking as completed")
+                
+                # DON'T mark as completed just because percentage is high - must be 100%
                 
                 if not is_completed:
-                    log(f"Skipping card {idx} - not completed")
+                    log(f"Skipping card {idx} - not 100% completed")
                     continue
                 
                 log(f"\n{'='*40}")
@@ -591,16 +593,6 @@ def search_tournaments(driver):
                     name_slug = re.sub(r'-+', '-', name_slug).strip('-')
                     tournament_url = f"https://digitalpool.com/tournaments/{date_for_url}-{name_slug}/"
                 
-                # Check if this tournament is within the last week
-                if tournament_date:
-                    try:
-                        t_date = datetime.strptime(tournament_date, "%Y/%m/%d").date()
-                        if t_date < week_ago:
-                            log(f"Skipping - older than 1 week: {tournament_date}")
-                            continue
-                    except:
-                        pass
-                
                 tournaments.append({
                     'name': tournament_name,
                     'date': tournament_date,
@@ -621,7 +613,29 @@ def search_tournaments(driver):
         for t in tournaments:
             log(f"  - {t['date']}: {t['name']}")
         
-        return tournaments
+        # Filter out future tournaments - only keep past/today completed ones
+        from datetime import datetime
+        today = datetime.now().date()
+        
+        past_tournaments = []
+        for t in tournaments:
+            if t['date']:
+                try:
+                    t_date = datetime.strptime(t['date'], "%Y/%m/%d").date()
+                    if t_date <= today:
+                        past_tournaments.append(t)
+                        log(f"  ✓ Including (past/today): {t['date']} - {t['name']}")
+                    else:
+                        log(f"  ✗ Excluding (future): {t['date']} - {t['name']}")
+                except:
+                    # If we can't parse date, include it
+                    past_tournaments.append(t)
+            else:
+                past_tournaments.append(t)
+        
+        log(f"\nFiltered to {len(past_tournaments)} past/current tournaments")
+        
+        return past_tournaments
         
     except Exception as e:
         log(f"Error searching tournaments: {e}")
