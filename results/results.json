@@ -1,12 +1,12 @@
 {
-  "scrape_date": "2025-12-04T16:12:38.431640",
+  "scrape_date": "2025-12-04T16:25:09.829345",
   "search_term": "Bankshot Billiards",
-  "most_recent_date": "2025/12/05",
+  "most_recent_date": "2025/12/01",
   "tournaments": [
     {
-      "name": "2025/12/05 Friday Night 8-Ball Tournament",
-      "date": "2025/12/05",
-      "url": "https://digitalpool.com/tournaments/2025125-friday-night-8-ball-tournament/",
+      "name": "2025/12/01 Monday Night 10-Ball Tournament",
+      "date": "2025/12/01",
+      "url": "https://digitalpool.com/tournaments/2025121-monday-night-10-ball-tournament/",
       "top_3": []
     }
   ]
