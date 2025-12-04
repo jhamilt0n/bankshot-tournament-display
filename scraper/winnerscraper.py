@@ -175,6 +175,49 @@ def extract_date_from_text(text):
     return None
 
 
+def is_valid_player_name(name):
+    """Check if a string looks like a valid player name (not a table header)"""
+    if not name or len(name) < 2:
+        return False
+    
+    # Common table headers and non-name strings to filter out
+    invalid_names = [
+        'name', 'player', 'description', 'start date', 'end date', 'date',
+        'time', 'status', 'place', 'rank', 'position', 'score', 'points',
+        'wins', 'losses', 'matches', 'games', 'rating', 'fargo', 'handicap',
+        'entry', 'fee', 'payout', 'prize', 'total', 'amount', 'action',
+        'details', 'view', 'edit', 'delete', 'bracket', 'standings',
+        'tournament', 'event', 'venue', 'location', 'format', 'type',
+        'round', 'match', 'table', 'seed', 'bye', 'forfeit', 'dq',
+        'n/a', 'tbd', 'unknown', 'pending', 'complete', 'in progress',
+    ]
+    
+    name_lower = name.lower().strip()
+    
+    # Check against invalid names
+    if name_lower in invalid_names:
+        return False
+    
+    # Must contain at least one letter
+    if not re.search(r'[a-zA-Z]', name):
+        return False
+    
+    # Shouldn't be all numbers/symbols
+    if re.match(r'^[\d\$\.,%\-\+\#\@\!\?\(\)]+$', name):
+        return False
+    
+    # Should look like a name (at least one capital letter or proper format)
+    # Names typically have format like "John Smith" or "J. Smith"
+    if not re.search(r'[A-Z]', name):
+        return False
+    
+    # Filter out single words that are likely headers
+    if len(name.split()) == 1 and len(name) < 4:
+        return False
+    
+    return True
+
+
 def get_top_3_from_tournament(driver, tournament_url):
     """Extract top 3 finishers from a tournament page"""
     try:
@@ -184,113 +227,157 @@ def get_top_3_from_tournament(driver, tournament_url):
         simulate_human_scrolling(driver)
         
         top_3 = []
+        found_split = False
         
         # Try clicking on "Standings" tab if it exists
+        standings_tabs = [
+            "//div[contains(text(), 'Standings')]",
+            "//span[contains(text(), 'Standings')]",
+            "//button[contains(text(), 'Standings')]",
+            "//*[contains(@class, 'standings')]",
+            "//div[@role='tab' and contains(text(), 'Stand')]",
+        ]
+        
+        for tab_xpath in standings_tabs:
+            try:
+                standings_tab = driver.find_element(By.XPATH, tab_xpath)
+                standings_tab.click()
+                human_delay(2, 3)
+                log("✓ Clicked Standings tab")
+                break
+            except NoSuchElementException:
+                continue
+        
+        # Check page for "split" indication
         try:
-            standings_tab = driver.find_element(By.XPATH, "//div[contains(text(), 'Standings')]")
-            standings_tab.click()
-            human_delay(2, 3)
-        except NoSuchElementException:
+            page_text = driver.find_element(By.TAG_NAME, "body").text.lower()
+            if 'split' in page_text or 'tie' in page_text:
+                found_split = True
+                log("⚠ Detected split/tie in tournament")
+        except:
             pass
         
-        # Method 1: Try to find standings table
+        # Method 1: Look for standings table with place numbers
         standings_xpaths = [
-            "//table[contains(@class, 'standings')]//tbody//tr",
-            "//div[contains(@class, 'standings')]//tr",
-            "//div[contains(@class, 'ant-table')]//tbody//tr",
             "//table//tbody//tr",
+            "//div[contains(@class, 'ant-table')]//tbody//tr",
+            "//div[contains(@class, 'standings')]//tr",
         ]
         
         for xpath in standings_xpaths:
             try:
                 rows = driver.find_elements(By.XPATH, xpath)
-                if len(rows) >= 3:
-                    for i, row in enumerate(rows[:3]):
+                log(f"Found {len(rows)} rows with xpath: {xpath}")
+                
+                if len(rows) >= 1:
+                    valid_players = []
+                    
+                    for row in rows[:10]:  # Check more rows
                         try:
                             cells = row.find_elements(By.TAG_NAME, "td")
-                            if cells:
-                                player_name = None
-                                for cell in cells[:3]:
-                                    text = cell.text.strip()
-                                    if text and not re.match(r'^[\d\$\.,%]+$', text):
-                                        player_name = text
-                                        break
+                            row_text = row.text.strip()
+                            
+                            # Look for place number in first cell
+                            place_num = None
+                            player_name = None
+                            
+                            for idx, cell in enumerate(cells):
+                                cell_text = cell.text.strip()
                                 
-                                if player_name:
-                                    player_name = re.sub(r'^\d+[\.\)]\s*', '', player_name)
-                                    player_name = player_name.split('\n')[0].strip()
-                                    
-                                    if player_name and len(player_name) > 1:
-                                        top_3.append({
-                                            "place": i + 1,
-                                            "name": player_name
-                                        })
-                        except Exception:
+                                # Check if this cell contains a place number (1, 2, 3, etc.)
+                                if idx == 0 and re.match(r'^[1-9]$', cell_text):
+                                    place_num = int(cell_text)
+                                
+                                # Look for player name in subsequent cells
+                                if idx > 0 or place_num is None:
+                                    if is_valid_player_name(cell_text):
+                                        # Get first line if multi-line
+                                        name = cell_text.split('\n')[0].strip()
+                                        if is_valid_player_name(name):
+                                            player_name = name
+                                            break
+                            
+                            if player_name:
+                                if place_num:
+                                    valid_players.append({"place": place_num, "name": player_name})
+                                else:
+                                    # Assign place based on order
+                                    valid_players.append({"place": len(valid_players) + 1, "name": player_name})
+                                
+                                log(f"  Found player: {player_name} (place {place_num or len(valid_players)})")
+                        
+                        except Exception as e:
                             continue
                     
-                    if len(top_3) >= 3:
-                        log(f"✓ Found top 3 via table: {[p['name'] for p in top_3]}")
-                        return top_3
-            except Exception:
+                    if valid_players:
+                        # Sort by place and take top 3
+                        valid_players.sort(key=lambda x: x['place'])
+                        top_3 = valid_players[:3]
+                        
+                        if len(top_3) >= 2:
+                            log(f"✓ Found {len(top_3)} finishers via table")
+                            break
+            
+            except Exception as e:
+                log(f"Error with xpath {xpath}: {e}")
                 continue
         
-        # Method 2: Look for bracket/final results
-        try:
-            winner_selectors = [
-                "[class*='winner']",
-                "[class*='champion']",
-                "[class*='first-place']",
-                "[class*='1st']",
-            ]
-            
-            for selector in winner_selectors:
-                try:
-                    winner = driver.find_element(By.CSS_SELECTOR, selector)
-                    if winner.text.strip():
-                        name = winner.text.strip().split('\n')[0]
-                        if name and not re.match(r'^[\d\$\.,%]+$', name):
-                            top_3.append({"place": 1, "name": name})
-                            break
-                except NoSuchElementException:
-                    continue
-        except Exception:
-            pass
-        
-        # Method 3: Try to find from page text patterns
-        if len(top_3) < 3:
+        # Method 2: Look for payout/prize section which often lists winners
+        if len(top_3) < 2:
             try:
-                page_text = driver.find_element(By.TAG_NAME, "body").text
-                
-                place_patterns = [
-                    (r'1st\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 1),
-                    (r'2nd\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 2),
-                    (r'3rd\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 3),
-                    (r'First\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 1),
-                    (r'Second\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 2),
-                    (r'Third\s*(?:Place)?[:\s]+([A-Za-z][A-Za-z\s\.]+)', 3),
+                payout_xpaths = [
+                    "//div[contains(@class, 'payout')]//tr",
+                    "//table[contains(@class, 'payout')]//tr",
+                    "//*[contains(text(), '1st')]/ancestor::tr",
                 ]
                 
-                for pattern, place in place_patterns:
-                    if not any(p['place'] == place for p in top_3):
-                        match = re.search(pattern, page_text, re.IGNORECASE)
-                        if match:
-                            name = match.group(1).strip()
-                            if name and len(name) > 1:
-                                top_3.append({"place": place, "name": name})
-            except Exception:
+                for xpath in payout_xpaths:
+                    try:
+                        rows = driver.find_elements(By.XPATH, xpath)
+                        for row in rows:
+                            row_text = row.text
+                            
+                            # Look for "1st - Name" or "1st: Name" patterns
+                            for place_match in re.finditer(r'(\d)(?:st|nd|rd|th)?\s*[-:]\s*([A-Z][a-zA-Z\s\.]+)', row_text):
+                                place = int(place_match.group(1))
+                                name = place_match.group(2).strip()
+                                
+                                if is_valid_player_name(name) and place <= 3:
+                                    if not any(p['place'] == place for p in top_3):
+                                        top_3.append({"place": place, "name": name})
+                    except:
+                        continue
+            except:
                 pass
         
+        # Sort and deduplicate
         top_3.sort(key=lambda x: x['place'])
         
+        # Remove duplicates keeping first occurrence
+        seen_places = set()
+        unique_top_3 = []
+        for p in top_3:
+            if p['place'] not in seen_places:
+                seen_places.add(p['place'])
+                unique_top_3.append(p)
+        
+        top_3 = unique_top_3[:3]
+        
+        # Mark if split was detected
+        if found_split and top_3:
+            top_3[0]['split'] = True
+        
         if top_3:
-            log(f"✓ Found {len(top_3)} finishers: {[p['name'] for p in top_3]}")
+            log(f"✓ Final top {len(top_3)}: {[p['name'] for p in top_3]}")
         else:
             log("✗ Could not extract standings")
         
-        return top_3[:3]
+        return top_3
         
     except Exception as e:
         log(f"Error extracting standings: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 
@@ -339,14 +426,19 @@ def search_tournaments(driver):
         search_input.send_keys(Keys.ENTER)
         
         log("Waiting for search results...")
-        human_delay(3, 5)
-        simulate_human_scrolling(driver)
-        human_delay(1, 2)
+        human_delay(4, 6)
         
+        # Scroll multiple times to load all results
+        for scroll_round in range(3):
+            simulate_human_scrolling(driver)
+            human_delay(1, 2)
+        
+        # Find tournament cards using multiple methods
         card_selectors = [
             ".ant-card",
             "[class*='tournament']",
             "[class*='TournamentCard']",
+            "[class*='card']",
         ]
         
         tournament_cards = []
@@ -370,6 +462,11 @@ def search_tournaments(driver):
         
         log(f"Processing {len(tournament_cards)} potential tournament cards")
         
+        # Get today's date for comparison
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        week_ago = today - timedelta(days=7)
+        
         for idx, card in enumerate(tournament_cards):
             try:
                 card_text = card.text
@@ -377,12 +474,23 @@ def search_tournaments(driver):
                 if VENUE_NAME not in card_text or VENUE_CITY not in card_text:
                     continue
                 
-                is_completed = '100%' in card_text or 'Completed' in card_text
+                # Check if completed - look for various indicators
+                is_completed = any(indicator in card_text for indicator in [
+                    '100%', 'Completed', 'Complete', 'Finished', 'Final'
+                ])
+                
+                # Also check for high completion percentage (90%+)
+                pct_match = re.search(r'(\d+)%', card_text)
+                if pct_match and int(pct_match.group(1)) >= 90:
+                    is_completed = True
                 
                 if not is_completed:
+                    log(f"Skipping card {idx} - not completed")
                     continue
                 
-                log(f"\nFound completed tournament in card {idx}")
+                log(f"\n{'='*40}")
+                log(f"Found completed tournament in card {idx}")
+                log(f"Card text preview: {card_text[:200]}...")
                 
                 tournament_name = None
                 for tag in ['h1', 'h2', 'h3', 'h4', 'h5']:
@@ -399,7 +507,8 @@ def search_tournaments(driver):
                     for line in lines:
                         line = line.strip()
                         if (line and len(line) > 5 and VENUE_NAME not in line and
-                            VENUE_CITY not in line and not re.match(r'^\d{4}[/-]\d{2}[/-]\d{2}', line)):
+                            VENUE_CITY not in line and not re.match(r'^\d{4}[/-]\d{2}[/-]\d{2}$', line) and
+                            '%' not in line and 'Players' not in line):
                             tournament_name = line
                             break
                 
@@ -408,18 +517,40 @@ def search_tournaments(driver):
                 
                 tournament_date = extract_date_from_text(card_text)
                 
+                # Get tournament URL
                 tournament_url = None
                 try:
                     link_element = card.find_element(By.CSS_SELECTOR, "a[href*='/tournaments/']")
                     tournament_url = link_element.get_attribute('href')
                 except Exception:
-                    if tournament_date and tournament_name:
-                        name_for_slug = re.sub(r'^\d{4}[/-]\d{2}[/-]\d{2}\s*', '', tournament_name)
-                        name_for_slug = re.sub(r'^\d{8}\s*', '', name_for_slug)
-                        date_no_slashes = tournament_date.replace('/', '').replace('-', '')
-                        name_slug = re.sub(r'[^a-z0-9-]', '', name_for_slug.lower().replace(' ', '-'))
-                        name_slug = re.sub(r'-+', '-', name_slug).strip('-')
-                        tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
+                    try:
+                        # Try finding any link in the card
+                        links = card.find_elements(By.TAG_NAME, "a")
+                        for link in links:
+                            href = link.get_attribute('href')
+                            if href and '/tournaments/' in href:
+                                tournament_url = href
+                                break
+                    except:
+                        pass
+                
+                if not tournament_url and tournament_date and tournament_name:
+                    name_for_slug = re.sub(r'^\d{4}[/-]\d{2}[/-]\d{2}\s*', '', tournament_name)
+                    name_for_slug = re.sub(r'^\d{8}\s*', '', name_for_slug)
+                    date_no_slashes = tournament_date.replace('/', '').replace('-', '')
+                    name_slug = re.sub(r'[^a-z0-9-]', '', name_for_slug.lower().replace(' ', '-'))
+                    name_slug = re.sub(r'-+', '-', name_slug).strip('-')
+                    tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
+                
+                # Check if this tournament is within the last week
+                if tournament_date:
+                    try:
+                        t_date = datetime.strptime(tournament_date, "%Y/%m/%d").date()
+                        if t_date < week_ago:
+                            log(f"Skipping - older than 1 week: {tournament_date}")
+                            continue
+                    except:
+                        pass
                 
                 tournaments.append({
                     'name': tournament_name,
@@ -435,6 +566,11 @@ def search_tournaments(driver):
             except Exception as e:
                 log(f"Error parsing card {idx}: {e}")
                 continue
+        
+        log(f"\n{'='*40}")
+        log(f"Total tournaments found: {len(tournaments)}")
+        for t in tournaments:
+            log(f"  - {t['date']}: {t['name']}")
         
         return tournaments
         
@@ -562,6 +698,9 @@ def generate_html_display(results, output_path):
     else:
         for tournament in tournaments:
             name = tournament.get("name", "Tournament")
+            # Clean up tournament name - remove date prefix if present
+            name = re.sub(r'^\d{4}[/-]\d{2}[/-]\d{2}\s*', '', name)
+            
             top_3 = tournament.get("top_3", [])
             
             winners_html = ""
@@ -571,7 +710,15 @@ def generate_html_display(results, output_path):
             for i in range(3):
                 place_label = place_labels[i]
                 place_class = place_classes[i]
-                player_name = top_3[i]["name"] if i < len(top_3) else "TBD"
+                
+                if i < len(top_3):
+                    player = top_3[i]
+                    player_name = player.get("name", "TBD")
+                    # Add "(split)" indicator if this place was split
+                    if player.get("split") and i == 0:
+                        place_label = "1st Place (Split)"
+                else:
+                    player_name = "TBD"
                 
                 winners_html += f"""
                 <div class="winner-card {place_class}">
