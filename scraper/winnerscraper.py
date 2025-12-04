@@ -159,15 +159,21 @@ def extract_date_from_text(text):
     if not text:
         return None
     
-    # Try YYYY/MM/DD format first
-    match = re.search(r'(\d{4}/\d{2}/\d{2})', text)
+    # Try YYYY/MM/DD or YYYY/M/D format (1 or 2 digit month/day)
+    match = re.search(r'(\d{4})/(\d{1,2})/(\d{1,2})', text)
     if match:
-        return match.group(1)
+        year = match.group(1)
+        month = int(match.group(2))
+        day = int(match.group(3))
+        return f"{year}/{month:02d}/{day:02d}"
     
-    # Try YYYY-MM-DD format
-    match = re.search(r'(\d{4}-\d{2}-\d{2})', text)
+    # Try YYYY-MM-DD or YYYY-M-D format
+    match = re.search(r'(\d{4})-(\d{1,2})-(\d{1,2})', text)
     if match:
-        return match.group(1).replace('-', '/')
+        year = match.group(1)
+        month = int(match.group(2))
+        day = int(match.group(3))
+        return f"{year}/{month:02d}/{day:02d}"
     
     # Try YYYYMMDD format (8 digits)
     match = re.search(r'(\d{8})(?:\s|/|-|$)', text)
@@ -283,17 +289,49 @@ def get_top_3_from_tournament(driver, tournament_url):
             "//button[contains(text(), 'Standings')]",
             "//*[contains(@class, 'standings')]",
             "//div[@role='tab' and contains(text(), 'Stand')]",
+            "//div[contains(@class, 'ant-tabs-tab') and contains(., 'Standings')]",
+            "//div[contains(@class, 'tab') and contains(., 'Standings')]",
         ]
         
+        standings_clicked = False
         for tab_xpath in standings_tabs:
             try:
                 standings_tab = driver.find_element(By.XPATH, tab_xpath)
-                standings_tab.click()
-                human_delay(2, 3)
-                log("✓ Clicked Standings tab")
-                break
+                if standings_tab.is_displayed():
+                    standings_tab.click()
+                    human_delay(2, 3)
+                    log(f"✓ Clicked Standings tab using: {tab_xpath}")
+                    standings_clicked = True
+                    break
             except NoSuchElementException:
                 continue
+            except Exception as e:
+                log(f"  Tab click failed for {tab_xpath}: {e}")
+                continue
+        
+        if not standings_clicked:
+            log("⚠ Could not find/click Standings tab - trying page as-is")
+        
+        # DEBUG: Log page source snippet to see what we're working with
+        try:
+            page_source = driver.page_source
+            if 'table' in page_source.lower():
+                log("  Page contains 'table' element")
+            if 'standings' in page_source.lower():
+                log("  Page contains 'standings' text")
+            
+            # Look for any tables on the page
+            all_tables = driver.find_elements(By.TAG_NAME, "table")
+            log(f"  Found {len(all_tables)} table elements on page")
+            
+            for i, table in enumerate(all_tables[:3]):
+                try:
+                    table_text = table.text[:200] if table.text else "(empty)"
+                    log(f"  Table {i} preview: {table_text}")
+                except:
+                    pass
+        except Exception as e:
+            log(f"  Debug error: {e}")
         
         # Check page for "split" indication
         try:
@@ -309,6 +347,8 @@ def get_top_3_from_tournament(driver, tournament_url):
             "//table//tbody//tr",
             "//div[contains(@class, 'ant-table')]//tbody//tr",
             "//div[contains(@class, 'standings')]//tr",
+            "//table//tr",
+            "//*[contains(@class, 'ant-table-row')]",
         ]
         
         for xpath in standings_xpaths:
@@ -323,6 +363,10 @@ def get_top_3_from_tournament(driver, tournament_url):
                         try:
                             cells = row.find_elements(By.TAG_NAME, "td")
                             row_text = row.text.strip()
+                            
+                            # Log row for debugging
+                            if row_text and len(valid_players) < 5:
+                                log(f"    Row: {row_text[:100]}")
                             
                             # Look for place number in first cell
                             place_num = None
@@ -509,6 +553,35 @@ def search_tournaments(driver):
         
         log(f"Processing {len(tournament_cards)} potential tournament cards")
         
+        # DEBUG: Print all card text snippets to see what we're finding
+        for idx, card in enumerate(tournament_cards[:15]):  # Check first 15 cards
+            try:
+                card_text = card.text
+                
+                # Log every card that mentions our venue
+                if VENUE_NAME in card_text:
+                    log(f"\n{'='*50}")
+                    log(f"DEBUG Card {idx} contains '{VENUE_NAME}'")
+                    log(f"Card text (first 400 chars):")
+                    log(card_text[:400])
+                    log(f"{'='*50}")
+                    
+                    # Check completion status
+                    has_100_pct = '100%' in card_text
+                    has_completed = 'Completed' in card_text or 'Complete' in card_text
+                    log(f"  Has '100%': {has_100_pct}")
+                    log(f"  Has 'Completed': {has_completed}")
+                    
+                    # Extract date for debugging
+                    debug_date = extract_date_from_text(card_text)
+                    log(f"  Extracted date: {debug_date}")
+            except Exception as e:
+                log(f"Error reading card {idx}: {e}")
+        
+        log(f"\n{'='*50}")
+        log("Now processing cards for completed tournaments...")
+        log(f"{'='*50}\n")
+        
         # Get today's date for comparison
         from datetime import datetime, timedelta
         today = datetime.now().date()
@@ -615,22 +688,29 @@ def search_tournaments(driver):
         
         # Filter out future tournaments - only keep past/today completed ones
         from datetime import datetime
-        today = datetime.now().date()
+        from zoneinfo import ZoneInfo
+        
+        # Use Eastern Time for date comparison
+        eastern = ZoneInfo('America/New_York')
+        today = datetime.now(eastern).date()
+        log(f"Today's date (Eastern): {today}")
         
         past_tournaments = []
         for t in tournaments:
             if t['date']:
                 try:
                     t_date = datetime.strptime(t['date'], "%Y/%m/%d").date()
+                    log(f"  Comparing tournament date {t_date} vs today {today}")
                     if t_date <= today:
                         past_tournaments.append(t)
                         log(f"  ✓ Including (past/today): {t['date']} - {t['name']}")
                     else:
                         log(f"  ✗ Excluding (future): {t['date']} - {t['name']}")
-                except:
-                    # If we can't parse date, include it
+                except Exception as e:
+                    log(f"  ⚠ Date parse error for {t['date']}: {e} - including anyway")
                     past_tournaments.append(t)
             else:
+                log(f"  ⚠ No date for {t['name']} - including anyway")
                 past_tournaments.append(t)
         
         log(f"\nFiltered to {len(past_tournaments)} past/current tournaments")
