@@ -5735,55 +5735,56 @@ Thank you!`
     }
     
     // Download CSV of paid and late players
-    function downloadPlayersCSV() {
-        // Get paid and late players
-        const eligiblePlayers = state.checkedInPlayers.filter(p => p.hasPaid || p.isLate);
-        
-        if (eligiblePlayers.length === 0) {
-            showToast('No paid or late players to export', 'error');
-            return;
-        }
-        
-        // Sort by skill level (highest to lowest)
-        eligiblePlayers.sort((a, b) => (b.skill || 0) - (a.skill || 0));
-        
-        // Build CSV content
-        let csv = 'name,phone_number,skill_level\n';
-        
-        eligiblePlayers.forEach(player => {
-            const name = player.name || '';
-            // Extract just digits from phone number
-            const phoneDigits = (player.phone || '').replace(/\D/g, '');
-            const skill = player.skill || '';
-            
-            // Escape name if it contains commas
-            const escapedName = name.includes(',') ? `"${name}"` : name;
-            
-            csv += `${escapedName},${phoneDigits},${skill}\n`;
-        });
-        
-        // Create and trigger download
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        
-        // Generate filename with date
-        const now = new Date();
-        const dateStr = now.toISOString().split('T')[0];
-        const filename = `tournament_players_${dateStr}.csv`;
-        
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        showToast(`Downloaded ${eligiblePlayers.length} players to CSV`, 'success');
-        
-        // Schedule GitHub workflow trigger for 10 minutes from now
-        scheduleWorkflowTrigger();
+function downloadPlayersCSV() {
+    // Get paid and late players
+    const eligiblePlayers = state.checkedInPlayers.filter(p => p.hasPaid || p.isLate);
+    
+    if (eligiblePlayers.length === 0) {
+        showToast('No paid or late players to export', 'error');
+        return;
     }
+    
+    // Sort by skill level (highest to lowest)
+    eligiblePlayers.sort((a, b) => (b.skill || 0) - (a.skill || 0));
+    
+    // Build CSV content - added Fargo_ID column
+    let csv = 'name,phone_number,skill_level,Fargo_ID\n';
+    
+    eligiblePlayers.forEach(player => {
+        const name = player.name || '';
+        // Extract just digits from phone number
+        const phoneDigits = (player.phone || '').replace(/\D/g, '');
+        const skill = player.skill || '';
+        const fargoId = player.fargoId || '';
+        
+        // Escape name if it contains commas
+        const escapedName = name.includes(',') ? `"${name}"` : name;
+        
+        csv += `${escapedName},${phoneDigits},${skill},${fargoId}\n`;
+    });
+    
+    // Create and trigger download
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    // Generate filename with date
+    const now = new Date();
+    const dateStr = now.toISOString().split('T')[0];
+    const filename = `tournament_players_${dateStr}.csv`;
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showToast(`Downloaded ${eligiblePlayers.length} players to CSV`, 'success');
+    
+    // Schedule GitHub workflow trigger for 10 minutes from now
+    scheduleWorkflowTrigger();
+}
     
     // Schedule the GitHub Actions workflow to run after 10 minutes
     let workflowTimerId = null;
