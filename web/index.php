@@ -6,9 +6,16 @@
     <title>Bankshot Tournament Display</title>
     
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;600;700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     
     <style>
+        :root {
+            --primary: #1e7e34;
+            --primary-dark: #0d5c26;
+            --sidebar-top: #1a472a;
+            --sidebar-bottom: #0d3320;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -28,7 +35,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #1e7e34 0%, #0d4d1f 100%);
+            background: linear-gradient(180deg, var(--sidebar-top) 0%, var(--sidebar-bottom) 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -70,18 +77,17 @@
             overflow: hidden;
         }
 
+        /* Left Panel - Tournament Console Theme */
         .left {
             left: 0;
             width: 20vw;
-            background: linear-gradient(180deg, #1e7e34 0%, #0d4d1f 100%);
-            padding: 1vh 0.8vw;
+            background: linear-gradient(180deg, var(--sidebar-top) 0%, var(--sidebar-bottom) 100%);
             display: flex;
             flex-direction: column;
-            justify-content: space-evenly;
-            align-items: center;
-            box-shadow: 5px 0 20px rgba(0, 0, 0, 0.3);
+            box-shadow: 5px 0 20px rgba(0, 0, 0, 0.5);
             transition: transform 0.5s ease-in-out;
             overflow: hidden;
+            height: 100vh;
         }
 
         .left.hidden {
@@ -100,107 +106,162 @@
             left: 0;
         }
 
+        /* Sidebar Section Styling */
+        .sidebar-section {
+            padding: 2vh 1.2vw;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .sidebar-section:last-child {
+            border-bottom: none;
+            flex: 1;
+        }
+
+        .sidebar-label {
+            font-family: 'Roboto', sans-serif;
+            font-size: 0.7vw;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.6;
+            margin-bottom: 1vh;
+            color: white;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* Tournament Name Header */
+        .tournament-header {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 1.5vh 1vw;
+        }
+
+        .tournament-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8vw;
+            color: #ffffff;
+            text-align: center;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+            line-height: 1.2;
+        }
+
+        /* QR Code Section */
         .qr-container {
             text-align: center;
-            margin: 0.5vh 0;
             background: white;
-            padding: 0.8vh;
+            padding: 0.6vw;
             border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-            width: 90%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: inline-block;
         }
 
         .qr-container img {
-            width: 100%;
+            width: 8vw;
+            height: 8vw;
             max-width: 140px;
-            border-radius: 6px;
+            max-height: 140px;
+            border-radius: 4px;
+            display: block;
         }
 
         .qr-label {
-            font-family: 'Oswald', sans-serif;
-            font-size: 1.1vw;
-            color: #1e7e34;
-            margin-top: 0.5vh;
-            font-weight: 600;
+            font-family: 'Roboto', sans-serif;
+            font-size: 0.75vw;
+            color: white;
+            margin-top: 1vh;
+            opacity: 0.8;
             text-transform: uppercase;
             letter-spacing: 1px;
         }
 
+        /* Player Count Section */
         .player-count {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 3.5vw;
+            font-size: 3vw;
             color: #ffffff;
             text-align: center;
-            margin: 0.8vh 0;
             font-weight: bold;
-            text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.5);
-            background: rgba(255, 255, 255, 0.15);
-            padding: 0.8vh;
-            border-radius: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            padding: 1vh 1vw;
+            border-radius: 8px;
             width: 100%;
         }
 
+        /* Entry Fee Section */
         .entry-fee {
             font-family: 'Oswald', sans-serif;
-            font-size: 1.6vw;
+            font-size: 1.4vw;
             color: #ffffff;
             text-align: center;
-            margin: 0.5vh 0;
             font-weight: 500;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1vh 1vw;
+            border-radius: 8px;
+            width: 100%;
         }
 
+        /* Payouts Section */
         .payouts-header {
-            font-family: 'Oswald', sans-serif;
-            font-size: 1.6vw;
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.4vw;
             color: #ffffff;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin: 0.8vh 0 0.3vh 0;
-            font-weight: 600;
+            margin-bottom: 1vh;
+            font-weight: normal;
             text-align: center;
-            border-bottom: 3px solid rgba(255, 255, 255, 0.3);
-            padding-bottom: 0.3vh;
             width: 100%;
+            opacity: 0.9;
         }
 
         .payouts {
             font-family: 'Roboto', sans-serif;
-            font-size: 1.5vw;
+            font-size: 1.1vw;
             color: #ffffff;
             text-align: center;
-            line-height: 1.1;
             width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4vh;
         }
 
         .payouts div {
-            margin: 0.2vh 0;
-            padding: 0.4vh;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            font-weight: 500;
+            padding: 0.5vh 0.8vw;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            font-weight: 400;
+            display: flex;
+            justify-content: space-between;
         }
 
         .payouts .first-place {
-            background: rgba(255, 215, 0, 0.3);
-            font-weight: 700;
-            font-size: 2vw;
-            border: 2px solid rgba(255, 215, 0, 0.6);
+            background: rgba(255, 215, 0, 0.2);
+            font-weight: 600;
+            font-size: 1.3vw;
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            padding: 0.7vh 0.8vw;
         }
 
-        /* Dynamic scaling for many payouts */
         .payouts.compact {
-            font-size: 1.3vw;
-            line-height: 1.0;
+            font-size: 0.95vw;
+            gap: 0.3vh;
         }
 
         .payouts.compact div {
-            margin: 0.15vh 0;
-            padding: 0.3vh;
+            padding: 0.35vh 0.6vw;
         }
 
         .payouts.compact .first-place {
-            font-size: 1.8vw;
+            font-size: 1.1vw;
+            padding: 0.5vh 0.6vw;
         }
 
         iframe {
@@ -220,24 +281,10 @@
             display: block;
             opacity: 1;
         }
-
-        /* Animated gradient background */
-        @keyframes gradientShift {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        .left {
-            background: linear-gradient(180deg, #1e7e34, #0d4d1f, #1e7e34);
-            background-size: 200% 200%;
-            animation: gradientShift 10s ease infinite;
-        }
     </style>
 </head>
 <body>
 
-<!-- Loading Screen -->
 <div id="loadingScreen">
     <div class="spinner"></div>
     <div class="loading-text">LOADING TOURNAMENT...</div>
@@ -247,16 +294,14 @@
 set_time_limit(60);
 require_once 'tournament_payout_calculator.php';
 
-// Helper function to convert class output to display format
 function calculatePayouts($player_count, $entry_fee) {
     if ($player_count < 8) {
-        return []; // Minimum 8 players
+        return [];
     }
     
     $calculator = new TournamentPayoutCalculator($entry_fee, $player_count);
     $payouts_array = $calculator->getPayoutsArray();
     
-    // Convert to format expected by formatPayoutsHTML()
     $formatted_payouts = [];
     foreach ($payouts_array as $place => $amount) {
         $place_label = getPlaceLabel($place);
@@ -270,13 +315,10 @@ function calculatePayouts($player_count, $entry_fee) {
 }
 
 function getPlaceLabel($place) {
-    // Individual places
     if ($place == 1) return '1st';
     if ($place == 2) return '2nd';
     if ($place == 3) return '3rd';
     if ($place == 4) return '4th';
-    
-    // Tie groups
     if ($place == 5 || $place == 6) return '5th-6th';
     if ($place == 7 || $place == 8) return '7th-8th';
     if ($place >= 9 && $place <= 12) return '9th-12th';
@@ -288,8 +330,6 @@ function getPlaceLabel($place) {
     if ($place >= 65 && $place <= 96) return '65th-96th';
     if ($place >= 97 && $place <= 128) return '97th-128th';
     if ($place >= 129 && $place <= 256) return '129th-256th';
-    
-    // Fallback for places beyond 256
     return $place . 'th';
 }
 
@@ -299,20 +339,19 @@ function formatPayoutsHTML($payouts) {
     }
     
     $html = '';
-    $seen_places = []; // Track which tied places we've already shown
+    $seen_places = [];
     
     foreach ($payouts as $payout) {
         $place = $payout['place'] ?? '';
         $amount = $payout['amount'] ?? '';
         
-        // Skip duplicate tied places (e.g., show "5th-6th" once, not twice)
         if (in_array($place, $seen_places)) {
             continue;
         }
         $seen_places[] = $place;
         
         $class = ($place === '1st') ? 'first-place' : '';
-        $html .= "<div class='$class'>$place: $amount</div>\n";
+        $html .= "<div class='$class'><span>$place</span><span>$amount</span></div>\n";
     }
     
     return $html;
@@ -346,101 +385,106 @@ if (!$tournament_found) {
 }
 ?>
 
-<!-- GLOBAL SCRIPT - Available to all sections -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-// ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-// Google Apps Script URL - same as calcutta.html uses
-const GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxkK__Ny64Ho4I7cq8zKN3KmzxLEtenMbhps3D_ouiVZjBguv4P-AB3LtxzUfwV9VV8oQ/exec';
-
-// Duration for Calcutta/SidePot display (in seconds)
 const CALCUTTA_SIDEPOT_DURATION = 40;
-
-// Current tournament player count (from PHP)
 const TOURNAMENT_PLAYER_COUNT = <?php echo $player_count; ?>;
 const TOURNAMENT_FOUND = <?php echo $tournament_found ? 'true' : 'false'; ?>;
 
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
 function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
-    if (m.hasEndDate && m.endDate && currentDate > m.endDate) {
-        return false;
-    }
+    if (m.hasEndDate && m.endDate && currentDate > m.endDate) return false;
     
     if (m.usePerDaySchedule && m.daySchedules) {
         var daySchedule = m.daySchedules[currentDay];
-        if (!daySchedule || !daySchedule.enabled) {
-            return false;
-        }
+        if (!daySchedule || !daySchedule.enabled) return false;
         
         if (daySchedule.startTime && daySchedule.endTime) {
             var startParts = daySchedule.startTime.split(':');
             var endParts = daySchedule.endTime.split(':');
             var startTime = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
             var endTime = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
-            
-            if (currentTime < startTime || currentTime > endTime) {
-                return false;
-            }
+            if (currentTime < startTime || currentTime > endTime) return false;
         }
         return true;
     }
     
-    if (m.scheduleDays && m.scheduleDays.length > 0 && m.scheduleDays.indexOf(currentDay) === -1) {
-        return false;
-    }
+    if (m.scheduleDays && m.scheduleDays.length > 0 && m.scheduleDays.indexOf(currentDay) === -1) return false;
     
     if (m.scheduleStartTime && m.scheduleEndTime) {
         var startParts = m.scheduleStartTime.split(':');
         var endParts = m.scheduleEndTime.split(':');
         var startTime = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
         var endTime = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
-        
-        if (currentTime < startTime || currentTime > endTime) {
-            return false;
-        }
+        if (currentTime < startTime || currentTime > endTime) return false;
     }
     
     return true;
 }
 
-/**
- * Fetch display type setting from Google Sheets
- * Returns: 'none', 'calcutta', 'sidepot', or 'both'
- */
-async function getDisplayTypeSetting() {
+// Fetch active tournaments from local tournament_state.json via save_tournament.php
+async function getActiveDisplays() {
     try {
-        const response = await fetch(GOOGLE_APPS_SCRIPT_URL + '?action=displayType');
-        if (!response.ok) {
-            console.error('Failed to fetch display type setting');
-            return 'none';
+        const response = await fetch('/save_tournament.php');
+        if (!response.ok) return { tournaments: [] };
+        
+        const result = await response.json();
+        if (!result.success || !result.data || !result.data.tournaments) {
+            return { tournaments: [] };
         }
-        const data = await response.json();
-        console.log('Display type from Google Sheets:', data.displayType);
-        return data.displayType || 'none';
+        
+        const tournaments = [];
+        
+        // Process each tournament in the state file
+        for (const [key, tournamentData] of Object.entries(result.data.tournaments)) {
+            if (!tournamentData.checkedInPlayers || tournamentData.checkedInPlayers.length === 0) {
+                continue;
+            }
+            
+            const players = tournamentData.checkedInPlayers;
+            
+            // Check if tournament has calcutta data (any player with buyer and bid > 0)
+            const hasCalcutta = players.some(p => 
+                p.calcuttaBuyer && 
+                p.calcuttaBuyer.trim() !== '' && 
+                parseFloat(p.calcuttaBid) > 0
+            );
+            
+            // Also check pool auction
+            const hasPoolAuction = tournamentData.poolAuction && 
+                tournamentData.poolAuction.buyer && 
+                parseFloat(tournamentData.poolAuction.bid) > 0;
+            
+            // Check if tournament has sidepot data (any player in sidepot)
+            const hasSidePot = players.some(p => p.inSidePot === true);
+            
+            // Only add if there's something to display
+            if (hasCalcutta || hasPoolAuction || hasSidePot) {
+                tournaments.push({
+                    key: key,
+                    name: tournamentData.tournamentName || 'Tournament',
+                    hasCalcutta: hasCalcutta || hasPoolAuction,
+                    hasSidePot: hasSidePot,
+                    playerCount: players.length,
+                    lastUpdated: tournamentData.lastUpdated
+                });
+            }
+        }
+        
+        console.log('Found tournaments with display data:', tournaments);
+        return { tournaments: tournaments };
+        
     } catch (error) {
-        console.error('Error fetching display type:', error);
-        return 'none';
+        console.error('Error fetching active displays:', error);
+        return { tournaments: [] };
     }
 }
-
-// ============================================================================
-// DASHBOARD MANAGER
-// ============================================================================
 
 var Dash = {
     dashboards: [],
     nextIndex: 0,
-    displayType: 'none', // Will be set from Google Sheets
     
     createIframes: function() {
         var frameContainer = document.getElementById('frameContainer');
-        
         for (var index = 0; index < this.dashboards.length; index++) {
             var iframe = document.createElement('iframe');
             iframe.setAttribute('id', index.toString());
@@ -456,39 +500,24 @@ var Dash = {
         console.log('Tournament found:', TOURNAMENT_FOUND);
         console.log('Player count:', TOURNAMENT_PLAYER_COUNT);
         
-        // First, get the display type setting from Google Sheets
-        // Only fetch if tournament is active and has players
-        if (TOURNAMENT_FOUND && TOURNAMENT_PLAYER_COUNT > 0) {
-            Dash.displayType = await getDisplayTypeSetting();
-            console.log('Display type setting:', Dash.displayType);
-        } else {
-            Dash.displayType = 'none';
-            console.log('No active tournament with players - display type set to none');
-        }
-        
-        // Load regular media items
         try {
             const response = await fetch('/load_media.php');
             const data = await response.json();
             
             <?php if ($tournament_found): ?>
-            // Tournament active - show 'tournament' media
             var allMediaItems = data.filter(function(m) { 
                 return m.active === true && m.displayOnTournaments === true;
             });
             console.log('Tournament mode: ' + allMediaItems.length + ' tournament media items');
             <?php else: ?>
-            // No tournament - show 'ad' media
             var allMediaItems = data.filter(function(m) { 
                 return m.active === true && m.displayOnAds === true;
             });
             console.log('Ad mode: ' + allMediaItems.length + ' ad media items');
             <?php endif; ?>
             
-            // Sort by order
             allMediaItems.sort(function(a, b) { return (a.order || 0) - (b.order || 0); });
             
-            // Apply schedule filtering
             var now = new Date();
             var currentDay = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][now.getDay()];
             var currentTime = now.getHours() * 60 + now.getMinutes();
@@ -500,10 +529,8 @@ var Dash = {
             
             console.log('After schedule filter: ' + filteredMedia.length + ' items to display');
             
-            // Build dashboards from regular media
             for (var i = 0; i < filteredMedia.length; i++) {
                 var mediaItem = filteredMedia[i];
-                
                 if (mediaItem.type === 'url') {
                     Dash.dashboards.push({
                         url: mediaItem.url,
@@ -521,42 +548,46 @@ var Dash = {
                 }
             }
             
-            // ================================================================
-            // ADD CALCUTTA/SIDEPOT TO ROTATION IF ENABLED AND PLAYERS > 0
-            // ================================================================
-            if (TOURNAMENT_FOUND && TOURNAMENT_PLAYER_COUNT > 0) {
-                if (Dash.displayType === 'calcutta' || Dash.displayType === 'both') {
-                    console.log('Adding Calcutta to rotation (40s duration)');
-                    Dash.dashboards.push({
-                        url: '/calcutta.html',
-                        time: CALCUTTA_SIDEPOT_DURATION,
-                        refresh: true,  // Refresh to get latest data
-                        name: 'Calcutta Display'
-                    });
-                }
+            // Get tournaments with Calcutta/SidePot data from tournament_state.json
+            // This runs independently of tournament_data.json player count
+            const activeDisplays = await getActiveDisplays();
+            
+            if (activeDisplays.tournaments && activeDisplays.tournaments.length > 0) {
+                console.log('Found ' + activeDisplays.tournaments.length + ' tournament(s) with display data');
                 
-                if (Dash.displayType === 'sidepot' || Dash.displayType === 'both') {
-                    console.log('Adding Side Pot to rotation (40s duration)');
-                    Dash.dashboards.push({
-                        url: '/sidepot.html',
-                        time: CALCUTTA_SIDEPOT_DURATION,
-                        refresh: true,  // Refresh to get latest data
-                        name: 'Side Pot Display'
-                    });
+                // Add displays for each tournament
+                for (const tournament of activeDisplays.tournaments) {
+                    const encodedName = encodeURIComponent(tournament.name);
+                    const encodedKey = encodeURIComponent(tournament.key);
+                    
+                    if (tournament.hasCalcutta) {
+                        console.log('Adding Calcutta for: ' + tournament.name);
+                        Dash.dashboards.push({
+                            url: '/calcutta.html?key=' + encodedKey + '&tournament=' + encodedName,
+                            time: CALCUTTA_SIDEPOT_DURATION,
+                            refresh: true,
+                            name: 'Calcutta - ' + tournament.name
+                        });
+                    }
+                    
+                    if (tournament.hasSidePot) {
+                        console.log('Adding Side Pot for: ' + tournament.name);
+                        Dash.dashboards.push({
+                            url: '/sidepot.html?key=' + encodedKey + '&tournament=' + encodedName,
+                            time: CALCUTTA_SIDEPOT_DURATION,
+                            refresh: true,
+                            name: 'Side Pot - ' + tournament.name
+                        });
+                    }
                 }
             } else {
-                console.log('Calcutta/SidePot not added - no players or no tournament');
+                console.log('No tournaments with calcutta/sidepot data found');
             }
             
-            // Log final dashboard lineup
             console.log('Final dashboard lineup:');
             Dash.dashboards.forEach(function(d, i) {
                 console.log('  ' + i + ': ' + d.name + ' (' + d.time + 's)');
             });
-            
-            if (Dash.dashboards.length === 0) {
-                console.warn('No media items to display!');
-            }
             
             Dash.continueStartup();
             
@@ -588,7 +619,6 @@ var Dash = {
     
     createMediaHTML: function(mediaItem) {
         var mediaSrc = mediaItem.path || mediaItem.data;
-        
         if (mediaSrc && mediaSrc.indexOf('/') === 0) {
             mediaSrc = window.location.origin + mediaSrc;
         }
@@ -618,7 +648,6 @@ var Dash = {
         if (Dash.dashboards.length === 0) return;
         
         var currentDashboard = Dash.dashboards[this.nextIndex];
-        
         Dash.hideFrame(this.nextIndex - 1);
         
         if (currentDashboard.refresh) {
@@ -626,7 +655,6 @@ var Dash = {
         }
         
         Dash.showFrame(this.nextIndex);
-        
         console.log('Displaying: ' + currentDashboard.name + ' for ' + currentDashboard.time + 's');
         
         this.nextIndex = (this.nextIndex + 1) % Dash.dashboards.length;
@@ -660,60 +688,69 @@ window.onload = function() {
 <?php if ($tournament_found): ?>
 
 <div class="split left <?php echo ($player_count == 0) ? 'hidden' : ''; ?>" id="leftPanel">
-    <div class="qr-container">
-        <img src="tournament_qr.png?t=<?php echo time(); ?>" alt="Tournament Bracket QR Code">
-        <div class="qr-label">Scan for Bracket</div>
+    <!-- Tournament Name Section -->
+    <div class="sidebar-section tournament-header">
+        <div class="tournament-name" id="tournamentName"><?php echo htmlspecialchars($tournament_name); ?></div>
     </div>
     
-    <div class="player-count" id="playerCount"><?php echo $player_count; ?> PLAYERS</div>
-    
-    <div class="entry-fee" id="entryFee">
-        <?php 
-        // Get entry fee label and value
-        $fee_label = $tournament_data['entry_fee_label'] ?? 'Entry:';
-        $fee_value = $tournament_data['entry_fee'] ?? '$15';
-        
-        // If entry fee is just a number, add $ sign
-        if (is_numeric($fee_value)) {
-            $fee_value = '$' . $fee_value;
-        }
-        
-        echo $fee_label . ' ' . $fee_value;
-        ?>
+    <!-- QR Code Section -->
+    <div class="sidebar-section">
+        <div class="sidebar-label">Scan for Bracket</div>
+        <div class="qr-container">
+            <img src="tournament_qr.png?t=<?php echo time(); ?>" alt="Tournament Bracket QR Code">
+        </div>
     </div>
     
-    <div class="payouts-header">PAYOUTS</div>
-    <div class="payouts" id="payouts">
-        <?php 
-        // Check if Digital Pool has payouts
-        $has_digital_pool = isset($tournament_data['has_digital_pool_payouts']) 
-                            && $tournament_data['has_digital_pool_payouts'] === true;
-        
-        if ($has_digital_pool && isset($tournament_data['payouts']) && is_array($tournament_data['payouts'])) {
-            // Use Digital Pool payouts from JSON
-            $payouts = $tournament_data['payouts'];
-        } else {
-            // Calculate payouts based on player count and entry fee
-            $entry_fee_num = $tournament_data['entry_fee'] ?? 15;
-            if (is_string($entry_fee_num)) {
-                $entry_fee_num = str_replace('$', '', $entry_fee_num);
+    <!-- Player Count Section -->
+    <div class="sidebar-section">
+        <div class="sidebar-label">Checked In</div>
+        <div class="player-count" id="playerCount"><?php echo $player_count; ?> PLAYERS</div>
+    </div>
+    
+    <!-- Entry Fee Section -->
+    <div class="sidebar-section">
+        <div class="sidebar-label">Tournament Entry</div>
+        <div class="entry-fee" id="entryFee">
+            <?php 
+            $fee_label = $tournament_data['entry_fee_label'] ?? 'Entry:';
+            $fee_value = $tournament_data['entry_fee'] ?? 15;
+            // Ensure dollar sign is present
+            if (is_numeric($fee_value)) {
+                $fee_value = '$' . number_format((float)$fee_value, 0);
+            } elseif (is_string($fee_value) && strpos($fee_value, '$') === false) {
+                $fee_value = '$' . $fee_value;
             }
-            $payouts = calculatePayouts($player_count, $entry_fee_num);
-        }
-        
-        // Display payouts
-        echo formatPayoutsHTML($payouts);
-        ?>
+            echo $fee_label . ' ' . $fee_value;
+            ?>
+        </div>
+    </div>
+    
+    <!-- Payouts Section -->
+    <div class="sidebar-section">
+        <div class="payouts-header">Payouts</div>
+        <div class="payouts" id="payouts">
+            <?php 
+            $has_digital_pool = isset($tournament_data['has_digital_pool_payouts']) 
+                                && $tournament_data['has_digital_pool_payouts'] === true;
+            
+            if ($has_digital_pool && isset($tournament_data['payouts']) && is_array($tournament_data['payouts'])) {
+                $payouts = $tournament_data['payouts'];
+            } else {
+                $entry_fee_num = $tournament_data['entry_fee'] ?? 15;
+                if (is_string($entry_fee_num)) {
+                    $entry_fee_num = str_replace('$', '', $entry_fee_num);
+                }
+                $payouts = calculatePayouts($player_count, $entry_fee_num);
+            }
+            echo formatPayoutsHTML($payouts);
+            ?>
+        </div>
     </div>
 </div>
 
 <div class="split right <?php echo ($player_count == 0) ? 'fullscreen' : ''; ?>" id="frameContainer"></div>
 
 <script>
-// ============================================================================
-// TOURNAMENT CHANGE DETECTION (without last_updated timestamp)
-// Reloads page on meaningful tournament data changes only
-// ============================================================================
 let lastTournamentState = {
     display: null,
     playerCount: null,
@@ -731,7 +768,6 @@ function checkForChanges() {
         .then(data => {
             if (!data.success) return;
             
-            // Current state (WITHOUT last_updated)
             const current = {
                 display: data.display_tournament || false,
                 playerCount: data.player_count || 0,
@@ -742,73 +778,58 @@ function checkForChanges() {
                 hasDigitalPoolPayouts: data.has_digital_pool_payouts || false
             };
             
-            // First run - initialize state
             if (!lastTournamentState.initialized) {
                 lastTournamentState = {...current, initialized: true};
-                console.log('🎯 Initial tournament state:', current);
-                updatePlayerData(data); // Update display
+                console.log('Initial tournament state:', current);
+                updatePlayerData(data);
                 return;
             }
             
-            // Check for ANY meaningful change
             let changed = false;
             let changeReasons = [];
             
             if (current.display !== lastTournamentState.display) {
                 changed = true;
-                changeReasons.push(`display: ${lastTournamentState.display} → ${current.display}`);
+                changeReasons.push('display changed');
             }
-            
             if (current.playerCount !== lastTournamentState.playerCount) {
                 changed = true;
-                changeReasons.push(`players: ${lastTournamentState.playerCount} → ${current.playerCount}`);
+                changeReasons.push('players: ' + lastTournamentState.playerCount + ' -> ' + current.playerCount);
             }
-            
             if (current.entryFee !== lastTournamentState.entryFee) {
                 changed = true;
-                changeReasons.push(`entry fee: $${lastTournamentState.entryFee} → $${current.entryFee}`);
+                changeReasons.push('entry fee changed');
             }
-            
             if (current.tournamentUrl !== lastTournamentState.tournamentUrl) {
                 changed = true;
                 changeReasons.push('tournament URL changed');
             }
-            
             if (current.tournamentName !== lastTournamentState.tournamentName) {
                 changed = true;
                 changeReasons.push('tournament name changed');
             }
-            
             if (current.status !== lastTournamentState.status) {
                 changed = true;
-                changeReasons.push(`status: ${lastTournamentState.status} → ${current.status}`);
+                changeReasons.push('status changed');
             }
-            
             if (current.hasDigitalPoolPayouts !== lastTournamentState.hasDigitalPoolPayouts) {
                 changed = true;
-                changeReasons.push(`payouts: ${lastTournamentState.hasDigitalPoolPayouts ? 'Digital Pool' : 'calculated'} → ${current.hasDigitalPoolPayouts ? 'Digital Pool' : 'calculated'}`);
+                changeReasons.push('payouts source changed');
             }
             
             if (changed) {
-                console.log('🔄 TOURNAMENT DATA CHANGED - RELOADING');
-                console.log('Changes:', changeReasons.join(', '));
-                console.log('Old:', lastTournamentState);
-                console.log('New:', current);
+                console.log('TOURNAMENT DATA CHANGED - RELOADING:', changeReasons.join(', '));
                 location.reload();
             } else {
-                // No changes, but update display in case of time-based changes
                 updatePlayerData(data);
             }
         })
-        .catch(err => console.error('❌ Error checking tournament data:', err));
+        .catch(err => console.error('Error checking tournament data:', err));
 }
 
 function updatePlayerData(data) {
-    // Update player count display without reloading
     if (data.display_tournament) {
         var playerCount = data.player_count || 0;
-        var entryFee = data.entry_fee || 15;
-        
         var leftPanel = document.getElementById('leftPanel');
         var rightPanel = document.getElementById('frameContainer');
         
@@ -828,68 +849,62 @@ function updatePlayerData(data) {
         
         if (document.getElementById('entryFee')) {
             var feeLabel = data.entry_fee_label || 'Entry:';
-            var feeValue = data.entry_fee || '$15';
+            var feeValue = data.entry_fee || 15;
+            // Ensure dollar sign is present
+            if (typeof feeValue === 'number' || !isNaN(feeValue)) {
+                feeValue = '$' + feeValue;
+            } else if (typeof feeValue === 'string' && feeValue.indexOf('$') === -1) {
+                feeValue = '$' + feeValue;
+            }
             document.getElementById('entryFee').textContent = feeLabel + ' ' + feeValue;
         }
     }
 }
 
-// Check every 10 seconds for change detection
 setInterval(checkForChanges, 10000);
-
-// Initial check after 2 seconds
 setTimeout(checkForChanges, 2000);
 
-// ============================================================================
-// ALSO CHECK FOR DISPLAY TYPE CHANGES FROM GOOGLE SHEETS
-// This allows live switching between Calcutta/SidePot without page reload
-// ============================================================================
-let lastDisplayType = null; // Will be set after initial load completes
+// Track calcutta/sidepot display changes
+let lastActiveDisplaysHash = null;
 
 async function checkDisplayTypeChange() {
-    if (!TOURNAMENT_FOUND || TOURNAMENT_PLAYER_COUNT <= 0) return;
-    
     try {
-        const newDisplayType = await getDisplayTypeSetting();
+        const activeDisplays = await getActiveDisplays();
         
-        // Initialize lastDisplayType on first check (skip reload on first run)
-        if (lastDisplayType === null) {
-            lastDisplayType = newDisplayType;
-            console.log('📋 Display type initialized to:', lastDisplayType);
+        // Create a hash of the current state to detect changes
+        const currentHash = JSON.stringify(activeDisplays.tournaments || []);
+        
+        if (lastActiveDisplaysHash === null) {
+            lastActiveDisplaysHash = currentHash;
+            console.log('Active displays initialized:', activeDisplays.tournaments?.length || 0, 'tournaments');
             return;
         }
         
-        if (newDisplayType !== lastDisplayType) {
-            console.log('📋 Display type changed from', lastDisplayType, 'to', newDisplayType, '- reloading');
+        if (currentHash !== lastActiveDisplaysHash) {
+            console.log('Active displays changed - reloading...');
             location.reload();
         }
     } catch (err) {
-        console.error('Error checking display type:', err);
+        console.error('Error checking display changes:', err);
     }
 }
 
-// Check display type every 30 seconds (first check initializes the value)
+// Check for calcutta/sidepot changes every 30 seconds
 setInterval(checkDisplayTypeChange, 30000);
 </script>
 
 <?php else: ?>
 
-<!-- No tournament, show media only -->
 <div class="split right" id="frameContainer" style="width: 100vw; left: 0;"></div>
-
-<script>
-console.log('No tournament today - showing media only');
-</script>
+<script>console.log('No tournament today - showing media only');</script>
 
 <?php endif; ?>
 
 <script>
 (function() {
     var loadingHidden = false;
-    
     function hideLoading() {
         if (loadingHidden) return;
-        
         var loadingScreen = document.getElementById('loadingScreen');
         if (loadingScreen) {
             loadingScreen.style.display = 'none';
@@ -897,19 +912,13 @@ console.log('No tournament today - showing media only');
             loadingHidden = true;
         }
     }
-    
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', hideLoading);
     } else {
         hideLoading();
     }
-    
     setTimeout(hideLoading, 800);
-    setTimeout(function() {
-        if (!loadingHidden) {
-            hideLoading();
-        }
-    }, 2000);
+    setTimeout(function() { if (!loadingHidden) hideLoading(); }, 2000);
 })();
 </script>
 
