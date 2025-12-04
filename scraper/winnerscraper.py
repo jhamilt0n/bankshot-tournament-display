@@ -229,9 +229,11 @@ def format_date_for_url(date_str):
 
 
 def is_valid_player_name(name):
-    """Check if a string looks like a valid player name (not a table header)"""
+    """Check if a string looks like a valid player name (not a table header or metadata)"""
     if not name or len(name) < 2:
         return False
+    
+    name_lower = name.lower().strip()
     
     # Common table headers and non-name strings to filter out
     invalid_names = [
@@ -245,11 +247,35 @@ def is_valid_player_name(name):
         'n/a', 'tbd', 'unknown', 'pending', 'complete', 'in progress',
     ]
     
-    name_lower = name.lower().strip()
-    
     # Check against invalid names
     if name_lower in invalid_names:
         return False
+    
+    # Filter out entry fees like "$15 Entry", "$20", etc.
+    if '$' in name or 'entry' in name_lower:
+        return False
+    
+    # Filter out dates/times - various formats
+    # "Thu, Dec 4, 2025", "12:04 AM", "2025/12/3", etc.
+    if re.search(r'\d{4}[/-]\d{1,2}[/-]\d{1,2}', name):  # 2025/12/3 or 2025-12-03
+        return False
+    if re.search(r'\d{1,2}:\d{2}\s*(AM|PM|am|pm|UTC)', name):  # 12:04 AM, 12:04 PM (UTC)
+        return False
+    if re.search(r'(Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+\w+\s+\d', name, re.IGNORECASE):  # Thu, Dec 4
+        return False
+    if re.search(r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d', name, re.IGNORECASE):
+        return False
+    if re.search(r'\d{1,2}(st|nd|rd|th)\s+\d{4}', name):  # 4th 2025
+        return False
+    
+    # Filter out tournament names (contain "tournament", "night", "ball", etc.)
+    tournament_keywords = ['tournament', 'night', '8-ball', '9-ball', '10-ball', 
+                          'eight ball', 'nine ball', 'ten ball', 'billiards',
+                          'championship', 'league', 'weekly', 'monday', 'tuesday',
+                          'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    for keyword in tournament_keywords:
+        if keyword in name_lower:
+            return False
     
     # Must contain at least one letter
     if not re.search(r'[a-zA-Z]', name):
@@ -264,8 +290,13 @@ def is_valid_player_name(name):
     if not re.search(r'[A-Z]', name):
         return False
     
-    # Filter out single words that are likely headers
-    if len(name.split()) == 1 and len(name) < 4:
+    # Filter out very long strings (names are usually < 30 chars)
+    if len(name) > 35:
+        return False
+    
+    # Filter out strings with too many numbers (player names rarely have numbers)
+    digit_count = sum(c.isdigit() for c in name)
+    if digit_count > 2:
         return False
     
     return True
@@ -276,7 +307,7 @@ def get_top_3_from_tournament(driver, tournament_url):
     try:
         log(f"Fetching standings from: {tournament_url}")
         driver.get(tournament_url)
-        human_delay(3, 5)
+        human_delay(4, 6)  # Wait longer for page to load
         simulate_human_scrolling(driver)
         
         top_3 = []
@@ -299,7 +330,7 @@ def get_top_3_from_tournament(driver, tournament_url):
                 standings_tab = driver.find_element(By.XPATH, tab_xpath)
                 if standings_tab.is_displayed():
                     standings_tab.click()
-                    human_delay(2, 3)
+                    human_delay(3, 4)  # Wait for tab content to load
                     log(f"✓ Clicked Standings tab using: {tab_xpath}")
                     standings_clicked = True
                     break
@@ -312,27 +343,6 @@ def get_top_3_from_tournament(driver, tournament_url):
         if not standings_clicked:
             log("⚠ Could not find/click Standings tab - trying page as-is")
         
-        # DEBUG: Log page source snippet to see what we're working with
-        try:
-            page_source = driver.page_source
-            if 'table' in page_source.lower():
-                log("  Page contains 'table' element")
-            if 'standings' in page_source.lower():
-                log("  Page contains 'standings' text")
-            
-            # Look for any tables on the page
-            all_tables = driver.find_elements(By.TAG_NAME, "table")
-            log(f"  Found {len(all_tables)} table elements on page")
-            
-            for i, table in enumerate(all_tables[:3]):
-                try:
-                    table_text = table.text[:200] if table.text else "(empty)"
-                    log(f"  Table {i} preview: {table_text}")
-                except:
-                    pass
-        except Exception as e:
-            log(f"  Debug error: {e}")
-        
         # Check page for "split" indication
         try:
             page_text = driver.find_element(By.TAG_NAME, "body").text.lower()
@@ -341,6 +351,38 @@ def get_top_3_from_tournament(driver, tournament_url):
                 log("⚠ Detected split/tie in tournament")
         except:
             pass
+        
+        # DEBUG: Log page text to see what we're working with
+        try:
+            body_text = driver.find_element(By.TAG_NAME, "body").text
+            log(f"  Page text length: {len(body_text)}")
+            
+            # Look for player names in the page text
+            # Digital Pool shows standings like "1 PlayerName" or "1. PlayerName"
+            lines = body_text.split('\n')
+            log(f"  Page has {len(lines)} lines")
+            
+            # Log lines that start with numbers 1-3 (potential standings)
+            for line in lines[:50]:
+                line = line.strip()
+                if re.match(r'^[123][\.\s]', line):
+                    log(f"  Potential standing line: {line[:80]}")
+        except Exception as e:
+            log(f"  Debug error: {e}")
+        
+        # Look for any tables on the page
+        try:
+            all_tables = driver.find_elements(By.TAG_NAME, "table")
+            log(f"  Found {len(all_tables)} table elements on page")
+            
+            for i, table in enumerate(all_tables[:5]):
+                try:
+                    table_text = table.text[:300] if table.text else "(empty)"
+                    log(f"  Table {i} preview: {table_text[:150]}")
+                except:
+                    pass
+        except Exception as e:
+            log(f"  Table debug error: {e}")
         
         # Method 1: Look for standings table with place numbers
         standings_xpaths = [
@@ -359,14 +401,18 @@ def get_top_3_from_tournament(driver, tournament_url):
                 if len(rows) >= 1:
                     valid_players = []
                     
-                    for row in rows[:10]:  # Check more rows
+                    for row_idx, row in enumerate(rows[:15]):  # Check more rows
                         try:
                             cells = row.find_elements(By.TAG_NAME, "td")
                             row_text = row.text.strip()
                             
+                            # Skip empty rows
+                            if not row_text:
+                                continue
+                            
                             # Log row for debugging
-                            if row_text and len(valid_players) < 5:
-                                log(f"    Row: {row_text[:100]}")
+                            if row_idx < 8:
+                                log(f"    Row {row_idx}: {row_text[:100]}")
                             
                             # Look for place number in first cell
                             place_num = None
@@ -378,15 +424,18 @@ def get_top_3_from_tournament(driver, tournament_url):
                                 # Check if this cell contains a place number (1, 2, 3, etc.)
                                 if idx == 0 and re.match(r'^[1-9]$', cell_text):
                                     place_num = int(cell_text)
+                                    log(f"      Cell {idx}: place={place_num}")
                                 
                                 # Look for player name in subsequent cells
                                 if idx > 0 or place_num is None:
-                                    if is_valid_player_name(cell_text):
-                                        # Get first line if multi-line
-                                        name = cell_text.split('\n')[0].strip()
-                                        if is_valid_player_name(name):
-                                            player_name = name
-                                            break
+                                    # Get first line if multi-line
+                                    first_line = cell_text.split('\n')[0].strip()
+                                    if is_valid_player_name(first_line):
+                                        player_name = first_line
+                                        log(f"      Cell {idx}: valid name={player_name}")
+                                        break
+                                    elif cell_text:
+                                        log(f"      Cell {idx}: invalid name rejected: {first_line[:50]}")
                             
                             if player_name:
                                 if place_num:
@@ -395,9 +444,10 @@ def get_top_3_from_tournament(driver, tournament_url):
                                     # Assign place based on order
                                     valid_players.append({"place": len(valid_players) + 1, "name": player_name})
                                 
-                                log(f"  Found player: {player_name} (place {place_num or len(valid_players)})")
+                                log(f"  ✓ Found player: {player_name} (place {place_num or len(valid_players)})")
                         
                         except Exception as e:
+                            log(f"    Row parse error: {e}")
                             continue
                     
                     if valid_players:
@@ -413,7 +463,29 @@ def get_top_3_from_tournament(driver, tournament_url):
                 log(f"Error with xpath {xpath}: {e}")
                 continue
         
-        # Method 2: Look for payout/prize section which often lists winners
+        # Method 2: Parse page text directly for place patterns
+        if len(top_3) < 2:
+            log("Trying text-based extraction...")
+            try:
+                body_text = driver.find_element(By.TAG_NAME, "body").text
+                lines = body_text.split('\n')
+                
+                for line in lines:
+                    line = line.strip()
+                    
+                    # Look for "1 PlayerName" or "1. PlayerName" patterns
+                    match = re.match(r'^([123])[\.\s]+([A-Z][a-zA-Z]+\s+[A-Z][a-zA-Z]+)', line)
+                    if match:
+                        place = int(match.group(1))
+                        name = match.group(2).strip()
+                        
+                        if is_valid_player_name(name) and not any(p['place'] == place for p in top_3):
+                            top_3.append({"place": place, "name": name})
+                            log(f"  ✓ Found via text pattern: {name} (place {place})")
+            except Exception as e:
+                log(f"  Text extraction error: {e}")
+        
+        # Method 3: Look for payout/prize section which often lists winners
         if len(top_3) < 2:
             try:
                 payout_xpaths = [
