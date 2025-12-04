@@ -6,6 +6,7 @@ CLEANED: Removed unused payout_data legacy code
 FIXED: URL construction removes date prefix to prevent duplicates
 FIXED: Improved date extraction to handle multiple formats
 FIXED: Don't filter out tournaments with missing dates
+FIXED: Two-phase card processing to avoid stale element reference errors
 """
 
 import datetime
@@ -452,7 +453,12 @@ def clean_start_time_string(raw):
 
 
 def search_tournaments_on_page(driver):
-    """Search for Bankshot tournaments on the current page"""
+    """Search for Bankshot tournaments on the current page
+    
+    FIXED: Uses two-phase approach to avoid stale element reference errors.
+    Phase 1: Collect all card data while on search results page
+    Phase 2: Navigate to detail pages to get additional info
+    """
     tournaments = []
     
     try:
@@ -543,6 +549,12 @@ def search_tournaments_on_page(driver):
         
         log(f"Processing {len(tournament_cards)} potential tournament cards")
         
+        # =================================================================
+        # PHASE 1: Collect all card data BEFORE navigating away
+        # This prevents stale element reference errors
+        # =================================================================
+        matching_cards_data = []
+        
         for idx, card in enumerate(tournament_cards):
             try:
                 card_text = card.text
@@ -614,6 +626,64 @@ def search_tournaments_on_page(driver):
                         name_slug = re.sub(r'-+', '-', name_slug).strip('-')
                         tournament_url = f"https://digitalpool.com/tournaments/{date_no_slashes}-{name_slug}/"
                 
+                # Extract status from card text (before navigating away)
+                actual_status = "Unknown"
+                status_indicators = {
+                    "In Progress": ["In Progress", "Live", "Active", "Playing"],
+                    "Upcoming": ["Upcoming", "Scheduled", "Future", "Registration"],
+                    "Completed": ["Completed", "Finished", "Final", "Ended"]
+                }
+                
+                for status, keywords in status_indicators.items():
+                    if any(keyword in card_text for keyword in keywords):
+                        actual_status = status
+                        break
+                
+                if actual_status == "Unknown":
+                    completion_match = re.search(r'(\d+)%\s*Complete', card_text, re.IGNORECASE)
+                    if completion_match:
+                        completion_pct = int(completion_match.group(1))
+                        if completion_pct == 100:
+                            actual_status = "Completed"
+                        elif completion_pct == 0:
+                            actual_status = "Upcoming"
+                        else:
+                            actual_status = "In Progress"
+                    else:
+                        actual_status = "In Progress" if player_count > 0 else "Upcoming"
+                
+                # Store the extracted data
+                matching_cards_data.append({
+                    'name': tournament_name,
+                    'date': tournament_date,
+                    'player_count': player_count,
+                    'url': tournament_url,
+                    'status': actual_status,
+                    'card_text': card_text
+                })
+                
+                log(f"✓ Card data collected: {tournament_name}")
+                
+            except Exception as e:
+                log(f"Error collecting card {idx} data: {e}")
+                continue
+        
+        log(f"\n{'='*50}")
+        log(f"Collected data from {len(matching_cards_data)} matching cards")
+        log(f"{'='*50}")
+        
+        # =================================================================
+        # PHASE 2: Now fetch details from each tournament page
+        # This is done AFTER collecting all card data to avoid stale refs
+        # =================================================================
+        for card_data in matching_cards_data:
+            try:
+                tournament_name = card_data['name']
+                tournament_date = card_data['date']
+                player_count = card_data['player_count']
+                tournament_url = card_data['url']
+                actual_status = card_data['status']
+                
                 # Get comprehensive details from detail page
                 start_time_str = None
                 actual_date = tournament_date
@@ -636,33 +706,6 @@ def search_tournaments_on_page(driver):
                         digital_pool_payouts = details['payouts']
                 
                 start_time = parse_time_string(start_time_str) if start_time_str else None
-                
-                # Extract status
-                actual_status = "Unknown"
-                status_indicators = {
-                    "In Progress": ["In Progress", "Live", "Active", "Playing"],
-                    "Upcoming": ["Upcoming", "Scheduled", "Future", "Registration"],
-                    "Completed": ["Completed", "Finished", "Final", "Ended"]
-                }
-                
-                for status, keywords in status_indicators.items():
-                    if any(keyword in card_text for keyword in keywords):
-                        actual_status = status
-                        break
-                
-                if actual_status == "Unknown":
-                    completion_match = re.search(r'(\d+)%\s*Complete', card_text, re.IGNORECASE)
-                    if completion_match:
-                        completion_pct = int(completion_match.group(1))
-                        if completion_pct == 100:
-                            actual_status = "Completed"
-                        elif completion_pct == 0:
-                            actual_status = "Upcoming"  # FIXED: 0% complete with 0 players = Upcoming
-                        else:
-                            actual_status = "In Progress"
-                    else:
-                        # FIXED: Default to Upcoming if no players yet, regardless of other factors
-                        actual_status = "In Progress" if player_count > 0 else "Upcoming"
                 
                 tournament_info = {
                     'name': tournament_name,
@@ -689,7 +732,7 @@ def search_tournaments_on_page(driver):
                 log(f"  Status: {actual_status}")
                 
             except Exception as e:
-                log(f"Error parsing card {idx}: {e}")
+                log(f"Error fetching details for {card_data.get('name', 'unknown')}: {e}")
                 import traceback
                 traceback.print_exc()
                 continue
@@ -977,6 +1020,7 @@ def main():
     log("ENHANCED: Direct entry fee from Digital Pool")
     log("FIXED: Improved date format handling")
     log("FIXED: Better handling of 0-player tournaments")
+    log("FIXED: Two-phase processing to avoid stale element errors")
     log("="*60)
     
     # Check if previous tournament still active
