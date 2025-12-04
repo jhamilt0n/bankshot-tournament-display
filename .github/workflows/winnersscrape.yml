@@ -34,7 +34,7 @@ jobs:
       - name: Run winner scraper
         env:
           OUTPUT_DIR: output
-        run: python winnerscraper.py
+        run: python scraper/winnerscraper.py
       
       - name: Display results
         run: |
