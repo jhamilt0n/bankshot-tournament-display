@@ -49,8 +49,28 @@ class DigitalPoolScraper:
     async def scrape_tournaments(self, page):
         """Navigate to tournaments and find Bankshot Billiards events."""
         print("Navigating to Digital Pool tournaments page...")
-        await page.goto(f"{self.base_url}/tournaments", wait_until="networkidle", timeout=60000)
-        await page.wait_for_timeout(3000)
+        
+        # Try multiple times with different wait strategies
+        for attempt in range(3):
+            try:
+                if attempt == 0:
+                    await page.goto(f"{self.base_url}/tournaments", wait_until="domcontentloaded", timeout=30000)
+                else:
+                    await page.goto(f"{self.base_url}/tournaments", wait_until="load", timeout=45000)
+                
+                # Wait for page to stabilize and JavaScript to render
+                await page.wait_for_timeout(5000)
+                
+                # Check if page loaded properly
+                content = await page.content()
+                if "tournament" in content.lower() or "digitalpool" in content.lower():
+                    print(f"Page loaded successfully on attempt {attempt + 1}")
+                    break
+            except Exception as e:
+                print(f"Attempt {attempt + 1} failed: {e}")
+                if attempt == 2:
+                    raise
+                await page.wait_for_timeout(2000)
         
         print("Searching for Bankshot Billiards...")
         await self.search_for_venue(page, "Bankshot Billiards")
@@ -175,8 +195,8 @@ class DigitalPoolScraper:
         print(f"\nFetching tournament: {full_url}")
         
         try:
-            await page.goto(full_url, wait_until="networkidle", timeout=30000)
-            await page.wait_for_timeout(2000)
+            await page.goto(full_url, wait_until="domcontentloaded", timeout=30000)
+            await page.wait_for_timeout(3000)
             
             tournament = {
                 "url": full_url,
