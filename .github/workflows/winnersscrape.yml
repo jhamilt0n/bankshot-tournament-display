@@ -91,7 +91,12 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action Bot"
           git commit -m "Update tournament winners - $(date '+%Y-%m-%d %I:%M %p EST')"
-          git push origin main
+          
+          # Pull latest changes and rebase our commit on top
+          git pull --rebase origin main || true
+          
+          # Push (retry once if it fails)
+          git push origin main || (git pull --rebase origin main && git push origin main)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
