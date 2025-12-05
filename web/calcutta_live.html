@@ -422,7 +422,7 @@
 
     <div class="completion-overlay" id="completionOverlay">
         <div class="completion-text">🏆 AUCTION COMPLETE 🏆</div>
-        <div class="completion-subtext">All players have been sold!</div>
+        <div class="completion-subtext">Click "Download CSV" or "Stop Calcutta" in the console to close</div>
     </div>
 
     <script>
@@ -645,31 +645,8 @@
             const poolSold = poolPlayers.length === 0 || (poolAuction.buyer && poolAuction.bid > 0);
             
             if (allRegularSold && poolSold && regularPlayers.length > 0) {
-                // Show completion for 10 seconds, then signal to return to normal display
+                // Show completion overlay - stays until Stop Calcutta or Download CSV is clicked
                 document.getElementById('completionOverlay').classList.add('visible');
-                
-                setTimeout(() => {
-                    // Signal completion by clearing calcuttaActive
-                    signalCompletion();
-                }, 10000);
-            }
-        }
-
-        // Signal auction completion
-        async function signalCompletion() {
-            try {
-                // Mark calcutta as inactive
-                const response = await fetch('/save_tournament.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        tournamentKey: tournamentKey,
-                        calcuttaActive: false
-                    })
-                });
-                console.log('Auction completion signaled');
-            } catch (error) {
-                console.error('Error signaling completion:', error);
             }
         }
 

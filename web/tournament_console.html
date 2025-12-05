@@ -5877,6 +5877,14 @@ function downloadPlayersCSV() {
     
     showToast(`Downloaded ${eligiblePlayers.length} players to CSV`, 'success');
     
+    // Stop calcutta live display if it's running
+    if (state.calcuttaActive) {
+        state.calcuttaActive = false;
+        updateCalcuttaActiveUI();
+        saveTournamentData();
+        showToast('Calcutta live display stopped', 'info');
+    }
+    
     // Schedule GitHub workflow trigger for 10 minutes from now
     scheduleWorkflowTrigger();
 }
