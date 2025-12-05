@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Tournament - DigitalPool</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --primary: #1e7e34;
+            --primary-dark: #0d5c26;
+            --secondary: #0ea5e9;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --success: #10b981;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #1a472a 0%, #0d3320 100%);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+        
+        .header img {
+            width: 150px;
+            margin-bottom: 15px;
+        }
+        
+        .header h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.5rem;
+            letter-spacing: 3px;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            opacity: 0.8;
+            font-size: 1rem;
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 15px 20px;
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-header.warning {
+            background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);
+        }
+        
+        .card-header.primary-select {
+            background: linear-gradient(135deg, var(--secondary) 0%, #0284c7 100%);
+            font-size: 1.4rem;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .form-row.three-col {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+        
+        .form-group label .required {
+            color: var(--danger);
+            margin-left: 2px;
+        }
+        
+        .form-group .help-text {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            margin-top: 4px;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.2s;
+            background: white;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(30, 126, 52, 0.1);
+        }
+        
+        .form-control:disabled, .form-control:read-only {
+            background: #f0fdf4;
+            cursor: not-allowed;
+            color: var(--text);
+        }
+        
+        .form-control.highlight {
+            background: #fef3c7;
+            border-color: var(--warning);
+        }
+        
+        select.form-control {
+            cursor: pointer;
+        }
+        
+        select.form-control.large-select {
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+        
+        textarea.form-control {
+            min-height: 120px;
+            resize: vertical;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+        
+        .checkbox-group label {
+            margin: 0;
+            cursor: pointer;
+        }
+        
+        .toggle-switch {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 15px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .toggle-switch label {
+            margin: 0;
+            font-weight: 500;
+        }
+        
+        .toggle-switch input[type="checkbox"] {
+            width: 50px;
+            height: 26px;
+            appearance: none;
+            background: #d1d5db;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .toggle-switch input[type="checkbox"]:checked {
+            background: var(--primary);
+        }
+        
+        .toggle-switch input[type="checkbox"]::before {
+            content: '';
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .toggle-switch input[type="checkbox"]:checked::before {
+            transform: translateX(24px);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(30, 126, 52, 0.3);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(30, 126, 52, 0.4);
+        }
+        
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning) 0%, #d97706 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+        }
+        
+        .btn-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+        }
+        
+        .btn-secondary {
+            background: var(--border);
+            color: var(--text);
+        }
+        
+        .btn-secondary:hover {
+            background: #d1d5db;
+        }
+        
+        .btn-lg {
+            padding: 15px 40px;
+            font-size: 1.1rem;
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+        
+        .status-message {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .status-message.success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+            display: block;
+        }
+        
+        .status-message.error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+            display: block;
+        }
+        
+        .status-message.info {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            color: #1e40af;
+            display: block;
+        }
+        
+        .section-divider {
+            border: none;
+            border-top: 2px dashed var(--border);
+            margin: 20px 0;
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            text-decoration: none;
+            margin-bottom: 20px;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+        
+        .back-link:hover {
+            opacity: 1;
+        }
+        
+        /* Hidden sections */
+        .hidden-section {
+            display: none;
+        }
+        
+        .hidden-section.show {
+            display: block;
+        }
+        
+        /* Preset indicator */
+        .preset-badge {
+            display: inline-block;
+            background: var(--secondary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+        
+        /* Summary panel */
+        .summary-panel {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin-top: 15px;
+        }
+        
+        .summary-panel h4 {
+            color: var(--primary-dark);
+            margin-bottom: 10px;
+            font-family: 'Oswald', sans-serif;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        
+        .summary-item {
+            font-size: 0.9rem;
+        }
+        
+        .summary-item strong {
+            color: var(--primary-dark);
+        }
+        
+        /* Selenium Helper - Hidden fields for automation */
+        .selenium-data {
+            display: none;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .form-row.three-col {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-row {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="tournament_console.html" class="back-link">
+            ← Back to Tournament Console
+        </a>
+        
+        <div class="header">
+            <img src="https://raw.githubusercontent.com/jhamilt0n/bankshot-tournament-display/main/assets/Bankshot_Logo.png" alt="Bankshot">
+            <h1>Create New Tournament</h1>
+            <p>Select a tournament type to auto-fill all settings</p>
+        </div>
+        
+        <div id="statusMessage" class="status-message"></div>
+        
+        <!-- Tournament Type Selection -->
+        <div class="card">
+            <div class="card-header primary-select">
+                🎱 Select Tournament Type
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label for="tournamentPreset">Tournament <span class="required">*</span></label>
+                    <select id="tournamentPreset" name="tournamentPreset" class="form-control large-select" onchange="applyPreset()">
+                        <option value="">-- Select a Tournament --</option>
+                        <option value="monday-10ball">Monday Night 10-Ball Tournament</option>
+                        <option value="wednesday-9ball">Wednesday Night 9-Ball Tournament</option>
+                        <option value="friday-8ball">Friday Night 8-Ball Tournament</option>
+                        <option value="saturday-8ball">Saturday Night 8-Ball Tournament</option>
+                        <option value="9ball-9ft">9-Ball on 9ft Tables Tournament</option>
+                    </select>
+                </div>
+                
+                <!-- Summary Panel (shown after selection) -->
+                <div id="summaryPanel" class="summary-panel" style="display:none;">
+                    <h4>📋 Tournament Summary</h4>
+                    <div class="summary-grid">
+                        <div class="summary-item"><strong>Game:</strong> <span id="summaryGame">-</span></div>
+                        <div class="summary-item"><strong>Format:</strong> <span id="summaryFormat">-</span></div>
+                        <div class="summary-item"><strong>Race:</strong> <span id="summaryRace">-</span></div>
+                        <div class="summary-item"><strong>Entry:</strong> <span id="summaryEntry">-</span></div>
+                        <div class="summary-item"><strong>Tables:</strong> <span id="summaryTables">-</span></div>
+                        <div class="summary-item"><strong>Rules:</strong> <span id="summaryRules">-</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Form (shown after preset selection) -->
+        <div id="mainForm" class="hidden-section">
+            
+            <!-- DigitalPool Credentials -->
+            <div class="card">
+                <div class="card-header warning">
+                    🔐 DigitalPool Login
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="dpEmail">Email <span class="required">*</span></label>
+                            <input type="email" id="dpEmail" name="dpEmail" class="form-control" 
+                                   placeholder="your@email.com" value="bankshottablet@gmail.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="dpPassword">Password <span class="required">*</span></label>
+                            <input type="password" id="dpPassword" name="dpPassword" class="form-control" 
+                                   placeholder="••••••••" value="Ab!2345678">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Tournament Details (Auto-filled) -->
+            <div class="card">
+                <div class="card-header">
+                    📋 Tournament Details <span class="preset-badge">Auto-filled</span>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="tournamentName">Tournament Name</label>
+                        <input type="text" id="tournamentName" name="tournamentName" class="form-control highlight" readonly>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="tournamentDate">Date</label>
+                            <input type="date" id="tournamentDate" name="tournamentDate" class="form-control">
+                        </div>
+                        <div class="form-group">
+                            <label for="tournamentTime">Start Time</label>
+                            <input type="time" id="tournamentTime" name="tournamentTime" class="form-control" value="19:00">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="tournamentDescription">Description</label>
+                        <textarea id="tournamentDescription" name="tournamentDescription" class="form-control" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Format Settings (Auto-filled, mostly hidden) -->
+            <div class="card">
+                <div class="card-header">
+                    ⚙️ Format & Settings <span class="preset-badge">Auto-filled</span>
+                </div>
+                <div class="card-body">
+                    <div class="form-row three-col">
+                        <div class="form-group">
+                            <label for="gameType">Game Type</label>
+                            <input type="text" id="gameType" name="gameType" class="form-control" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="tournamentFormat">Format</label>
+                            <input type="text" id="tournamentFormat" name="tournamentFormat" class="form-control" readonly value="Double Elimination">
+                        </div>
+                        <div class="form-group">
+                            <label for="raceDisplay">Race To</label>
+                            <input type="text" id="raceDisplay" name="raceDisplay" class="form-control" readonly>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row three-col">
+                        <div class="form-group">
+                            <label for="entryFee">Entry Fee</label>
+                            <div style="position:relative;">
+                                <input type="text" id="entryFee" name="entryFee" class="form-control" readonly style="padding-left:25px;">
+                                <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-light);">$</span>
+                            </div>
+                        </div>
+                        <div class="form-group" id="greensFeeGroup" style="display:none;">
+                            <label for="greensFee">Greens Fee</label>
+                            <div style="position:relative;">
+                                <input type="text" id="greensFee" name="greensFee" class="form-control" readonly style="padding-left:25px;">
+                                <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-light);">$</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="numberOfTables">Tables</label>
+                            <input type="text" id="numberOfTables" name="numberOfTables" class="form-control" readonly>
+                        </div>
+                    </div>
+                    
+                    <hr class="section-divider">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="associateEvent">Associate with Event</label>
+                            <input type="text" id="associateEvent" name="associateEvent" class="form-control" readonly value="Bankshot Tournaments">
+                        </div>
+                        <div class="form-group">
+                            <label for="playerType">Player Type</label>
+                            <input type="text" id="playerType" name="playerType" class="form-control" readonly value="Singles">
+                        </div>
+                        <div class="form-group">
+                            <label for="rules">Rules</label>
+                            <input type="text" id="rules" name="rules" class="form-control" readonly value="BCA">
+                        </div>
+                    </div>
+                    
+                    <hr class="section-divider">
+                    
+                    <div class="form-row">
+                        <div class="toggle-switch">
+                            <label for="smartTournament">🧠 Smart Tournament</label>
+                            <input type="checkbox" id="smartTournament" name="smartTournament" checked disabled>
+                        </div>
+                        <div class="toggle-switch">
+                            <label for="autopilotMode">🤖 Autopilot Mode</label>
+                            <input type="checkbox" id="autopilotMode" name="autopilotMode" disabled>
+                        </div>
+                        <div class="toggle-switch">
+                            <label for="enableSmsNotifications">📱 SMS Notifications</label>
+                            <input type="checkbox" id="enableSmsNotifications" name="enableSmsNotifications" checked disabled>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Venue (Auto-filled) -->
+            <div class="card">
+                <div class="card-header">
+                    📍 Venue <span class="preset-badge">Auto-filled</span>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="venueName">Venue</label>
+                        <input type="text" id="venueName" name="venueName" class="form-control" readonly 
+                               value="Bankshot Billiards">
+                    </div>
+                    <div class="form-group">
+                        <label for="venueAddress">Address</label>
+                        <input type="text" id="venueAddress" name="venueAddress" class="form-control" readonly 
+                               value="3201 Hilliard-Rome Rd, Hilliard, OH 43026">
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="button-row">
+                <button type="button" class="btn btn-secondary btn-lg" onclick="resetForm()">
+                    🔄 Change Tournament Type
+                </button>
+                <button type="button" class="btn btn-primary btn-lg" onclick="saveFormData()">
+                    💾 Save as JSON
+                </button>
+                <button type="button" class="btn btn-warning btn-lg" id="createTournamentBtn" onclick="createTournament()">
+                    🚀 Create Tournament
+                </button>
+            </div>
+        </div>
+        
+        <!-- Hidden fields for Selenium -->
+        <input type="hidden" id="raceToWinners" name="raceToWinners">
+        <input type="hidden" id="raceToLosers" name="raceToLosers">
+        <input type="hidden" id="bracketSize" name="bracketSize" value="32">
+        <input type="hidden" id="tournamentAccess" name="tournamentAccess" value="public">
+        <textarea id="tournamentDataJson" class="selenium-data"></textarea>
+    </div>
+    
+    <script>
+        // Tournament presets configuration
+        const presets = {
+            'monday-10ball': {
+                dayOfWeek: 'Monday',
+                gameName: '10-Ball',
+                gameType: '10-ball',
+                description: '$15 Entry $5 Optional Side Pot Race 3/3 BCA Rules Alternate Breaks 3 Consecutive Foul Rule Pocketing a ball without calling it gives your opponent the option to return the table to you Progressive 10-Ball Break & Run Played on 7ft Diamond Coin-Operated Tables Pays Top Female with 20 or more total players Sign Ups Start at 6:30pm Play begins at 7pm  Bankshot Billiards 3201 Hilliard-Rome Rd Hilliard, OH 43026',
+                raceWinners: 3,
+                raceLosers: 3,
+                entryFee: 15,
+                greensFee: null,
+                tables: '10',
+                tablesNote: ''
+            },
+            'wednesday-9ball': {
+                dayOfWeek: 'Wednesday',
+                gameName: '9-Ball',
+                gameType: '9-ball',
+                description: '$15 Entry $5 Optional Side Pot Race 3/3 BCA Rules Alternate Breaks 3 Consecutive Foul Rule Progressive 10-Ball Break & Run Played on 7ft Diamond Coin-Operated Tables Pays Top Female with 20 or more total players Sign Ups Start at 6:30pm Play begins at 7pm  Bankshot Billiards 3201 Hilliard-Rome Rd Hilliard, OH 43026',
+                raceWinners: 3,
+                raceLosers: 3,
+                entryFee: 15,
+                greensFee: null,
+                tables: '10',
+                tablesNote: ''
+            },
+            'friday-8ball': {
+                dayOfWeek: 'Friday',
+                gameName: '8-Ball',
+                gameType: '8-ball',
+                description: '$20 Entry Player Auction Race 2/2 BCA Rules Alternate Breaks Progressive 10-Ball Break & Run Played on 7ft Diamond Coin-Operated Tables Pays Top Female with 20 or more total players Sign Ups Start at 6:30pm Play begins at 7pm  Bankshot Billiards 3201 Hilliard-Rome Rd Hilliard, OH 43026',
+                raceWinners: 2,
+                raceLosers: 2,
+                entryFee: 20,
+                greensFee: null,
+                tables: '10',
+                tablesNote: ''
+            },
+            'saturday-8ball': {
+                dayOfWeek: 'Saturday',
+                gameName: '8-Ball',
+                gameType: '8-ball',
+                description: '$20 Entry Player Auction Race 2/2 BCA Rules Alternate Breaks Progressive 10-Ball Break & Run Played on 7ft Diamond Coin-Operated Tables Pays Top Female with 20 or more total players Sign Ups Start at 6:30pm Play begins at 7pm  Bankshot Billiards 3201 Hilliard-Rome Rd Hilliard, OH 43026',
+                raceWinners: 2,
+                raceLosers: 2,
+                entryFee: 20,
+                greensFee: null,
+                tables: '10',
+                tablesNote: ''
+            },
+            '9ball-9ft': {
+                dayOfWeek: null, // Will be determined dynamically
+                gameName: '9-Ball',
+                gameType: '9-ball',
+                description: '$30 Entry $10 Greens Fees Max Players 16 Player Auction Race 4/3 BCA Rules Alternate Breaks  Played on 9ft Tables Sign Ups Start at 6:30pm Play begins at 7pm  Bankshot Billiards 3201 Hilliard-Rome Rd Hilliard, OH 43026',
+                raceWinners: 4,
+                raceLosers: 3,
+                entryFee: 30,
+                greensFee: 10,
+                tables: '3',
+                tablesNote: '(Tables 13 - 15)'
+            }
+        };
+        
+        // Get day of week name
+        function getDayOfWeek(date) {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            return days[date.getDay()];
+        }
+        
+        // Format date as YYYY/MM/DD
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}/${month}/${day}`;
+        }
+        
+        // Apply preset when tournament type is selected
+        function applyPreset() {
+            const presetKey = document.getElementById('tournamentPreset').value;
+            
+            if (!presetKey) {
+                document.getElementById('mainForm').classList.remove('show');
+                document.getElementById('summaryPanel').style.display = 'none';
+                return;
+            }
+            
+            const preset = presets[presetKey];
+            const today = new Date();
+            const todayFormatted = formatDate(today);
+            const dayOfWeek = preset.dayOfWeek || getDayOfWeek(today);
+            
+            // Generate tournament name
+            const tournamentName = `${todayFormatted} ${dayOfWeek} Night ${preset.gameName} Tournament`;
+            
+            // Fill in fields
+            document.getElementById('tournamentName').value = tournamentName;
+            document.getElementById('tournamentDate').valueAsDate = today;
+            document.getElementById('tournamentDescription').value = preset.description;
+            document.getElementById('gameType').value = preset.gameType.charAt(0).toUpperCase() + preset.gameType.slice(1);
+            document.getElementById('raceDisplay').value = `${preset.raceWinners}/${preset.raceLosers}`;
+            document.getElementById('raceToWinners').value = preset.raceWinners;
+            document.getElementById('raceToLosers').value = preset.raceLosers;
+            document.getElementById('entryFee').value = preset.entryFee;
+            document.getElementById('numberOfTables').value = preset.tables + (preset.tablesNote ? ' ' + preset.tablesNote : '');
+            
+            // Handle greens fee
+            if (preset.greensFee) {
+                document.getElementById('greensFeeGroup').style.display = 'block';
+                document.getElementById('greensFee').value = preset.greensFee;
+            } else {
+                document.getElementById('greensFeeGroup').style.display = 'none';
+                document.getElementById('greensFee').value = '';
+            }
+            
+            // Update summary panel
+            document.getElementById('summaryGame').textContent = preset.gameName;
+            document.getElementById('summaryFormat').textContent = 'Double Elim';
+            document.getElementById('summaryRace').textContent = `${preset.raceWinners}/${preset.raceLosers}`;
+            document.getElementById('summaryEntry').textContent = `$${preset.entryFee}` + (preset.greensFee ? ` + $${preset.greensFee} greens` : '');
+            document.getElementById('summaryTables').textContent = preset.tables;
+            document.getElementById('summaryRules').textContent = 'BCA';
+            
+            // Show summary and form
+            document.getElementById('summaryPanel').style.display = 'block';
+            document.getElementById('mainForm').classList.add('show');
+            
+            // Scroll to form
+            setTimeout(() => {
+                document.getElementById('mainForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 100);
+        }
+        
+        // Collect all form data into a JSON object
+        function getFormData() {
+            const presetKey = document.getElementById('tournamentPreset').value;
+            const preset = presets[presetKey] || {};
+            
+            return {
+                // Credentials
+                credentials: {
+                    email: document.getElementById('dpEmail').value,
+                    password: document.getElementById('dpPassword').value
+                },
+                // Tournament Info
+                tournament: {
+                    name: document.getElementById('tournamentName').value,
+                    date: document.getElementById('tournamentDate').value,
+                    time: document.getElementById('tournamentTime').value,
+                    description: document.getElementById('tournamentDescription').value,
+                    presetType: presetKey
+                },
+                // Format
+                format: {
+                    gameType: preset.gameType || document.getElementById('gameType').value.toLowerCase(),
+                    tournamentFormat: 'double-elimination',
+                    bracketSize: document.getElementById('bracketSize').value,
+                    raceToWinners: document.getElementById('raceToWinners').value,
+                    raceToLosers: document.getElementById('raceToLosers').value,
+                    entryFee: document.getElementById('entryFee').value,
+                    greensFee: document.getElementById('greensFee').value || null,
+                    rules: 'BCA',
+                    playerType: 'Singles',
+                    autopilotMode: false,
+                    smartTournament: true
+                },
+                // Venue
+                venue: {
+                    name: document.getElementById('venueName').value,
+                    address: document.getElementById('venueAddress').value,
+                    numberOfTables: parseInt(document.getElementById('numberOfTables').value) || 10
+                },
+                // Options
+                options: {
+                    access: document.getElementById('tournamentAccess').value,
+                    associateEvent: 'Bankshot Tournaments',
+                    enableSmsNotifications: true
+                },
+                // Metadata
+                meta: {
+                    createdAt: new Date().toISOString(),
+                    source: 'Bankshot Tournament Console'
+                }
+            };
+        }
+        
+        // Validate required fields
+        function validateForm() {
+            const presetKey = document.getElementById('tournamentPreset').value;
+            if (!presetKey) {
+                showStatus('Please select a tournament type first.', 'error');
+                return false;
+            }
+            
+            const email = document.getElementById('dpEmail').value.trim();
+            const password = document.getElementById('dpPassword').value.trim();
+            
+            if (!email || !password) {
+                showStatus('Please enter your DigitalPool login credentials.', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // Show status message
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.textContent = message;
+            statusEl.className = 'status-message ' + type;
+            statusEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+        
+        // API base URL - change this if server is on different host/port
+        const API_BASE_URL = 'http://localhost:5000';
+        
+        // Save form data as JSON (download only)
+        function saveFormData() {
+            if (!validateForm()) return;
+            
+            const data = getFormData();
+            const jsonStr = JSON.stringify(data, null, 2);
+            
+            // Update hidden textarea for Selenium
+            document.getElementById('tournamentDataJson').value = jsonStr;
+            
+            // Download as file
+            const blob = new Blob([jsonStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const safeName = data.tournament.name.replace(/[\/\\:*?"<>|]/g, '-');
+            a.download = `tournament_${safeName}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            showStatus('Tournament data downloaded! You can also use "Create Tournament" to save to server and auto-run.', 'success');
+        }
+        
+        // Create tournament - POST to server and trigger Selenium
+        async function createTournament() {
+            if (!validateForm()) return;
+            
+            const data = getFormData();
+            data.autoRun = true;  // Tell server to run Selenium automatically
+            
+            const jsonStr = JSON.stringify(data, null, 2);
+            
+            // Store in hidden textarea
+            document.getElementById('tournamentDataJson').value = jsonStr;
+            
+            // Also store in localStorage as backup
+            localStorage.setItem('pendingTournament', jsonStr);
+            
+            showStatus('⏳ Sending tournament data to server...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/tournament`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: jsonStr
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    let message = `✓ Tournament "${data.tournament.name}" saved successfully!`;
+                    
+                    if (result.selenium === 'started') {
+                        message += ' Selenium automation is now running in the background.';
+                        showStatus(message, 'success');
+                    } else if (result.selenium === 'script_not_found') {
+                        message += ` Warning: ${result.warning}`;
+                        showStatus(message, 'info');
+                    } else {
+                        message += ' Run the Selenium script manually to create on DigitalPool.';
+                        showStatus(message, 'success');
+                    }
+                    
+                    console.log('Server response:', result);
+                } else {
+                    showStatus(`❌ Error: ${result.error || 'Unknown error'}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                
+                // If server is not running, fall back to download
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    showStatus(
+                        '⚠️ Could not connect to tournament server. Make sure tournament_server.py is running. ' +
+                        'Data saved to localStorage - you can download the JSON file instead.',
+                        'error'
+                    );
+                } else {
+                    showStatus(`❌ Error: ${error.message}`, 'error');
+                }
+            }
+        }
+        
+        // Check if server is available
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/health`, { 
+                    method: 'GET',
+                    timeout: 3000 
+                });
+                if (response.ok) {
+                    console.log('✓ Tournament server is running');
+                    return true;
+                }
+            } catch (e) {
+                console.log('⚠️ Tournament server not available - running in offline mode');
+            }
+            return false;
+        }
+        
+        // Check server on page load
+        checkServerStatus();
+        
+        // Reset form
+        function resetForm() {
+            document.getElementById('tournamentPreset').value = '';
+            document.getElementById('mainForm').classList.remove('show');
+            document.getElementById('summaryPanel').style.display = 'none';
+            document.getElementById('statusMessage').className = 'status-message';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        
+        // Initialize date field
+        document.getElementById('tournamentDate').valueAsDate = new Date();
+    </script>
+</body>
+</html>
