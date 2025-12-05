@@ -1,28 +1,13 @@
 {
-  "scrape_date": "2025-12-04T18:11:36.039042",
+  "scrape_date": "2025-12-05T11:14:19.598320",
   "search_term": "Bankshot Billiards",
-  "most_recent_date": "2025/12/03",
+  "most_recent_date": "2025/12/05",
   "tournaments": [
     {
-      "name": "2025/12/3 Wednesday Night 9-Ball Tournament",
-      "date": "2025/12/03",
-      "url": "https://digitalpool.com/tournaments/2025123-wednesday-night-9-ball-tournament/",
-      "top_3": [
-        {
-          "place": 1,
-          "name": "Jason Bertolo",
-          "split": true
-        },
-        {
-          "place": 1,
-          "name": "Tom Carlisle",
-          "split": true
-        },
-        {
-          "place": 3,
-          "name": "Tony Mougey"
-        }
-      ]
+      "name": "2025/12/05 Friday Night 8-Ball Tournament",
+      "date": "2025/12/05",
+      "url": "https://digitalpool.com/tournaments/2025125-friday-night-8-ball-tournament/",
+      "top_3": []
     }
   ]
 }
