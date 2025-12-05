@@ -2829,8 +2829,19 @@ const GITHUB_CONFIG = {
             if (response.ok) {
                 const data = await response.json();
                 
-                // Check if there's a tournament for today
-                if (data.tournament_name && data.display_tournament) {
+                // Check if there's a tournament for today - MUST verify date matches!
+                const today = new Date();
+                const todayStr = today.getFullYear() + '/' + 
+                    String(today.getMonth() + 1).padStart(2, '0') + '/' + 
+                    String(today.getDate()).padStart(2, '0');
+                
+                const tournamentDateMatches = data.date === todayStr;
+                
+                if (!tournamentDateMatches && data.date) {
+                    console.log('Tournament date mismatch - JSON has:', data.date, 'but today is:', todayStr);
+                }
+                
+                if (data.tournament_name && data.display_tournament && tournamentDateMatches) {
                     // Clean the name (remove date prefix)
                     let cleanName = data.tournament_name.replace(/^\d{4}\/\d{1,2}\/\d{1,2}\s+/, '');
                     
