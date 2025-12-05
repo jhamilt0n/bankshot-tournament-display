@@ -281,6 +281,28 @@
             display: block;
             opacity: 1;
         }
+        
+        /* Live Calcutta takeover */
+        .calcutta-takeover {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10000;
+            display: none;
+        }
+        
+        .calcutta-takeover.active {
+            display: block;
+        }
+        
+        .calcutta-takeover iframe {
+            display: block;
+            opacity: 1;
+            width: 100%;
+            height: 100%;
+        }
     </style>
 </head>
 <body>
@@ -288,6 +310,11 @@
 <div id="loadingScreen">
     <div class="spinner"></div>
     <div class="loading-text">LOADING TOURNAMENT...</div>
+</div>
+
+<!-- Live Calcutta Takeover (fullscreen when active) -->
+<div id="calcuttaTakeover" class="calcutta-takeover">
+    <iframe id="calcuttaLiveFrame" src="" frameborder="0"></iframe>
 </div>
 
 <?php 
@@ -391,6 +418,11 @@ const CALCUTTA_SIDEPOT_DURATION = 40;
 const TOURNAMENT_PLAYER_COUNT = <?php echo $player_count; ?>;
 const TOURNAMENT_FOUND = <?php echo $tournament_found ? 'true' : 'false'; ?>;
 
+// Track live calcutta state
+let liveCalcuttaActive = false;
+let currentCalcuttaKey = null;
+let currentCalcuttaTournament = null;
+
 function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
     if (m.hasEndDate && m.endDate && currentDate > m.endDate) return false;
     
@@ -421,10 +453,69 @@ function shouldDisplayMedia(m, now, currentDay, currentTime, currentDate) {
     return true;
 }
 
+// Check for active live Calcutta and manage takeover
+async function checkLiveCalcutta() {
+    try {
+        const response = await fetch('/save_tournament.php?nocache=' + Date.now());
+        if (!response.ok) return null;
+        
+        const result = await response.json();
+        if (!result.success || !result.data || !result.data.tournaments) {
+            return null;
+        }
+        
+        // Find any tournament with calcuttaActive = true
+        for (const [key, tournament] of Object.entries(result.data.tournaments)) {
+            if (tournament.calcuttaActive === true) {
+                return {
+                    key: key,
+                    name: tournament.tournamentName || 'Tournament',
+                    tournament: tournament
+                };
+            }
+        }
+        
+        return null;
+    } catch (error) {
+        console.error('Error checking live calcutta:', error);
+        return null;
+    }
+}
+
+// Show/hide the calcutta takeover
+function updateCalcuttaTakeover(activeCalcutta) {
+    const takeover = document.getElementById('calcuttaTakeover');
+    const iframe = document.getElementById('calcuttaLiveFrame');
+    
+    if (activeCalcutta) {
+        // Show the live calcutta display
+        if (!liveCalcuttaActive || currentCalcuttaKey !== activeCalcutta.key) {
+            const encodedKey = encodeURIComponent(activeCalcutta.key);
+            const encodedName = encodeURIComponent(activeCalcutta.name);
+            iframe.src = '/calcutta_live.html?key=' + encodedKey + '&tournament=' + encodedName;
+            console.log('🎯 Live Calcutta activated:', activeCalcutta.name);
+        }
+        takeover.classList.add('active');
+        liveCalcuttaActive = true;
+        currentCalcuttaKey = activeCalcutta.key;
+        currentCalcuttaTournament = activeCalcutta.name;
+    } else {
+        // Hide the live calcutta display
+        if (liveCalcuttaActive) {
+            console.log('⏹️ Live Calcutta deactivated');
+            takeover.classList.remove('active');
+            iframe.src = '';
+            liveCalcuttaActive = false;
+            currentCalcuttaKey = null;
+            currentCalcuttaTournament = null;
+        }
+    }
+}
+
 // Fetch active tournaments from local tournament_state.json via save_tournament.php
 async function getActiveDisplays() {
     try {
-        const response = await fetch('/save_tournament.php');
+        const response = await fetch('/save_tournament.php?nocache=' + Date.now());
         if (!response.ok) return { tournaments: [] };
         
         const result = await response.json();
@@ -437,6 +528,11 @@ async function getActiveDisplays() {
         // Process each tournament in the state file
         for (const [key, tournamentData] of Object.entries(result.data.tournaments)) {
             if (!tournamentData.checkedInPlayers || tournamentData.checkedInPlayers.length === 0) {
+                continue;
+            }
+            
+            // Skip if calcutta is currently LIVE (we handle that separately)
+            if (tournamentData.calcuttaActive === true) {
                 continue;
             }
             
@@ -647,6 +743,14 @@ var Dash = {
     display: function() {
         if (Dash.dashboards.length === 0) return;
         
+        // Check if live calcutta is active - if so, skip normal rotation
+        if (liveCalcuttaActive) {
+            setTimeout(function() {
+                Dash.display();
+            }, 5000); // Check again in 5 seconds
+            return;
+        }
+        
         var currentDashboard = Dash.dashboards[this.nextIndex];
         Dash.hideFrame(this.nextIndex - 1);
         
@@ -682,6 +786,12 @@ var Dash = {
 
 window.onload = function() {
     Dash.startup();
+    
+    // Start checking for live calcutta every 2 seconds
+    setInterval(async function() {
+        const activeCalcutta = await checkLiveCalcutta();
+        updateCalcuttaTakeover(activeCalcutta);
+    }, 2000);
 };
 </script>
 

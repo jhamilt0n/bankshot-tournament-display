@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Calcutta Auction</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #1e7e34;
+            --primary-dark: #0d5c26;
+            --sidebar-top: #1a472a;
+            --sidebar-bottom: #0d3320;
+            --gold: #ffd700;
+            --gold-dark: #b8860b;
+            --purchased-bg: #1a3d1a;
+            --purchased-border: #2d5a2d;
+            --unpurchased-bg: rgba(255, 255, 255, 0.03);
+            --unpurchased-border: rgba(255, 255, 255, 0.1);
+            --text-primary: #ffffff;
+            --text-secondary: rgba(255, 255, 255, 0.7);
+            --pool-bg: #2d1f0f;
+            --pool-border: #5c4020;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: linear-gradient(180deg, var(--sidebar-top) 0%, var(--sidebar-bottom) 100%);
+            font-family: 'Roboto', sans-serif;
+            color: var(--text-primary);
+        }
+
+        .container {
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 2vh 3vw;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding-bottom: 2vh;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 2vh;
+            flex-shrink: 0;
+        }
+
+        .tournament-name {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3vw;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+            margin-bottom: 0.5vh;
+        }
+
+        .auction-title {
+            font-family: 'Oswald', sans-serif;
+            font-size: 2vw;
+            font-weight: 600;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+
+        .auction-status {
+            font-family: 'Roboto', sans-serif;
+            font-size: 1vw;
+            color: var(--text-secondary);
+            margin-top: 0.5vh;
+        }
+
+        .auction-status .remaining {
+            color: var(--gold);
+            font-weight: 700;
+        }
+
+        /* Players Grid */
+        .players-wrapper {
+            flex: 1;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .players-container {
+            height: 100%;
+            overflow-y: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        .players-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        .players-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.2vh 1.5vw;
+            padding-bottom: 2vh;
+        }
+
+        /* Player Card */
+        .player-card {
+            background: var(--unpurchased-bg);
+            border: 2px solid var(--unpurchased-border);
+            border-radius: 12px;
+            padding: 1.5vh 1.2vw;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .player-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, transparent 0%, rgba(255, 215, 0, 0.05) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .player-card.purchased {
+            background: var(--purchased-bg);
+            border-color: var(--purchased-border);
+            box-shadow: 0 0 20px rgba(30, 126, 52, 0.3), inset 0 0 30px rgba(30, 126, 52, 0.1);
+        }
+
+        .player-card.purchased::before {
+            opacity: 1;
+            background: linear-gradient(135deg, transparent 0%, rgba(30, 126, 52, 0.15) 100%);
+        }
+
+        .player-card.purchased .sold-badge {
+            display: flex;
+        }
+
+        .player-info {
+            display: flex;
+            align-items: center;
+            gap: 1vw;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .player-rank {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.8vw;
+            color: var(--text-secondary);
+            min-width: 2.5vw;
+            text-align: center;
+        }
+
+        .player-card.purchased .player-rank {
+            color: var(--gold);
+        }
+
+        .player-name {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.5vw;
+            font-weight: 500;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .player-card.purchased .player-name {
+            color: #90EE90;
+        }
+
+        .bid-info {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.3vh;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .player-card.purchased .bid-info {
+            opacity: 1;
+        }
+
+        .bid-amount {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2vw;
+            color: var(--gold);
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.4);
+        }
+
+        .buyer-name {
+            font-family: 'Roboto', sans-serif;
+            font-size: 0.9vw;
+            color: var(--text-secondary);
+            max-width: 12vw;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sold-badge {
+            display: none;
+            position: absolute;
+            top: 0.5vh;
+            right: 0.5vw;
+            background: var(--primary);
+            color: white;
+            font-family: 'Oswald', sans-serif;
+            font-size: 0.7vw;
+            font-weight: 600;
+            padding: 0.2vh 0.5vw;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Pool Card - Special styling */
+        .player-card.pool-card {
+            background: var(--pool-bg);
+            border-color: var(--pool-border);
+            grid-column: span 2;
+        }
+
+        .player-card.pool-card.purchased {
+            background: linear-gradient(135deg, var(--pool-bg) 0%, var(--purchased-bg) 100%);
+            border-color: var(--gold-dark);
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.2);
+        }
+
+        .player-card.pool-card .player-name {
+            font-size: 1.8vw;
+            color: var(--gold);
+        }
+
+        .player-card.pool-card .pool-players {
+            font-size: 0.85vw;
+            color: var(--text-secondary);
+            margin-top: 0.3vh;
+        }
+
+        /* Auto-scroll indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 6vh;
+            background: linear-gradient(to top, var(--sidebar-bottom) 0%, transparent 100%);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .scroll-indicator.visible {
+            opacity: 1;
+        }
+
+        /* Summary Footer */
+        .summary-footer {
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            gap: 4vw;
+            padding-top: 2vh;
+            border-top: 2px solid rgba(255, 255, 255, 0.15);
+            margin-top: 1vh;
+        }
+
+        .summary-stat {
+            text-align: center;
+        }
+
+        .summary-value {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 3vw;
+            color: var(--gold);
+            text-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+        }
+
+        .summary-label {
+            font-family: 'Roboto', sans-serif;
+            font-size: 0.9vw;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Completion overlay */
+        .completion-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+        }
+
+        .completion-overlay.visible {
+            display: flex;
+        }
+
+        .completion-text {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 5vw;
+            color: var(--gold);
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            letter-spacing: 5px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .completion-subtext {
+            font-family: 'Oswald', sans-serif;
+            font-size: 2vw;
+            color: var(--text-secondary);
+            margin-top: 2vh;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.02); }
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            flex-direction: column;
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top-color: var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-family: 'Oswald', sans-serif;
+            font-size: 1.5vw;
+            color: var(--text-secondary);
+            margin-top: 2vh;
+            letter-spacing: 2px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .players-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+            .player-card.pool-card {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="tournament-name" id="tournamentName">Loading...</div>
+            <div class="auction-title">🎯 LIVE CALCUTTA AUCTION</div>
+            <div class="auction-status">
+                <span class="remaining" id="remainingCount">0</span> players remaining
+            </div>
+        </div>
+
+        <div class="players-wrapper">
+            <div class="players-container" id="playersContainer">
+                <div class="loading" id="loadingState">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Loading auction data...</div>
+                </div>
+                <div class="players-grid" id="playersGrid" style="display: none;"></div>
+            </div>
+            <div class="scroll-indicator" id="scrollIndicator"></div>
+        </div>
+
+        <div class="summary-footer">
+            <div class="summary-stat">
+                <div class="summary-value" id="totalBids">$0</div>
+                <div class="summary-label">Total Bids</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-value" id="soldCount">0</div>
+                <div class="summary-label">Sold</div>
+            </div>
+            <div class="summary-stat">
+                <div class="summary-value" id="buyerCount">0</div>
+                <div class="summary-label">Buyers</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="completion-overlay" id="completionOverlay">
+        <div class="completion-text">🏆 AUCTION COMPLETE 🏆</div>
+        <div class="completion-subtext">All players have been sold!</div>
+    </div>
+
+    <script>
+        // Get URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const tournamentKey = urlParams.get('key') || '';
+        const tournamentName = urlParams.get('tournament') || 'Tournament';
+
+        // State
+        let currentPlayers = [];
+        let poolAuction = { buyer: '', bid: 0, paid: false };
+        let lastDataHash = '';
+        let autoScrollEnabled = true;
+        let scrollDirection = 1;
+        let scrollPaused = false;
+
+        // Initialize
+        document.getElementById('tournamentName').textContent = decodeURIComponent(tournamentName);
+
+        // Check if buyer is "Pool"
+        function isPoolBuyer(buyer) {
+            return buyer && buyer.toLowerCase().trim() === 'pool';
+        }
+
+        // Fetch tournament data
+        async function fetchData() {
+            try {
+                const response = await fetch('/save_tournament.php?nocache=' + Date.now());
+                if (!response.ok) throw new Error('Failed to fetch');
+                
+                const result = await response.json();
+                if (!result.success || !result.data || !result.data.tournaments) {
+                    return null;
+                }
+
+                // Find our tournament
+                const tournament = result.data.tournaments[tournamentKey];
+                if (!tournament) return null;
+
+                return tournament;
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                return null;
+            }
+        }
+
+        // Generate hash for change detection
+        function generateHash(data) {
+            return JSON.stringify({
+                players: data.checkedInPlayers?.map(p => ({
+                    id: p.id,
+                    buyer: p.calcuttaBuyer,
+                    bid: p.calcuttaBid
+                })),
+                pool: data.poolAuction,
+                active: data.calcuttaActive
+            });
+        }
+
+        // Render players
+        function renderPlayers(tournament) {
+            const grid = document.getElementById('playersGrid');
+            const loading = document.getElementById('loadingState');
+            
+            // Get paid/late players only, sorted by skill
+            let players = (tournament.checkedInPlayers || [])
+                .filter(p => p.hasPaid || p.isLate)
+                .sort((a, b) => (b.skill || 0) - (a.skill || 0));
+
+            // Separate pool players and regular players
+            const regularPlayers = players.filter(p => !isPoolBuyer(p.calcuttaBuyer));
+            const poolPlayers = players.filter(p => isPoolBuyer(p.calcuttaBuyer));
+
+            currentPlayers = regularPlayers;
+            poolAuction = tournament.poolAuction || { buyer: '', bid: 0, paid: false };
+
+            loading.style.display = 'none';
+            grid.style.display = 'grid';
+
+            let html = '';
+
+            // Render regular players
+            regularPlayers.forEach((player, index) => {
+                const isPurchased = player.calcuttaBuyer && player.calcuttaBid > 0 && !isPoolBuyer(player.calcuttaBuyer);
+                const purchasedClass = isPurchased ? 'purchased' : '';
+
+                html += `
+                    <div class="player-card ${purchasedClass}" data-player-id="${player.id}">
+                        <div class="player-info">
+                            <div class="player-rank">#${index + 1}</div>
+                            <div class="player-name">${escapeHtml(player.name)}</div>
+                        </div>
+                        <div class="bid-info">
+                            <div class="bid-amount">$${player.calcuttaBid || 0}</div>
+                            <div class="buyer-name">${escapeHtml(player.calcuttaBuyer || '')}</div>
+                        </div>
+                        <div class="sold-badge">SOLD</div>
+                    </div>
+                `;
+            });
+
+            // Render pool card if there are pool players
+            if (poolPlayers.length > 0) {
+                const poolPurchased = poolAuction.buyer && poolAuction.bid > 0;
+                const poolClass = poolPurchased ? 'purchased' : '';
+                const poolPlayerNames = poolPlayers.map(p => p.name.split(' ')[0]).join(', ');
+
+                html += `
+                    <div class="player-card pool-card ${poolClass}" data-pool="true">
+                        <div class="player-info">
+                            <div class="player-rank">🎱</div>
+                            <div>
+                                <div class="player-name">THE POOL</div>
+                                <div class="pool-players">${poolPlayers.length} players: ${poolPlayerNames}</div>
+                            </div>
+                        </div>
+                        <div class="bid-info">
+                            <div class="bid-amount">$${poolAuction.bid || 0}</div>
+                            <div class="buyer-name">${escapeHtml(poolAuction.buyer || '')}</div>
+                        </div>
+                        <div class="sold-badge">SOLD</div>
+                    </div>
+                `;
+            }
+
+            grid.innerHTML = html;
+
+            // Update stats
+            updateStats(regularPlayers, poolPlayers);
+
+            // Check for scroll
+            checkScroll();
+
+            // Check if auction is complete
+            checkCompletion(regularPlayers, poolPlayers);
+        }
+
+        // Update statistics
+        function updateStats(regularPlayers, poolPlayers) {
+            // Count sold players (not including pool players since they're in the pool)
+            const soldRegular = regularPlayers.filter(p => 
+                p.calcuttaBuyer && p.calcuttaBid > 0 && !isPoolBuyer(p.calcuttaBuyer)
+            );
+            
+            // Total bids from regular + pool
+            const regularBids = soldRegular.reduce((sum, p) => sum + (p.calcuttaBid || 0), 0);
+            const poolBid = poolAuction.bid || 0;
+            const totalBids = regularBids + poolBid;
+
+            // Count unique buyers
+            const buyers = new Set();
+            soldRegular.forEach(p => {
+                if (p.calcuttaBuyer) buyers.add(p.calcuttaBuyer.toLowerCase());
+            });
+            if (poolAuction.buyer) buyers.add(poolAuction.buyer.toLowerCase());
+
+            // Calculate remaining (players not yet sold + pool if not sold)
+            const unsoldCount = regularPlayers.filter(p => 
+                !p.calcuttaBuyer || p.calcuttaBid <= 0 || isPoolBuyer(p.calcuttaBuyer)
+            ).length;
+            const poolUnsold = poolPlayers.length > 0 && (!poolAuction.buyer || poolAuction.bid <= 0) ? 1 : 0;
+
+            // Sold count includes pool as 1 item if sold
+            const poolSold = poolPlayers.length > 0 && poolAuction.buyer && poolAuction.bid > 0 ? 1 : 0;
+
+            document.getElementById('totalBids').textContent = '$' + totalBids.toLocaleString();
+            document.getElementById('soldCount').textContent = soldRegular.length + poolSold;
+            document.getElementById('buyerCount').textContent = buyers.size;
+            document.getElementById('remainingCount').textContent = unsoldCount + (poolPlayers.length > 0 ? (poolUnsold ? ' + Pool' : '') : '');
+        }
+
+        // Check if scrolling is needed
+        function checkScroll() {
+            const container = document.getElementById('playersContainer');
+            const indicator = document.getElementById('scrollIndicator');
+            
+            if (container.scrollHeight > container.clientHeight) {
+                indicator.classList.add('visible');
+                if (autoScrollEnabled) {
+                    startAutoScroll();
+                }
+            } else {
+                indicator.classList.remove('visible');
+            }
+        }
+
+        // Auto-scroll functionality
+        let scrollInterval = null;
+        function startAutoScroll() {
+            if (scrollInterval) return;
+            
+            const container = document.getElementById('playersContainer');
+            const scrollSpeed = 0.5; // pixels per frame
+            
+            scrollInterval = setInterval(() => {
+                if (scrollPaused) return;
+                
+                const maxScroll = container.scrollHeight - container.clientHeight;
+                
+                if (scrollDirection === 1 && container.scrollTop >= maxScroll - 5) {
+                    scrollDirection = -1;
+                    scrollPaused = true;
+                    setTimeout(() => { scrollPaused = false; }, 3000);
+                } else if (scrollDirection === -1 && container.scrollTop <= 5) {
+                    scrollDirection = 1;
+                    scrollPaused = true;
+                    setTimeout(() => { scrollPaused = false; }, 3000);
+                }
+                
+                container.scrollTop += scrollSpeed * scrollDirection;
+            }, 16);
+        }
+
+        // Check if auction is complete
+        function checkCompletion(regularPlayers, poolPlayers) {
+            const allRegularSold = regularPlayers.every(p => 
+                p.calcuttaBuyer && p.calcuttaBid > 0 && !isPoolBuyer(p.calcuttaBuyer)
+            );
+            
+            const poolSold = poolPlayers.length === 0 || (poolAuction.buyer && poolAuction.bid > 0);
+            
+            if (allRegularSold && poolSold && regularPlayers.length > 0) {
+                // Show completion for 10 seconds, then signal to return to normal display
+                document.getElementById('completionOverlay').classList.add('visible');
+                
+                setTimeout(() => {
+                    // Signal completion by clearing calcuttaActive
+                    signalCompletion();
+                }, 10000);
+            }
+        }
+
+        // Signal auction completion
+        async function signalCompletion() {
+            try {
+                // Mark calcutta as inactive
+                const response = await fetch('/save_tournament.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        tournamentKey: tournamentKey,
+                        calcuttaActive: false
+                    })
+                });
+                console.log('Auction completion signaled');
+            } catch (error) {
+                console.error('Error signaling completion:', error);
+            }
+        }
+
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Main update loop
+        async function update() {
+            const tournament = await fetchData();
+            
+            if (!tournament) {
+                console.log('No tournament data found');
+                return;
+            }
+
+            // Check if calcutta is still active
+            if (tournament.calcuttaActive === false) {
+                console.log('Calcutta is no longer active, page should close');
+                // The index.php will handle hiding this page
+                return;
+            }
+
+            // Check for changes
+            const newHash = generateHash(tournament);
+            if (newHash !== lastDataHash) {
+                lastDataHash = newHash;
+                renderPlayers(tournament);
+            }
+        }
+
+        // Initial load
+        update();
+
+        // Poll for updates every 2 seconds
+        setInterval(update, 2000);
+    </script>
+</body>
+</html>
