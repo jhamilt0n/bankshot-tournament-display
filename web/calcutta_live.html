@@ -302,46 +302,6 @@
             letter-spacing: 1px;
         }
 
-        /* Completion overlay */
-        .completion-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.9);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            flex-direction: column;
-            z-index: 100;
-        }
-
-        .completion-overlay.visible {
-            display: flex;
-        }
-
-        .completion-text {
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 5vw;
-            color: var(--gold);
-            text-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
-            letter-spacing: 5px;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        .completion-subtext {
-            font-family: 'Oswald', sans-serif;
-            font-size: 2vw;
-            color: var(--text-secondary);
-            margin-top: 2vh;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.02); }
-        }
-
         /* Loading state */
         .loading {
             display: flex;
@@ -420,11 +380,7 @@
         </div>
     </div>
 
-    <div class="completion-overlay" id="completionOverlay">
-        <div class="completion-text">🏆 AUCTION COMPLETE 🏆</div>
-        <div class="completion-subtext">Click "Download CSV" or "Stop Calcutta" in the console to close</div>
-    </div>
-
+    
     <script>
         // Get URL parameters
         const urlParams = new URLSearchParams(window.location.search);
@@ -555,9 +511,6 @@
 
             // Check for scroll
             checkScroll();
-
-            // Check if auction is complete
-            checkCompletion(regularPlayers, poolPlayers);
         }
 
         // Update statistics
@@ -634,20 +587,6 @@
                 
                 container.scrollTop += scrollSpeed * scrollDirection;
             }, 16);
-        }
-
-        // Check if auction is complete
-        function checkCompletion(regularPlayers, poolPlayers) {
-            const allRegularSold = regularPlayers.every(p => 
-                p.calcuttaBuyer && p.calcuttaBid > 0 && !isPoolBuyer(p.calcuttaBuyer)
-            );
-            
-            const poolSold = poolPlayers.length === 0 || (poolAuction.buyer && poolAuction.bid > 0);
-            
-            if (allRegularSold && poolSold && regularPlayers.length > 0) {
-                // Show completion overlay - stays until Stop Calcutta or Download CSV is clicked
-                document.getElementById('completionOverlay').classList.add('visible');
-            }
         }
 
         // Escape HTML
