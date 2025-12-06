@@ -1,5 +1,5 @@
 {
-  "scrape_date": "2025-12-05T11:14:19.598320",
+  "scrape_date": "2025-12-06T11:11:29.996167",
   "search_term": "Bankshot Billiards",
   "most_recent_date": "2025/12/05",
   "tournaments": [
@@ -7,7 +7,22 @@
       "name": "2025/12/05 Friday Night 8-Ball Tournament",
       "date": "2025/12/05",
       "url": "https://digitalpool.com/tournaments/2025125-friday-night-8-ball-tournament/",
-      "top_3": []
+      "top_3": [
+        {
+          "place": 1,
+          "name": "Ryan Wills",
+          "split": true
+        },
+        {
+          "place": 1,
+          "name": "Tom Walsh",
+          "split": true
+        },
+        {
+          "place": 3,
+          "name": "Tom Carlisle"
+        }
+      ]
     }
   ]
 }
